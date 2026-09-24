@@ -1,0 +1,9 @@
+/build/
+/dist/
+/site/
+/.venv*/
+/.local/
+__pycache__/
+*.pyc
+/mods/*/
+!/mods/README.md
