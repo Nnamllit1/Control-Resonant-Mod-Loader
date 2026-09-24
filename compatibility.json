@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "profiles": [
+    {
+      "id": "control-resonant-observed-2026-09-24",
+      "executable": "CONTROLResonant.exe",
+      "sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+      "architecture": "x64",
+      "proxy": "xinput1_4.dll",
+      "observed_import_ordinals": [2],
+      "status": "static-inspection-only",
+      "gameplay_bridge": false
+    }
+  ]
+}

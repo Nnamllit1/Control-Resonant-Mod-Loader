@@ -1,0 +1,59 @@
+site_name: CONTROL Resonant Mod Loader
+site_description: Sandboxed WebAssembly mods for CONTROL Resonant — installation, examples, and SDK reference.
+strict: true
+theme:
+  name: material
+  language: en
+  font: false
+  logo: assets/icon.svg
+  favicon: assets/icon.svg
+  palette:
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+extra_css:
+  - stylesheets/theme.css
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+validation:
+  nav:
+    omitted_files: warn
+  links:
+    not_found: warn
+    unrecognized_links: warn
+    anchors: warn
+nav:
+  - Home: index.md
+  - Using mods:
+      - Installation: installation.md
+      - Troubleshooting: troubleshooting.md
+  - Build a mod:
+      - Getting started: developing.md
+      - Package format and API: api.md
+      - Sandbox limits: sandbox.md
+  - Contributing:
+      - Architecture: architecture.md
+      - Gameplay and noclip: gameplay.md
+      - Documentation: documentation.md

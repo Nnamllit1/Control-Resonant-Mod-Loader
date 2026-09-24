@@ -1,0 +1,16 @@
+LIBRARY xinput1_4
+EXPORTS
+    XInputGetState=forward_0 @2
+    XInputSetState=forward_1 @3
+    XInputGetCapabilities=forward_2 @4
+    XInputEnable=forward_3 @5
+    XInputGetBatteryInformation=forward_4 @7
+    XInputGetKeystroke=forward_5 @8
+    XInputGetAudioDeviceIds=forward_6 @10
+    forward_7 @100 NONAME
+    forward_8 @101 NONAME
+    forward_9 @102 NONAME
+    forward_10 @103 NONAME
+    forward_11 @104 NONAME
+    forward_12 @108 NONAME
+    forward_13 @109 NONAME

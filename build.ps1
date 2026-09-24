@@ -1,4 +1,4 @@
-param([ValidateSet('Debug','Release')][string]$Configuration = 'Release', [switch]$Test)
+param([ValidateSet('Debug','Release')][string]$Configuration = 'Release', [switch]$Test, [int]$Jobs = 1)
 $ErrorActionPreference = 'Stop'
 & python "$PSScriptRoot\tools\fetch-deps.py"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -10,7 +10,7 @@ if (-not (Test-Path -LiteralPath $cmake)) { $cmake = (Get-Command cmake -ErrorAc
 $generator = if (([version]$vs.installationVersion).Major -ge 18) { 'Visual Studio 18 2026' } else { 'Visual Studio 17 2022' }
 & $cmake -S $PSScriptRoot -B "$PSScriptRoot\build\native" -G $generator -A x64
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
-& $cmake --build "$PSScriptRoot\build\native" --config $Configuration --parallel
+& $cmake --build "$PSScriptRoot\build\native" --config $Configuration --parallel $Jobs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 if ($Test) {
     $ctest = Join-Path (Split-Path $cmake) 'ctest.exe'

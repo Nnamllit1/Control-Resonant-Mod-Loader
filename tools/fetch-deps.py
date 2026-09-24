@@ -27,7 +27,16 @@ def main():
             target = (deps / entry.filename).resolve()
             if not target.is_relative_to(deps.resolve()):
                 raise SystemExit('Unsafe archive path')
-        source.extractall(deps)
+        for entry in source.infolist():
+            target = deps / entry.filename
+            if entry.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            data = source.read(entry)
+            # Preserve timestamps on verified, unchanged headers for incremental builds.
+            if not target.is_file() or target.read_bytes() != data:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
     print('Wasmtime 49.0.0 verified')
 
 if __name__ == '__main__':

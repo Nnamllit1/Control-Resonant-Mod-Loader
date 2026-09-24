@@ -1,0 +1,25 @@
+# Troubleshooting
+
+## A mod is rejected or disabled
+
+Run `crml_host` against the package directory and read its output. Common causes are a wrong ABI, unknown capability, missing import, invalid callback signature, memory limit, or exhausted fuel. The host exits with status 1 for mod failures and status 2 for host/usage failures.
+
+A tick trap disables only that mod. Remove the package and restart to test the remaining mods. There is no native-DLL fallback.
+
+## No in-game log
+
+Check that `xinput1_4.dll` is beside the executable and that `crml/crml_runtime.dll`, `crml/wasmtime.dll`, and `crml/mods/` exist. The startup route is experimental and only runs when ordinal 2 is called. Missing runtime dependencies or a game build that bypasses this import can prevent startup.
+
+Use the standalone host to distinguish package failures from bootstrap failures. The Windows debug output contains brief loader errors if the trusted runtime cannot load.
+
+## An existing proxy blocks installation
+
+The installer never overwrites another mod's proxy. Resolve ownership of the existing files first. Proxy chaining is not implemented.
+
+## A game update changes the fingerprint
+
+The installer refuses an unrecognized executable. Inspect the new import table and validate it before adding a profile. A new hash by itself is not compatibility testing.
+
+## Shutdown and logs
+
+Close the game before changing DLLs. The bootstrap pins its modules for the process lifetime; unloading them while the worker is running is unsupported. The log is overwritten on each startup and stops growing near its session limit.
