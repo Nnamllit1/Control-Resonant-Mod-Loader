@@ -1,4 +1,8 @@
 site_name: CONTROL Resonant Mod Loader
+site_url: https://nnamllit1.github.io/Control-Resonant-Mod-Loader/
+repo_url: https://github.com/Nnamllit1/Control-Resonant-Mod-Loader
+repo_name: Nnamllit1/Control-Resonant-Mod-Loader
+edit_uri: edit/main/docs/
 site_description: Sandboxed WebAssembly mods for CONTROL Resonant — installation, examples, and SDK reference.
 strict: true
 theme:
