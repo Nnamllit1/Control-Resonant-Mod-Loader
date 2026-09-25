@@ -33,3 +33,5 @@ The runtime worker publishes the panel's visibility and status. Native DirectX 1
 Native code owns input, movement, and UI resources; guests receive status codes and a bounded speed parameter, never raw addresses. The probe records up to 600 diagnostic snapshots and then stops logging. The pinned movement hook remains a pass-through when the feature is off.
 
 See [gameplay and noclip](gameplay.md) for the first integration milestone.
+
+The [engine research tools](engine-research.md) map Pack2 assets, candidate script bindings, and ECS system metadata without loading the runtime into the game.
