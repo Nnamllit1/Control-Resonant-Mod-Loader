@@ -48,7 +48,7 @@ fall::Player active_player() noexcept {
     AcquireSRWLockShared(&sample_lock);
     if(flight.enabled && flight.owner && flight.entity==latest.entity && flight.world==latest.world &&
        latest_tick && now>=latest_tick && now-latest_tick<=500 && now>=flight.lease && now-flight.lease<=500 &&
-       !latest.disabled && !latest.teleported && !latest.keyframed[0] && !latest.keyframed[1])
+       !latest.disabled && !flight.teleport_blocks(latest.teleported) && !latest.keyframed[0] && !latest.keyframed[1])
         player={flight.world,flight.entity};
     ReleaseSRWLockShared(&sample_lock);
     return player;
@@ -75,7 +75,10 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
         case Observation::player:
             inspect_camera(sample.world,sample.camera);
             players.fetch_add(1, std::memory_order_relaxed);
-            if (TryAcquireSRWLockExclusive(&sample_lock)) {
+            // Never fall back to colliding movement merely because the worker is
+            // reading diagnostics. All holders release before calling game code.
+            AcquireSRWLockExclusive(&sample_lock);
+            {
                 latest = sample;
                 latest_thread = GetCurrentThreadId();
                 latest_tick = GetTickCount64();
@@ -83,10 +86,11 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
                     std::array<float,3> target{};
                     const Direction keys{float(down('D'))-float(down('A')), float(down(VK_SPACE))-float(down(VK_CONTROL)), float(down('W'))-float(down('S')), down(VK_SHIFT)};
                     const auto direction=camera_relative(keys,sample.camera);
-                    if (flight.step(sample, sample.world, latest_tick, focused() && !down(VK_ESCAPE), direction, target)) {
+                    if(down(VK_ESCAPE)) flight.reset(StopReason::escape,latest_tick,&sample);
+                    if (flight.step(sample, sample.world, latest_tick, focused(), direction, target)) {
                         override_movement = replacement.prepare(view, sample, target);
                         if (override_movement) overrides.fetch_add(1, std::memory_order_relaxed);
-                        if (!override_movement) flight.reset();
+                        if (!override_movement) flight.reset(StopReason::view,latest_tick,&sample);
                     }
                 }
                 ReleaseSRWLockExclusive(&sample_lock);
@@ -165,7 +169,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
     gameplay_ = noclip_requested && fall::start(image_base,&active_player) && input::start(&input_active);
     gameplay_enabled.store(gameplay_);
     if (gameplay_) overlay_ = overlay_create();
-    output_ << "{\"schema\":4,\"mode\":\"" << (gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
+    output_ << "{\"schema\":7,\"mode\":\"" << (gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
     output_.flush();
     if(noclip_requested && !gameplay_) return "Experimental noclip refused: input or fall-recovery hook unavailable; movement probe remains read-only";
     return gameplay_ ? "Experimental noclip bridge armed; requires player.noclip Wasm mod and F6. Live gameplay unverified."
@@ -177,8 +181,11 @@ void Recorder::poll() {
         const auto now = GetTickCount64();
         const bool foreground = focused();
         AcquireSRWLockExclusive(&sample_lock);
-        if (!foreground || !latest_tick || now-latest_tick > 500 || (flight.enabled && now-flight.lease > 500) || down(VK_ESCAPE)) flight.reset();
-        const int state = !foreground || !latest_tick || now-latest_tick > 500 || !last_poll || now-last_poll > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1] ||
+        if (!foreground) flight.reset(StopReason::focus,now,&latest);
+        else if(down(VK_ESCAPE)) flight.reset(StopReason::escape,now,&latest);
+        else if(!latest_tick || now-latest_tick>500) flight.reset(StopReason::stale_sample,now,&latest);
+        else if(flight.enabled && now-flight.lease>500) flight.reset(StopReason::lease,now,&latest);
+        const int state = !foreground || !latest_tick || now-latest_tick > 500 || !last_poll || now-last_poll > 500 || latest.disabled || flight.teleport_blocks(latest.teleported) || latest.keyframed[0] || latest.keyframed[1] ||
                           (!flight.enabled && !fall::available({latest.world,latest.entity})) ? -1 : flight.enabled ? 1 : 0;
         const bool camera_valid=latest.camera.valid;
         ReleaseSRWLockExclusive(&sample_lock);
@@ -192,11 +199,15 @@ void Recorder::poll() {
     std::array<float,3> target{}, controller_result{};
     uint64_t outcome_tick{};
     bool outcome_valid{};
+    FlightStop stopped{};
+    TeleportRestore restored{};
     AcquireSRWLockShared(&sample_lock);
     sample = latest;
     thread = latest_thread;
     tick = latest_tick;
     enabled = flight.enabled;
+    stopped=flight.stopped;
+    restored=flight.restored;
     target=last_target; controller_result=last_controller_result; outcome_tick=result_tick; outcome_valid=result_valid;
     ReleaseSRWLockShared(&sample_lock);
     const auto graphics=overlay_diagnostics();
@@ -205,12 +216,22 @@ void Recorder::poll() {
             << ",\"overrides\":" << overrides.load() << ",\"noclip_active\":" << (enabled ? "true" : "false")
             << ",\"input_consumed\":" << input::consumed() << ",\"fall_checks_skipped\":" << fall::skipped_checks()
             << ",\"boundary_targets_skipped\":" << fall::skipped_triggers()
+            << ",\"fall_monitors_skipped\":" << fall::skipped_monitors() << ",\"fall_actions_skipped\":" << fall::skipped_fall_actions()
+            << ",\"active_recoveries_skipped\":" << fall::skipped_active_recoveries()
+            << ",\"fall_camera_overrides\":" << fall::camera_overrides() << ",\"fall_camera_clear_requests\":" << fall::camera_clear_requests()
             << ",\"thread\":" << thread << ",\"sample_age_ms\":" << (tick ? GetTickCount64() - tick : 0)
             << ",\"entity\":" << sample.entity << ",\"row\":" << sample.row;
     output_ << ",\"overlay\":{\"status\":\"" << graphics.status << "\",\"presents\":" << graphics.presents
             << ",\"frames\":" << graphics.frames << ",\"queue_matches\":" << graphics.queue_matches << "},\"rejections\":{";
     for(size_t i=0;i<rejected.size();++i) { if(i) output_ << ','; output_ << '\"' << rejection_names[i] << "\":" << rejected[i].load(); }
     output_ << '}';
+    output_ << ",\"last_stop\":{\"reason\":\"" << stop_names[static_cast<size_t>(stopped.reason)]
+            << "\",\"count\":" << stopped.count << ",\"tick_ms\":" << stopped.tick << ",\"entity\":" << stopped.entity
+            << std::setprecision(9) << ",\"requested\":[" << stopped.requested[0] << ',' << stopped.requested[1] << ',' << stopped.requested[2]
+            << "],\"observed\":[" << stopped.observed[0] << ',' << stopped.observed[1] << ',' << stopped.observed[2] << "]}";
+    output_ << ",\"teleport_restores\":{\"count\":" << restored.count << ",\"tick_ms\":" << restored.tick
+            << ",\"requested\":[" << restored.requested[0] << ',' << restored.requested[1] << ',' << restored.requested[2]
+            << "],\"observed\":[" << restored.observed[0] << ',' << restored.observed[1] << ',' << restored.observed[2] << "]}";
     output_ << ",\"camera_valid\":" << (sample.camera.valid?"true":"false") << ",\"camera_entity\":" << sample.camera.entity
             << ",\"teleported\":" << unsigned(sample.teleported)
             << ",\"last_override\":{\"valid\":" << (outcome_valid?"true":"false") << ",\"age_ms\":" << (outcome_tick?GetTickCount64()-outcome_tick:0)
@@ -237,14 +258,16 @@ int Recorder::noclip_poll(uint64_t owner, float speed) noexcept {
     AcquireSRWLockExclusive(&sample_lock);
     int result = 0;
     bool activated=false;
-    if (!focused() || !latest_tick || now-latest_tick > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1] ||
+    if (!focused() || !latest_tick || now-latest_tick > 500 || latest.disabled || flight.teleport_blocks(latest.teleported) || latest.keyframed[0] || latest.keyframed[1] ||
         (!flight.enabled && !fall::available({latest.world,latest.entity}))) {
-        flight.reset(); result = -1;
+        const auto reason=!focused()?StopReason::focus:!latest_tick || now-latest_tick>500?StopReason::stale_sample:
+                          latest.disabled?StopReason::disabled:latest.teleported?StopReason::teleport:StopReason::keyframed;
+        flight.reset(reason,now,&latest); result = -1;
     } else if (flight.owner && flight.owner != owner) result = -2;
     else {
         last_poll = now;
         if (pressed) {
-            if (flight.enabled) flight.reset();
+            if (flight.enabled) flight.reset(StopReason::toggle,now,&latest);
             else {
                 flight.owner=owner; flight.entity=latest.entity; flight.world=latest.world;
                 flight.enabled=true; flight.last_step=0;
@@ -260,13 +283,13 @@ int Recorder::noclip_poll(uint64_t owner, float speed) noexcept {
 
 void Recorder::release(uint64_t owner) noexcept {
     AcquireSRWLockExclusive(&sample_lock);
-    if (flight.owner == owner) { flight.reset(); last_poll = 0; }
+    if (flight.owner == owner) { flight.reset(StopReason::mod_release,GetTickCount64(),&latest); last_poll = 0; }
     ReleaseSRWLockExclusive(&sample_lock);
 }
 
 Recorder::~Recorder() {
     recording.store(false); gameplay_enabled.store(false);
-    AcquireSRWLockExclusive(&sample_lock); flight.reset(); ReleaseSRWLockExclusive(&sample_lock);
+    AcquireSRWLockExclusive(&sample_lock); flight.reset(StopReason::shutdown,GetTickCount64(),&latest); ReleaseSRWLockExclusive(&sample_lock);
     overlay_destroy(overlay_);
 }
 }

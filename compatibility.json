@@ -29,6 +29,13 @@
         "keyboard_isolation_verified": false,
         "fall_and_boundary_reset_suppression_implemented": true,
         "fall_and_boundary_reset_suppression_verified": false,
+        "fall_reset_suppression_reported": true,
+        "fall_monitor_suppression_implemented": true,
+        "white_fog_suppression_verified": false,
+        "active_recovery_guard_implemented": true,
+        "fall_camera_cleanup_implemented": true,
+        "same_world_teleport_restoration_implemented": true,
+        "same_world_teleport_restoration_verified": false,
         "requires_opt_in": true
       }
     }
