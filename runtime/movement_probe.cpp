@@ -178,7 +178,8 @@ void Recorder::poll() {
         const bool foreground = focused();
         AcquireSRWLockExclusive(&sample_lock);
         if (!foreground || !latest_tick || now-latest_tick > 500 || (flight.enabled && now-flight.lease > 500) || down(VK_ESCAPE)) flight.reset();
-        const int state = !foreground || !latest_tick || now-latest_tick > 500 || !last_poll || now-last_poll > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1] ? -1 : flight.enabled ? 1 : 0;
+        const int state = !foreground || !latest_tick || now-latest_tick > 500 || !last_poll || now-last_poll > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1] ||
+                          (!flight.enabled && !fall::available({latest.world,latest.entity})) ? -1 : flight.enabled ? 1 : 0;
         const bool camera_valid=latest.camera.valid;
         ReleaseSRWLockExclusive(&sample_lock);
         overlay_update(overlay_, foreground, state, camera_valid);
@@ -236,19 +237,19 @@ int Recorder::noclip_poll(uint64_t owner, float speed) noexcept {
     AcquireSRWLockExclusive(&sample_lock);
     int result = 0;
     bool activated=false;
-    if (!focused() || !latest_tick || now-latest_tick > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1]) {
+    if (!focused() || !latest_tick || now-latest_tick > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1] ||
+        (!flight.enabled && !fall::available({latest.world,latest.entity}))) {
         flight.reset(); result = -1;
     } else if (flight.owner && flight.owner != owner) result = -2;
     else {
         last_poll = now;
         if (pressed) {
             if (flight.enabled) flight.reset();
-            else if(fall::available({latest.world,latest.entity})) {
+            else {
                 flight.owner=owner; flight.entity=latest.entity; flight.world=latest.world;
                 flight.enabled=true; flight.last_step=0;
                 activated=true;
             }
-            else result=-1;
         }
         if (flight.enabled) { flight.lease=now; flight.speed=speed; result=1; }
     }

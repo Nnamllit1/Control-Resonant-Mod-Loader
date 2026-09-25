@@ -5,7 +5,7 @@
 <p class="crml-intro">A mod framework for CONTROL Resonant. Build small, sandboxed mods against a versioned API, with a native loader handling the connection to the game.</p>
 
 !!! warning "Early development"
-    The sandbox and proxy pass automated tests, and the hello mod has loaded in the recorded game build. An opt-in noclip prototype and status overlay are available for testing. Wall and ceiling traversal have been reported in gameplay. Floor descent, camera-heading controls, restoration, controller input, and clean shutdown still need verification.
+    The sandbox and proxy pass automated tests, and the hello mod has loaded in the recorded game build. An opt-in noclip prototype and status overlay are available for testing. Wall and ceiling traversal have been reported in gameplay. Floor descent, camera-heading controls, input isolation, boundary-reset suppression, restoration, controller input, and clean shutdown still need verification.
 
 ## Start here
 

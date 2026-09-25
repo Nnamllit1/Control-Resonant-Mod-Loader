@@ -124,6 +124,8 @@ bool start(Active callback) noexcept {
     return true;
 }
 void release_held(HWND window) noexcept {
+    DWORD process{};
+    if(!window || !GetWindowThreadProcessId(window,&process) || process!=GetCurrentProcessId()) return;
     // Release cached legacy actions even when a key was held before F6. Physical
     // state is untouched: the noclip bridge continues polling GetAsyncKeyState.
     for(auto key:keys) {

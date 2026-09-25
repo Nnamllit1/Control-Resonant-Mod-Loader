@@ -57,7 +57,8 @@ bool available(Player player) noexcept {
     __try {
         uintptr_t chunk{}; uint32_t row{};
         const auto component=data(player,chunk,row);
-        // Do not enter noclip once a respawn or its fade/transition is underway.
+        // Match the inactive update's eligibility and reject pending recovery,
+        // fade, and transition flags before taking ownership.
         return component && !read<uint8_t>(component+0xe4) && !(read<uint8_t>(component+0xe5)&7);
     } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return false; }
 }

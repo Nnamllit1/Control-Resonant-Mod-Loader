@@ -20,6 +20,12 @@ The installer never overwrites another mod's proxy. Resolve ownership of the exi
 
 The installer refuses an unrecognized executable. Inspect the new import table and validate it before adding a profile. A new hash by itself is not compatibility testing.
 
+## Noclip still jumps or resets at a boundary
+
+Confirm the panel shows ON and the first line of `crml/movement-probe.jsonl` reports schema 4. If the log reports an unavailable input or fall-recovery hook, noclip stays disabled. Close the game and install the latest experimental build before retrying.
+
+The log includes `input_consumed`, `fall_checks_skipped`, and `boundary_targets_skipped` counters. Report both logs and whether the panel changed to OFF when the problem occurred. A boundary reset after disabling noclip is expected; normal recovery resumes at the current position. Scripted transitions and deaths may still interrupt flight.
+
 ## Shutdown and logs
 
 Close the game before changing DLLs. The bootstrap pins its modules for the process lifetime; unloading them while the worker is running is unsupported. The log is overwritten on each startup and stops growing near its session limit.

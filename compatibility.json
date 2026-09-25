@@ -25,6 +25,10 @@
         "wall_and_ceiling_traversal_reported": true,
         "floor_descent_verified": false,
         "camera_heading_verified": false,
+        "keyboard_isolation_implemented": true,
+        "keyboard_isolation_verified": false,
+        "fall_and_boundary_reset_suppression_implemented": true,
+        "fall_and_boundary_reset_suppression_verified": false,
         "requires_opt_in": true
       }
     }

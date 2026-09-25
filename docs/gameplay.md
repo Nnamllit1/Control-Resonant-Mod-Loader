@@ -1,6 +1,6 @@
 # Gameplay and noclip
 
-**Status: experimental. Wall and ceiling traversal have been reported in gameplay. The latest floor-descent and camera-heading changes await in-game verification.**
+**Status: experimental. Wall and ceiling traversal have been reported in gameplay. Floor descent, camera-heading controls, input isolation, and boundary-reset suppression still need in-game verification.**
 
 The prototype targets the controlled character through the game's character-controller movement routine. Private per-call arguments supply the requested transform, select keyframed movement, and suppress the subsequent contact/push pass. Flight retains its requested position across small ground corrections. Original component values stay intact, so subsequent normal calls resume movement. Native tests cover argument isolation and automatic cancellation; they do not replace in-game traversal tests.
 
@@ -29,10 +29,15 @@ Use a disposable save or a backed-up save for the first test. Launch normally th
 
 The example requests 5 world units per second. Looking up or down does not change altitude when using WASD; Space/Ctrl controls altitude separately. If the camera cannot be validated, the panel indicates that only vertical movement is available. The status panel is informational and does not take mouse or keyboard focus. Controller support, a clickable panel, and a speed slider remain future work. Camera collision can still pull the view around when the player passes through geometry.
 
+While noclip is active, the bridge consumes WASD, Space, Ctrl, and Shift before they reach normal keyboard actions. Space should raise the player without jumping, and Ctrl should lower them without activating its normal action. Mouse look, F6, Escape, and other keys remain available. This filtering ends with the movement lease; it does not change the operating system's physical keyboard state or add gamepad support.
+
+The bridge also bypasses the player's fall-recovery checks and excludes that player from boundary-reset trigger targets while noclip is active. The fall check does not record new safe positions during flight. NPCs and ordinary scripted teleports remain under game control. Return to a safe area before switching noclip off: normal fall recovery resumes immediately, including resets when the player is still outside the level. This is not invulnerability or a bypass for every scripted level restriction.
+
 1. Confirm the overlay shows OFF. If it stays UNAVAILABLE, inspect `crml/crml.log` and `crml/movement-probe.jsonl` instead of repeatedly toggling.
 2. Press F6 and move a short distance in open space. Rotate the camera and check all four WASD directions. Check ascent and descent, including descending through a floor and returning upward through it.
-3. Cross a nearby wall, return to open space above solid ground, and press F6 again. Check walking, jumping, gravity, and collision afterward.
-4. Test Escape, alt-tab, pause/resume, and save reload. Report the first step that fails along with both logs. Do not save while inside geometry or outside the level.
+3. Hold Space and Ctrl separately and confirm their normal character actions do not activate. Check mouse look and try toggling F6 while a movement key is held.
+4. Fly below the level and across a boundary that previously reset the player. Check that noclip remains active. Return to open space above solid ground, then press F6 again and check walking, jumping, gravity, and collision.
+5. Test Escape, alt-tab, pause/resume, and save reload. Report the first step that fails along with both logs. Do not save while inside geometry or outside the level.
 
 The native bridge cancels its override on focus loss, Escape, a missing mod heartbeat for 500 ms, changed player/world identity, an engine teleport or keyframing, a displacement exceeding 5 units from the requested position, or a controller-update gap exceeding 250 ms. Cancellation returns control to the game at the current position; it does not rewind to the activation point. Menus, death, cutscenes, and streaming transitions still require live testing.
 
@@ -42,11 +47,14 @@ The bridge checks the executable SHA-256, hook bytes, entity generation, player 
 
 The runtime handle comes from the entity chunk header. The `GlobalID` component identifies persistent content and is not interchangeable with that handle. Earlier experimental builds confused these values, causing every sample to be rejected even though the Steam launch successfully loaded the mod.
 
-Diagnostic schema 3 includes validation counters, graphics status, camera availability, and the most recent movement result:
+Diagnostic schema 4 includes validation counters, graphics status, camera availability, input/reset filtering, and the most recent movement result:
 
 | Field or value | Meaning |
 | --- | --- |
 | `player_samples` | Valid observations of the player |
+| `input_consumed` | Keyboard messages or raw key-down events converted to releases or neutral messages |
+| `fall_checks_skipped` | Player fall-recovery updates bypassed during noclip; these are checks, not confirmed reset attempts |
+| `boundary_targets_skipped` | Valid player targets excluded from boundary-reset trigger queries |
 | `camera_valid` / `camera_entity` | Validated camera basis used for horizontal movement |
 | `last_override.target` | Requested noclip position |
 | `last_override.controller_result` | Controller position read after the movement routine returned |
@@ -68,7 +76,7 @@ For observation without a movement feature, build with `-MovementProbe` (an alia
 
 ## Remaining integration work
 
-1. Verify camera-heading controls and floor traversal in gameplay.
+1. Verify camera-heading controls, floor traversal, keyboard isolation, and boundary-reset suppression in gameplay.
 2. Validate restoration of normal walking, jumping, gravity, and collision.
 3. Verify transitions across menus, loading, death, cutscenes, and player replacement.
 4. Improve camera collision behavior and add a bounded UI control API.

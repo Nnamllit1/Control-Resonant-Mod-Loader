@@ -48,4 +48,4 @@ Requires `player.noclip`. Call on each worker heartbeat to keep the mod's native
 
 Returns `1` when enabled, `0` when off, `-1` when unavailable, or `-2` when another mod owns the override. The standalone host returns `-1`. Native cleanup releases ownership on load failure, traps, shutdown, and runtime destruction, independently of a guest shutdown export. Guests cannot provide addresses, native callbacks, arbitrary key codes, or entity IDs.
 
-The host handles movement keys and the status panel; this is not a general UI or keyboard API. See the [test guide and limitations](gameplay.md).
+The host handles movement keys and the status panel; this is not a general UI or keyboard API. While the lease is active, it consumes the fixed noclip keyboard controls and suppresses player fall/boundary recovery. Both end when the lease is released or expires. Ordinary teleports still cancel noclip. See the [test guide and limitations](gameplay.md).
