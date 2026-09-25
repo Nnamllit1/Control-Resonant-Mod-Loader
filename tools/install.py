@@ -19,15 +19,18 @@ NOCLIP_FILES = {'crml/noclip.enabled': 'examples/noclip/noclip.enabled',
                 'crml/mods/noclip/noclip.wasm': 'examples/noclip/noclip.wasm'}
 
 
-def sources_for(dist, experimental_noclip=False):
+def sources_for(dist, experimental_noclip=False, entity_inspector=False):
     sources = {name: dist / name for name in FILES}
     sources['crml/licenses/wasmtime.txt'] = dist / 'licenses/wasmtime/LICENSE'
     sources.update({name: dist / source for name, source in OPTIONAL_FILES.items() if (dist / source).is_file()})
-    if experimental_noclip:
+    if experimental_noclip or entity_inspector:
         features = json.loads((dist / 'crml/build-features.json').read_text(encoding='utf-8-sig'))
         if features.get('experimental_gameplay') is not True:
             raise ValueError('Rebuild with -ExperimentalGameplay before installing experimental noclip')
-        sources.update({name: dist / source for name, source in NOCLIP_FILES.items()})
+        if experimental_noclip:
+            sources.update({name: dist / source for name, source in NOCLIP_FILES.items()})
+        if entity_inspector:
+            sources['crml/entity-inspector.enabled'] = dist / 'crml/entity-inspector.enabled'
     return sources
 
 
@@ -89,7 +92,7 @@ def checked_path(root, relative):
             raise ValueError(f'Linked installation path: {relative}')
     return path
 
-def install(game, dist, profiles, apply=False, experimental_noclip=False):
+def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False):
     game = game.resolve(strict=True)
     executable = game / 'CONTROLResonant.exe'
     actual = digest(executable)
@@ -100,7 +103,7 @@ def install(game, dist, profiles, apply=False, experimental_noclip=False):
         path = checked_path(game, relative)
         if path.exists():
             raise ValueError(f'Refusing existing {relative}; no files overwritten')
-    sources = sources_for(dist, experimental_noclip)
+    sources = sources_for(dist, experimental_noclip, entity_inspector)
     hashes = {name: digest(path) for name, path in sources.items()}
     print('Experimental profile: ' + profile.get('status', 'unverified'))
     if experimental_noclip:
@@ -169,13 +172,13 @@ def uninstall(game, apply=False):
     checked_path(game, RECEIPT).unlink()
     print('Removed owned files. Additional mods, logs, and directories were preserved.')
 
-def update(game, dist, profiles, apply=False, experimental_noclip=False):
+def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False):
     game = game.resolve(strict=True)
     receipt = read_receipt(game)
     actual = digest(game / 'CONTROLResonant.exe')
     if actual != receipt.get('executable_sha256') or not any(p['sha256'] == actual and p['executable'] == 'CONTROLResonant.exe' for p in profiles):
         raise ValueError('Unknown game fingerprint; update refused')
-    sources = sources_for(dist, experimental_noclip)
+    sources = sources_for(dist, experimental_noclip, entity_inspector)
     hashes = {name: digest(source) for name, source in sources.items()}
     changes = {name: source for name, source in sources.items() if receipt['files'].get(name) != hashes[name]}
     for name in changes:
@@ -244,6 +247,7 @@ def main():
     mode.add_argument('--uninstall', action='store_true')
     mode.add_argument('--update', action='store_true')
     parser.add_argument('--experimental-noclip', action='store_true', help='Install the opt-in experimental noclip example and enable its native bridge')
+    parser.add_argument('--entity-inspector', action='store_true', help='Enable read-only player inspection; takes precedence over noclip at runtime')
     args = parser.parse_args()
     try:
         if args.uninstall:
@@ -251,7 +255,7 @@ def main():
         else:
             profiles = json.loads((ROOT / 'compatibility.json').read_text())['profiles']
             action = update if args.update else install
-            action(args.game, args.dist, profiles, args.apply, args.experimental_noclip)
+            action(args.game, args.dist, profiles, args.apply, args.experimental_noclip, args.entity_inspector)
     except (OSError, ValueError, KeyError) as error:
         parser.exit(1, f'{error}\n')
 

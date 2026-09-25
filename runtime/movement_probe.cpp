@@ -1,5 +1,6 @@
 #include "movement_probe.h"
 #include "movement_view.h"
+#include "entity_inspector.h"
 #include "noclip.h"
 #include "overlay.h"
 #include "input_filter.h"
@@ -25,6 +26,10 @@ std::atomic<uint64_t> overrides{};
 std::array<std::atomic<uint64_t>, static_cast<size_t>(Rejection::count)> rejected{};
 SRWLOCK sample_lock = SRWLOCK_INIT;
 Sample latest{};
+EntitySnapshot latest_entity{};
+std::atomic<bool> inspecting{};
+uint64_t entity_tick{};
+DWORD entity_thread{};
 DWORD latest_thread{};
 uint64_t latest_tick{};
 std::array<float,3> last_target{}, last_controller_result{};
@@ -79,6 +84,11 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
             // reading diagnostics. All holders release before calling game code.
             AcquireSRWLockExclusive(&sample_lock);
             {
+                const auto now=GetTickCount64();
+                if(inspecting.load(std::memory_order_relaxed) && (!entity_tick || now-entity_tick>=1000)) {
+                    inspect_entity(sample,latest_entity);
+                    entity_tick=now; entity_thread=GetCurrentThreadId();
+                }
                 latest = sample;
                 latest_thread = GetCurrentThreadId();
                 latest_tick = GetTickCount64();
@@ -143,8 +153,9 @@ std::string fingerprint(const std::filesystem::path& path) {
 }
 
 std::string Recorder::start(const std::filesystem::path& root) {
-    const bool noclip_requested = std::filesystem::is_regular_file(root / "noclip.enabled");
-    if (!noclip_requested && !std::filesystem::is_regular_file(root / "movement-probe.enabled")) return "Experimental gameplay and movement probe disabled";
+    const bool inspector_requested=std::filesystem::is_regular_file(root / "entity-inspector.enabled");
+    const bool noclip_requested = !inspector_requested && std::filesystem::is_regular_file(root / "noclip.enabled");
+    if (!inspector_requested && !noclip_requested && !std::filesystem::is_regular_file(root / "movement-probe.enabled")) return "Experimental gameplay and movement probe disabled";
     wchar_t executable[32768]{};
     const auto length = GetModuleFileNameW(nullptr, executable, 32768);
     if (!length || length >= 32768 || fingerprint(executable) != "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0")
@@ -155,6 +166,12 @@ std::string Recorder::start(const std::filesystem::path& root) {
     if (std::memcmp(target, signature, sizeof(signature)) != 0) return "Movement probe refused: movement routine changed or already hooked";
     output_.open(root / "movement-probe.jsonl", std::ios::trunc);
     if (!output_) return "Movement probe refused: cannot open diagnostic log";
+    if(inspector_requested) {
+        entity_output_.open(root / "entity-inspector.jsonl",std::ios::trunc);
+        if(!entity_output_) { output_.close(); return "Entity inspector refused: cannot open log"; }
+        entity_output_ << "{\"schema\":1,\"mode\":\"read-only-player\",\"phase\":\"before-controller-update\",\"sha256\":\"2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0\"}\n";
+        inspecting.store(true);
+    }
     auto status = MH_Initialize();
     if (status == MH_OK) status = MH_CreateHook(target, reinterpret_cast<void*>(&movement), reinterpret_cast<void**>(&original));
     if (status == MH_OK) {
@@ -163,6 +180,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
     }
     if (status != MH_OK) {
         recording.store(false);
+        inspecting.store(false); entity_output_.close();
         output_.close();
         return std::string("Movement probe refused: ") + MH_StatusToString(status);
     }
@@ -172,6 +190,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
     output_ << "{\"schema\":7,\"mode\":\"" << (gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
     output_.flush();
     if(noclip_requested && !gameplay_) return "Experimental noclip refused: input or fall-recovery hook unavailable; movement probe remains read-only";
+    if(inspector_requested) return "Read-only player entity inspector active; noclip disabled for this session";
     return gameplay_ ? "Experimental noclip bridge armed; requires player.noclip Wasm mod and F6. Live gameplay unverified."
                      : "Movement probe active; observing controller calls without changing gameplay";
 }
@@ -201,6 +220,9 @@ void Recorder::poll() {
     bool outcome_valid{};
     FlightStop stopped{};
     TeleportRestore restored{};
+    EntitySnapshot entity_snapshot{};
+    uint64_t snapshot_tick{};
+    DWORD snapshot_thread{};
     AcquireSRWLockShared(&sample_lock);
     sample = latest;
     thread = latest_thread;
@@ -208,8 +230,14 @@ void Recorder::poll() {
     enabled = flight.enabled;
     stopped=flight.stopped;
     restored=flight.restored;
+    entity_snapshot=latest_entity; snapshot_tick=entity_tick; snapshot_thread=entity_thread;
     target=last_target; controller_result=last_controller_result; outcome_tick=result_tick; outcome_valid=result_valid;
     ReleaseSRWLockShared(&sample_lock);
+    if(entity_output_ && snapshot_tick && snapshot_tick!=last_entity_report_) {
+        write_entity_snapshot(entity_output_,entity_snapshot,snapshot_tick,snapshot_thread);
+        entity_output_.flush(); last_entity_report_=snapshot_tick;
+        if(!entity_output_) inspecting.store(false);
+    }
     const auto graphics=overlay_diagnostics();
     output_ << "{\"calls\":" << calls.load() << ",\"invalid\":" << invalid.load()
             << ",\"other_entities\":" << others.load() << ",\"player_samples\":" << players.load()
@@ -245,6 +273,7 @@ void Recorder::poll() {
     // Bound recording time and disk use. The pinned trampoline remains a pass-through until exit.
     if (!output_ || ++reports_ >= 600) {
         recording.store(false);
+        inspecting.store(false); entity_output_.close();
         output_.close();
     }
 }
@@ -288,6 +317,7 @@ void Recorder::release(uint64_t owner) noexcept {
 }
 
 Recorder::~Recorder() {
+    inspecting.store(false);
     recording.store(false); gameplay_enabled.store(false);
     AcquireSRWLockExclusive(&sample_lock); flight.reset(StopReason::shutdown,GetTickCount64(),&latest); ReleaseSRWLockExclusive(&sample_lock);
     overlay_destroy(overlay_);

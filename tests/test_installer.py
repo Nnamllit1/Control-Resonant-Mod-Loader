@@ -13,6 +13,17 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def test_inspector_requires_build_support(self):
+        features=self.dist / 'crml/build-features.json'
+        features.write_text('{"experimental_gameplay": false}')
+        with self.assertRaises(ValueError):
+            installer.sources_for(self.dist, entity_inspector=True)
+        features.write_text('{"experimental_gameplay": true}')
+        marker=self.dist / 'crml/entity-inspector.enabled'
+        marker.write_text('')
+        sources=installer.sources_for(self.dist, entity_inspector=True)
+        self.assertEqual(sources['crml/entity-inspector.enabled'],marker)
+        self.assertNotIn('crml/noclip.enabled',sources)
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT / 'build')
         self.root = Path(self.temp.name)

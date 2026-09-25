@@ -1,4 +1,5 @@
 #include "movement_view.h"
+#include "entity_inspector.h"
 #include "noclip.h"
 #include "fall_guard.h"
 #include <cmath>
@@ -85,6 +86,25 @@ __declspec(noinline) void target(void* a,void* b,void* c,void* d,void* e,void* f
 void detour(void* a,void* b,void* c,void* d,void* e,void* f) { ++intercepted; trampoline(a,b,c,d,e,f); }
 int main() {
     try {
+        {
+            Fixture f(3); Sample s{}; require(f.inspect(s)==Observation::player,"Inspector fixture failed");
+            const auto before=f.chunk;
+            crml::probe::EntitySnapshot snapshot{};
+            require(crml::probe::inspect_entity(s,snapshot) && snapshot.count==11 && snapshot.archetype==1,
+                    "Component inventory failed");
+            require(snapshot.player.world==0 && before==f.chunk,"Inspector retained world or changed entity");
+            std::vector<unsigned char> static_hashes(4);
+            put(static_hashes,0,uint32_t{0x1fda8b03});
+            put(f.hashes,0,uint32_t{0x1fda8b03});
+            require(crml::probe::inspect_entity(s,snapshot) && snapshot.components[0].hash==0x1fda8b03,
+                    "Component identity not copied");
+            put(f.generations,16,uint32_t{8});
+            require(!crml::probe::inspect_entity(s,snapshot) && !snapshot.valid && snapshot.count==0,
+                    "Stale inspector entity accepted");
+            put(f.generations,16,uint32_t{7});
+            put(f.world,(1+0xc22)*32+0x24,uint32_t{2049});
+            require(!crml::probe::inspect_entity(s,snapshot),"Unbounded component table accepted");
+        }
         for (uint32_t row : {0u, 3u}) {
             Fixture f(row); Sample s{};
             const auto before=f.chunk;

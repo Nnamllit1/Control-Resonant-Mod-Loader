@@ -18,6 +18,13 @@
         "shutdown_tested": false
       },
       "gameplay_bridge": false,
+      "entity_inspector": {
+        "implemented": true,
+        "live_verified": false,
+        "scope": "player component identities and controller state",
+        "model_material_payloads_decoded": false,
+        "requires_opt_in": true
+      },
       "experimental_noclip": {
         "implemented": true,
         "live_verified": false,

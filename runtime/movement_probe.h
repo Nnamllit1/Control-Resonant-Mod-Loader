@@ -15,6 +15,8 @@ public:
     void release(uint64_t owner) noexcept override;
 private:
     std::ofstream output_;
+    std::ofstream entity_output_;
+    uint64_t last_entity_report_{};
     unsigned polls_{};
     unsigned reports_{};
     bool gameplay_{};
