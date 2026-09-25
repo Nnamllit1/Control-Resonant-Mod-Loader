@@ -91,6 +91,22 @@ Observation inspect_inner(const void* view, const void* world_view, uint16_t pla
     return Observation::player;
 }
 
+uintptr_t entity_component_inner(uintptr_t world,uint64_t entity,uint32_t hash,uint32_t stride,uintptr_t& chunk,uint32_t& row) noexcept {
+    if(!world || !entity || entity==UINT64_MAX || !stride || stride>4096) return 0;
+    const auto index=static_cast<uint32_t>(entity);
+    const auto capacity=read<uint64_t>(world+0x58510);
+    if(capacity>16*1024*1024 || index>=capacity) return 0;
+    if(read<uint32_t>(read<uintptr_t>(world+0x584e8)+index*8ull)!=entity>>32) return 0;
+    const auto location=read<uint64_t>(read<uintptr_t>(world+0x58530)+index*8ull);
+    const auto archetype=static_cast<uint16_t>(location);
+    row=static_cast<uint32_t>(location>>32);
+    const auto count=read<uint64_t>(read<uintptr_t>(world+0x58478)+8);
+    if(count>8192 || archetype>=count || row>=16384) return 0;
+    chunk=read<uintptr_t>(world+0x50+archetype*8ull);
+    if(!chunk || row>=read<uint32_t>(world+0x10448+archetype*4ull) || read<uint64_t>(chunk+0x10+row*8ull)!=entity) return 0;
+    return component(world,archetype,chunk,row,hash,stride);
+}
+
 bool camera_inner(uintptr_t world, CameraBasis& out) noexcept {
     if(!world) return false;
     // camera_look_direction resolves the main camera through this world-global entry.
@@ -129,6 +145,11 @@ bool camera_inner(uintptr_t world, CameraBasis& out) noexcept {
     out.valid=true;
     return true;
 }
+}
+uintptr_t entity_component(uintptr_t world,uint64_t entity,uint32_t hash,uint32_t stride,uintptr_t& chunk,uint32_t& row) noexcept {
+    chunk=0; row=0;
+    __try { return entity_component_inner(world,entity,hash,stride,chunk,row); }
+    __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { chunk=0; row=0; return 0; }
 }
 bool inspect_camera(uintptr_t world, CameraBasis& result) noexcept {
     result={};

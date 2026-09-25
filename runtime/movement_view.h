@@ -26,4 +26,8 @@ enum class Observation { invalid, other_entity, player };
 Observation inspect(const void* movement_view, const void* world_view, uint16_t player_tag, Sample& result) noexcept;
 // Read-only camera lookup, isolated so missing cameras do not reject player samples.
 bool inspect_camera(uintptr_t world, CameraBasis& result) noexcept;
+// Resolve a live entity independently of the controller view; returns zero on
+// missing components, stale generations, relocated rows, or unreadable memory.
+uintptr_t entity_component(uintptr_t world, uint64_t entity, uint32_t hash, uint32_t stride,
+                           uintptr_t& chunk, uint32_t& row) noexcept;
 }

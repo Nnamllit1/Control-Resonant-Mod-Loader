@@ -2,6 +2,8 @@
 #include "movement_view.h"
 #include "noclip.h"
 #include "overlay.h"
+#include "input_filter.h"
+#include "fall_guard.h"
 #include <Windows.h>
 #include <bcrypt.h>
 #include <MinHook.h>
@@ -38,6 +40,20 @@ bool focused() noexcept {
     return process == GetCurrentProcessId();
 }
 bool down(int key) noexcept { return (GetAsyncKeyState(key) & 0x8000) != 0; }
+
+fall::Player active_player() noexcept {
+    if(!gameplay_enabled.load(std::memory_order_acquire) || !focused() || down(VK_ESCAPE)) return {};
+    const auto now=GetTickCount64();
+    fall::Player player{};
+    AcquireSRWLockShared(&sample_lock);
+    if(flight.enabled && flight.owner && flight.entity==latest.entity && flight.world==latest.world &&
+       latest_tick && now>=latest_tick && now-latest_tick<=500 && now>=flight.lease && now-flight.lease<=500 &&
+       !latest.disabled && !latest.teleported && !latest.keyframed[0] && !latest.keyframed[1])
+        player={flight.world,flight.entity};
+    ReleaseSRWLockShared(&sample_lock);
+    return player;
+}
+bool input_active() noexcept { return active_player().entity!=0; }
 
 Observation observe(void* view, void* world, Sample& sample) noexcept {
     __try {
@@ -146,11 +162,12 @@ std::string Recorder::start(const std::filesystem::path& root) {
         output_.close();
         return std::string("Movement probe refused: ") + MH_StatusToString(status);
     }
-    gameplay_ = noclip_requested;
+    gameplay_ = noclip_requested && fall::start(image_base,&active_player) && input::start(&input_active);
     gameplay_enabled.store(gameplay_);
     if (gameplay_) overlay_ = overlay_create();
-    output_ << "{\"schema\":3,\"mode\":\"" << (gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
+    output_ << "{\"schema\":4,\"mode\":\"" << (gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
     output_.flush();
+    if(noclip_requested && !gameplay_) return "Experimental noclip refused: input or fall-recovery hook unavailable; movement probe remains read-only";
     return gameplay_ ? "Experimental noclip bridge armed; requires player.noclip Wasm mod and F6. Live gameplay unverified."
                      : "Movement probe active; observing controller calls without changing gameplay";
 }
@@ -185,6 +202,8 @@ void Recorder::poll() {
     output_ << "{\"calls\":" << calls.load() << ",\"invalid\":" << invalid.load()
             << ",\"other_entities\":" << others.load() << ",\"player_samples\":" << players.load()
             << ",\"overrides\":" << overrides.load() << ",\"noclip_active\":" << (enabled ? "true" : "false")
+            << ",\"input_consumed\":" << input::consumed() << ",\"fall_checks_skipped\":" << fall::skipped_checks()
+            << ",\"boundary_targets_skipped\":" << fall::skipped_triggers()
             << ",\"thread\":" << thread << ",\"sample_age_ms\":" << (tick ? GetTickCount64() - tick : 0)
             << ",\"entity\":" << sample.entity << ",\"row\":" << sample.row;
     output_ << ",\"overlay\":{\"status\":\"" << graphics.status << "\",\"presents\":" << graphics.presents
@@ -216,6 +235,7 @@ int Recorder::noclip_poll(uint64_t owner, float speed) noexcept {
     const auto now = GetTickCount64();
     AcquireSRWLockExclusive(&sample_lock);
     int result = 0;
+    bool activated=false;
     if (!focused() || !latest_tick || now-latest_tick > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1]) {
         flight.reset(); result = -1;
     } else if (flight.owner && flight.owner != owner) result = -2;
@@ -223,14 +243,17 @@ int Recorder::noclip_poll(uint64_t owner, float speed) noexcept {
         last_poll = now;
         if (pressed) {
             if (flight.enabled) flight.reset();
-            else {
+            else if(fall::available({latest.world,latest.entity})) {
                 flight.owner=owner; flight.entity=latest.entity; flight.world=latest.world;
                 flight.enabled=true; flight.last_step=0;
+                activated=true;
             }
+            else result=-1;
         }
         if (flight.enabled) { flight.lease=now; flight.speed=speed; result=1; }
     }
     ReleaseSRWLockExclusive(&sample_lock);
+    if(activated) input::release_held(GetForegroundWindow());
     return result;
 }
 

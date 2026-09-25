@@ -1,5 +1,6 @@
 #include "movement_view.h"
 #include "noclip.h"
+#include "fall_guard.h"
 #include <cmath>
 #include <Windows.h>
 #include <MinHook.h>
@@ -23,9 +24,9 @@ struct Fixture {
     std::vector<unsigned char> meta = std::vector<unsigned char>(16);
     std::vector<unsigned char> locations = std::vector<unsigned char>(32);
     std::vector<unsigned char> generations = std::vector<unsigned char>(32);
-    std::vector<unsigned char> hashes = std::vector<unsigned char>(24);
-    std::vector<unsigned char> offsets = std::vector<unsigned char>(24);
-    std::vector<unsigned char> chunk = std::vector<unsigned char>(1024);
+    std::vector<unsigned char> hashes = std::vector<unsigned char>(28);
+    std::vector<unsigned char> offsets = std::vector<unsigned char>(28);
+    std::vector<unsigned char> chunk = std::vector<unsigned char>(2048);
     std::vector<unsigned char> physics = std::vector<unsigned char>(64);
     std::vector<unsigned char> movement = std::vector<unsigned char>(64);
     std::vector<unsigned char> globals = std::vector<unsigned char>(4);
@@ -47,10 +48,10 @@ struct Fixture {
         put(world,0x58,address(chunk)); put(world,0x1044c,row+1);
         put(chunk,0x10+row*8,(uint64_t{7}<<32)|2);
         const auto m=(1+0xc22)*32;
-        put(world,m+0x10,address(hashes)); put(world,m+0x24,uint32_t{6}); put(world,0x18478,address(offsets));
-        const std::array<uint32_t,6> h={0x6cfbb2a9,0x9b382c56,0x5077c6e3,0x6da4a5ae,0x2a16db09,0xc55ae319};
-        const std::array<uint32_t,6> off={0x100,0x200,0x300,0x340,0x360,0x3b0};
-        for(int i=0;i<6;++i) { put(hashes,i*4,h[i]); put(offsets,i*4,off[i]); }
+        put(world,m+0x10,address(hashes)); put(world,m+0x24,uint32_t{7}); put(world,0x18478,address(offsets));
+        const std::array<uint32_t,7> h={0x6cfbb2a9,0x9b382c56,0x5077c6e3,0x6da4a5ae,0x2a16db09,0xc55ae319,0x6507c6a9};
+        const std::array<uint32_t,7> off={0x100,0x200,0x300,0x340,0x360,0x3b0,0x400};
+        for(int i=0;i<7;++i) { put(hashes,i*4,h[i]); put(offsets,i*4,off[i]); }
         put(chunk,0x100+row*32+16,1.25f); put(chunk,0x100+row*32+20,2.5f); put(chunk,0x100+row*32+24,-3.0f);
         put(physics,16,1.25f); put(physics,20,2.5f); put(physics,24,-3.0f);
         put(chunk,0x200+row*32,address(physics)); put(chunk,0x208+row*32,address(movement)); put(movement,0x10,address(physics));
@@ -88,6 +89,36 @@ int main() {
             Fixture f(row); Sample s{};
             const auto before=f.chunk;
             require(f.inspect(s)==Observation::player && s.row==row && s.position[1]==2.5f, "Valid player view rejected");
+            namespace fall=crml::probe::fall;
+            const fall::Player player{s.world,s.entity};
+            const auto fall_base=address(f.chunk)+0x400;
+            const auto fall_at=0x400+row*240;
+            std::array<uintptr_t,11> inactive{};
+            inactive[6]=fall_base; inactive[9]=address(f.chunk); inactive[10]=row;
+            require(fall::available(player) && fall::matches_inactive(inactive.data(),player),"Valid fall guard rejected");
+            require(!fall::matches_inactive(inactive.data(),{}),"Inactive lease bypassed fall recovery");
+            ++inactive[10]; require(!fall::matches_inactive(inactive.data(),player),"Wrong fall row bypassed"); --inactive[10];
+            ++inactive[6]; require(!fall::matches_inactive(inactive.data(),player),"Wrong fall component bypassed"); --inactive[6];
+            f.chunk[fall_at+0xe4]=1; require(!fall::available(player),"Respawn in progress allowed activation"); f.chunk[fall_at+0xe4]=0;
+            for(unsigned char flag:std::array<unsigned char,3>{1,2,4}) {
+                f.chunk[fall_at+0xe5]=flag;
+                require(!fall::available(player),"Pending fall transition allowed activation");
+            }
+            f.chunk[fall_at+0xe5]=0;
+            std::array<uintptr_t,8> result{0,0,fall_base,0,0,address(f.chunk),row,1};
+            const auto original_result=result;
+            const auto original_chunk=f.chunk;
+            uintptr_t query_world=player.world;
+            require(!fall::exclude_target(result.data(),&query_world,player.entity+1,player),"Another entity excluded from boundary triggers");
+            require(result==original_result,"Unrelated trigger result changed");
+            ++query_world; require(!fall::exclude_target(result.data(),&query_world,player.entity,player),"Another world's boundary trigger excluded"); --query_world;
+            require(fall::exclude_target(result.data(),&query_world,player.entity,player) && result[7]==0,"Player boundary target was not excluded");
+            require(f.chunk==original_chunk,"Fall guard mutated saved recovery state");
+            result[7]=1; require(result==original_result,"Fall guard modified fields beyond query validity");
+            put(f.generations,16,uint32_t{8});
+            require(!fall::available(player) && !fall::matches_inactive(inactive.data(),player) &&
+                    !fall::exclude_target(result.data(),&query_world,player.entity,player),"Stale player bypassed fall recovery");
+            put(f.generations,16,uint32_t{7});
             f.view[13]=0;
             require(f.inspect(s)==Observation::player,"Optional GlobalID used as runtime identity");
             require(f.chunk==before,"Observer modified game data");
@@ -159,6 +190,9 @@ int main() {
         auto page=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_NOACCESS);
         require(page!=nullptr,"Guard page allocation failed");
         const auto fault=crml::probe::inspect(page,page,3,s);
+        require(!crml::probe::fall::matches_inactive(page,{reinterpret_cast<uintptr_t>(page),1}) &&
+                !crml::probe::fall::exclude_target(page,page,1,{reinterpret_cast<uintptr_t>(page),1}) &&
+                !crml::probe::fall::available({reinterpret_cast<uintptr_t>(page),1}),"Unreadable fall state accepted");
         VirtualFree(page,0,MEM_RELEASE);
         require(fault==Observation::invalid && s.rejection==crml::probe::Rejection::memory,"Unreadable memory rejection reason missing");
         require(MH_Initialize()==MH_OK,"MinHook initialization failed");
