@@ -48,12 +48,12 @@ struct State {
     std::mutex mutex;
     IDXGISwapChain* swap{}; // Identity only; do not keep the application's swapchain alive.
     ComPtr<ID3D12Device> device;
-    std::array<ComPtr<ID3D12Resource>,3> uploads;
+    std::array<ComPtr<ID3D12Resource>,5> uploads;
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
     std::array<Frame,8> buffers;
     std::array<Mark,512> marks{};
     UINT count{};
-    std::array<std::vector<unsigned char>,3> text;
+    std::array<std::vector<unsigned char>,5> text;
     bool failed{};
 };
 State& state() { static auto* value=new State; return *value; }
@@ -151,7 +151,7 @@ void render(IDXGISwapChain* swap, UINT flags) noexcept {
     original_barrier(f.commands.Get(),1,&barrier);
     const int value=status.load();
     D3D12_TEXTURE_COPY_LOCATION source{},destination{};
-    source.pResource=s.uploads[value==1?2:value==0?1:0].Get(); source.Type=D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT; source.PlacedFootprint=s.footprint;
+    source.pResource=s.uploads[value>=0 && value<=3?value+1:0].Get(); source.Type=D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT; source.PlacedFootprint=s.footprint;
     destination.pResource=f.buffer.Get(); destination.Type=D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
     f.commands->CopyTextureRegion(&destination,20,20,0,&source,nullptr);
     std::swap(barrier.Transition.StateBefore,barrier.Transition.StateAfter);
@@ -251,9 +251,11 @@ bool rasterize(State& s) {
     SetTextColor(dc,RGB(255,255,255)); SetBkMode(dc,TRANSPARENT);
     constexpr const wchar_t* labels[]{
         L"EXPERIMENTAL NOCLIP: UNAVAILABLE\nWaiting for player and mod heartbeat\nDetails: crml/crml.log and movement-probe.jsonl",
-        L"EXPERIMENTAL NOCLIP: OFF   [F6] on\nWASD: world axes   Space/Ctrl: up/down\nShift: faster   Esc: off",
-        L"EXPERIMENTAL NOCLIP: ON   [F6] off\nWASD: world axes   Space/Ctrl: up/down\nShift: faster   Esc: off"};
-    for(int state_index=0;state_index<3;++state_index) {
+        L"EXPERIMENTAL NOCLIP: OFF   [F6] on\nWASD: camera heading   Space/Ctrl: up/down\nShift: faster   Esc: off",
+        L"EXPERIMENTAL NOCLIP: ON   [F6] off\nWASD: camera heading   Space/Ctrl: up/down\nShift: faster   Esc: off",
+        L"EXPERIMENTAL NOCLIP: OFF   [F6] on\nCamera unavailable: vertical movement only\nSpace/Ctrl: up/down   Shift: faster   Esc: off",
+        L"EXPERIMENTAL NOCLIP: ON   [F6] off\nCamera unavailable: vertical movement only\nSpace/Ctrl: up/down   Shift: faster   Esc: off"};
+    for(int state_index=0;state_index<5;++state_index) {
         PatBlt(dc,0,0,width,height,BLACKNESS);
         RECT rect{12,9,width-12,height-9}; DrawTextW(dc,labels[state_index],-1,&rect,DT_LEFT|DT_NOPREFIX); GdiFlush();
         auto* data=static_cast<const unsigned*>(pixels);
@@ -318,7 +320,7 @@ void* overlay_create() noexcept {
         enabled=true; diagnostic="waiting_for_present"; return &s;
     } catch(...) { diagnostic="initialization_exception"; return nullptr; }
 }
-void overlay_update(void*,bool show,int value) noexcept { status=value; visible=show; }
+void overlay_update(void*,bool show,int value,bool camera_valid) noexcept { status=!camera_valid && (value==0 || value==1)?value+2:value; visible=show; }
 void overlay_destroy(void*) noexcept { visible=false; enabled=false; }
 OverlayDiagnostics overlay_diagnostics() noexcept { return {presents.load(),frames.load(),queue_matches.load(),diagnostic.load()}; }
 }

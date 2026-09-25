@@ -26,7 +26,7 @@ Packages load in directory-name order. One failed package does not stop the rest
 
 ## Game bridge
 
-The opt-in experimental bridge observes the character-controller routine on the thread used by the game. Wasm remains on the runtime worker and requests an owner-bound movement lease. The hook validates the current player, substitutes private per-call arguments, and forwards the original routine. It never runs Wasm inside the hook. Unknown builds and mismatched arguments leave movement untouched. Live validation of this path is pending.
+The opt-in experimental bridge observes the character-controller routine on the thread used by the game. Wasm remains on the runtime worker and requests an owner-bound movement lease. The hook validates the current player, substitutes private per-call arguments, and forwards the original routine. It never runs Wasm inside the hook. Unknown builds and mismatched arguments leave movement untouched. Live diagnostics have confirmed player observations and movement overrides, with wall and ceiling traversal reported. Floor descent and camera-heading controls still need live validation.
 
 The runtime worker publishes the panel's visibility and status. Native DirectX 12 hooks copy a cached text texture into the current back buffer before presentation. Queue selection requires observed transitions of that specific buffer; unrelated queue submissions cannot select it. Each buffer has its own commands and completion fence, and resize hooks release retained buffers after completion. The renderer follows the [DirectX 12 presentation state requirements](https://learn.microsoft.com/en-us/windows/win32/direct3d12/swap-chains).
 

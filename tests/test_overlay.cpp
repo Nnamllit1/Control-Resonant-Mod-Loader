@@ -132,6 +132,8 @@ int main() {
         crml::probe::overlay_update(overlay,true,0);
         UINT index{};
         for(int i=0;i<5;++i) index=f.draw(); f.verify(index,true);
+        crml::probe::overlay_update(overlay,true,1,false); index=f.draw(); f.verify(index,true);
+        crml::probe::overlay_update(overlay,true,0);
         const auto before=crml::probe::overlay_diagnostics().frames;
         check(f.swap->Present(0,DXGI_PRESENT_TEST));
         require(crml::probe::overlay_diagnostics().frames==before,"TEST present submitted GPU work");

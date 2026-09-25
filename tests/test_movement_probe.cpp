@@ -23,11 +23,17 @@ struct Fixture {
     std::vector<unsigned char> meta = std::vector<unsigned char>(16);
     std::vector<unsigned char> locations = std::vector<unsigned char>(32);
     std::vector<unsigned char> generations = std::vector<unsigned char>(32);
-    std::vector<unsigned char> hashes = std::vector<unsigned char>(16);
-    std::vector<unsigned char> offsets = std::vector<unsigned char>(16);
+    std::vector<unsigned char> hashes = std::vector<unsigned char>(24);
+    std::vector<unsigned char> offsets = std::vector<unsigned char>(24);
     std::vector<unsigned char> chunk = std::vector<unsigned char>(1024);
     std::vector<unsigned char> physics = std::vector<unsigned char>(64);
     std::vector<unsigned char> movement = std::vector<unsigned char>(64);
+    std::vector<unsigned char> globals = std::vector<unsigned char>(4);
+    std::vector<unsigned char> global_values = std::vector<unsigned char>(8);
+    std::vector<unsigned char> cameras = std::vector<unsigned char>(24);
+    std::vector<unsigned char> camera_chunk = std::vector<unsigned char>(256);
+    std::vector<unsigned char> camera_hashes = std::vector<unsigned char>(4);
+    std::vector<unsigned char> camera_offsets = std::vector<unsigned char>(4);
     std::array<uintptr_t,19> view{};
     uintptr_t world_pointer{};
     uint32_t row;
@@ -41,17 +47,28 @@ struct Fixture {
         put(world,0x58,address(chunk)); put(world,0x1044c,row+1);
         put(chunk,0x10+row*8,(uint64_t{7}<<32)|2);
         const auto m=(1+0xc22)*32;
-        put(world,m+0x10,address(hashes)); put(world,m+0x24,uint32_t{4}); put(world,0x18478,address(offsets));
-        const std::array<uint32_t,4> h={0x6cfbb2a9,0x9b382c56,0x5077c6e3,0x6da4a5ae};
-        const std::array<uint32_t,4> off={0x100,0x200,0x300,0x340};
-        for(int i=0;i<4;++i) { put(hashes,i*4,h[i]); put(offsets,i*4,off[i]); }
+        put(world,m+0x10,address(hashes)); put(world,m+0x24,uint32_t{6}); put(world,0x18478,address(offsets));
+        const std::array<uint32_t,6> h={0x6cfbb2a9,0x9b382c56,0x5077c6e3,0x6da4a5ae,0x2a16db09,0xc55ae319};
+        const std::array<uint32_t,6> off={0x100,0x200,0x300,0x340,0x360,0x3b0};
+        for(int i=0;i<6;++i) { put(hashes,i*4,h[i]); put(offsets,i*4,off[i]); }
         put(chunk,0x100+row*32+16,1.25f); put(chunk,0x100+row*32+20,2.5f); put(chunk,0x100+row*32+24,-3.0f);
         put(physics,16,1.25f); put(physics,20,2.5f); put(physics,24,-3.0f);
         put(chunk,0x200+row*32,address(physics)); put(chunk,0x208+row*32,address(movement)); put(movement,0x10,address(physics));
         view[0]=address(chunk)+0x200; view[7]=address(chunk)+0x300; view[11]=address(chunk)+0x100;
+        view[8]=address(chunk)+0x360; view[14]=address(chunk)+0x3b0;
+        put(chunk,0x360+row*8,uint64_t{0x1122334455667701});
         // Observed GlobalID differs from the runtime handle; it may also be absent.
         put(chunk,0x380,uint64_t{0x3b8ca7fcb370409c});
         view[13]=address(chunk)+0x380; view[17]=address(chunk); view[18]=row;
+        put(world,0x585b0,address(globals)); put(world,0x585b8,uint32_t{1}); put(world,0x585c0,address(global_values));
+        put(globals,0,uint32_t{0xfe90f7f8}); put(global_values,0,address(cameras));
+        const uint64_t camera_id=(uint64_t{11}<<32)|1;
+        put(cameras,4,camera_id); put(generations,8,uint32_t{11}); put(locations,8,uint64_t{1}<<32);
+        put(world,0x50,address(camera_chunk)); put(world,0x10448,uint32_t{2}); put(camera_chunk,0x18,camera_id);
+        put(world,0xc22*32+0x10,address(camera_hashes)); put(world,0xc22*32+0x24,uint32_t{1}); put(world,0x18458,address(camera_offsets));
+        put(camera_hashes,0,uint32_t{0x46967561}); put(camera_offsets,0,uint32_t{0x40});
+        // Camera row 1, yaw +90 degrees: right=-Z, forward=+X.
+        put(camera_chunk,0x80+8,-1.f); put(camera_chunk,0x80+16,1.f); put(camera_chunk,0x80+24,1.f);
     }
     Observation inspect(Sample& sample) { return crml::probe::inspect(view.data(), &world_pointer, 3, sample); }
 };
@@ -81,8 +98,19 @@ int main() {
             std::memcpy(coordinates,reinterpret_cast<void*>(replacement.view[11]+row*32ull+16),12);
             require(coordinates[0]==10 && coordinates[2]==30,"Engine row indexing did not reach private transform");
             require(*reinterpret_cast<uint8_t*>(replacement.view[7]+row*2ull)==1,"Private keyframed mode missing");
+            const auto* push=reinterpret_cast<const uint8_t*>(replacement.view[8]+row*8ull);
+            require(push[0]==0 && push[1]==0x77 && push[7]==0x11,"Contact pass not disabled privately or unrelated flags changed");
             require(f.chunk==before && f.view==view_before,"Override mutated original components or arguments");
-            for(size_t i=0;i<f.view.size();++i) if(i!=7 && i!=11) require(replacement.view[i]==f.view[i],"Override changed unrelated argument");
+            for(size_t i=0;i<f.view.size();++i) if(i!=7 && i!=8 && i!=11) require(replacement.view[i]==f.view[i],"Override changed unrelated argument");
+            crml::probe::CameraBasis camera;
+            require(crml::probe::inspect_camera(f.world_pointer,camera) && camera.valid && camera.forward[0]==1,"Valid camera row rejected");
+            const auto forward=crml::probe::camera_relative({0,0,1,false},camera);
+            const auto right=crml::probe::camera_relative({1,0,0,false},camera);
+            require(forward.x==1 && forward.z==0 && right.z==-1,"Camera-relative WASD axes incorrect");
+            put(f.generations,8,uint32_t{12});
+            require(!crml::probe::inspect_camera(f.world_pointer,camera) && !camera.valid,"Stale camera accepted");
+            put(f.generations,8,uint32_t{11}); put(f.camera_chunk,0x80+8,std::numeric_limits<float>::quiet_NaN());
+            require(!crml::probe::inspect_camera(f.world_pointer,camera),"NaN camera accepted");
             f.bits[0]=0; require(f.inspect(s)==Observation::other_entity,"Non-player accepted"); f.bits[0]=2;
             put(f.generations,16,uint32_t{8}); require(f.inspect(s)==Observation::invalid && s.rejection==crml::probe::Rejection::generation,"Stale entity rejection reason missing"); put(f.generations,16,uint32_t{7});
             f.view[18]=16384; require(f.inspect(s)==Observation::invalid,"Out-of-range row accepted"); f.view[18]=row;
@@ -104,6 +132,29 @@ int main() {
         arm(); s.entity=43; require(!flight.step(s,100,1050,true,{},next),"Player replacement retained flight"); s.entity=42;
         arm(); s.keyframed[0]=1; require(!flight.step(s,100,1050,true,{},next),"Engine keyframing retained flight"); s.keyframed[0]=0;
         arm(); require(!flight.step(s,100,1300,true,{},next),"Long frame gap retained flight");
+        arm(); s.teleported=1; require(!flight.step(s,100,1050,true,{},next),"Engine teleport retained flight"); s.teleported=0;
+        arm();
+        // Regression: an engine ground clamp must not erase accumulated descent each tick.
+        for(uint64_t now=1050;now<=1400;now+=50) {
+            flight.lease=now;
+            require(flight.step(s,100,now,true,{0,-1,0,false},next),"Descent cancelled by a small floor correction");
+        }
+        require(std::abs(next[1]+2.f)<.001f,"Descent kept resetting to the floor");
+        flight.lease=1450; require(flight.step(s,100,1450,true,{},next) && next[1]==-2.f,"No-input flight drifted back toward ground");
+        s.position[0]=100;
+        require(!flight.step(s,100,1500,true,{},next) && !flight.enabled,"Large relocation dragged player to stale flight target"); s.position[0]=0;
+        const auto missing_camera=crml::probe::camera_relative({1,-1,1,true},{});
+        require(missing_camera.x==0 && missing_camera.y==-1 && missing_camera.z==0 && missing_camera.fast,"Missing camera used guessed world axes");
+        for(const auto& axes:std::array<std::array<float,2>,4>{{{1,0},{0,-1},{-1,0},{0,1}}}) {
+            crml::probe::CameraBasis camera{}; camera.valid=true; camera.right[0]=axes[0]; camera.right[2]=axes[1];
+            const auto w=crml::probe::camera_relative({0,0,1,false},camera);
+            const auto a=crml::probe::camera_relative({-1,0,0,false},camera);
+            const auto back=crml::probe::camera_relative({0,0,-1,false},camera);
+            const auto d=crml::probe::camera_relative({1,0,0,false},camera);
+            require(w.x==-axes[1] && w.z==axes[0] && w.y==0,"Forward did not follow camera yaw");
+            require(w.x==-back.x && w.z==-back.z && a.x==-d.x && a.z==-d.z,"Opposing movement keys were not symmetric");
+            require(std::abs(w.x*d.x+w.z*d.z)<.001f,"Camera forward and strafe were not perpendicular");
+        }
         require(crml::probe::inspect(nullptr,nullptr,3,s)==Observation::invalid,"Null view accepted");
         auto page=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_NOACCESS);
         require(page!=nullptr,"Guard page allocation failed");

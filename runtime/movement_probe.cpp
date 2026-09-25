@@ -25,6 +25,9 @@ SRWLOCK sample_lock = SRWLOCK_INIT;
 Sample latest{};
 DWORD latest_thread{};
 uint64_t latest_tick{};
+std::array<float,3> last_target{}, last_controller_result{};
+uint64_t result_tick{};
+bool result_valid{};
 Flight flight{};
 std::atomic<bool> gameplay_enabled{};
 bool toggle_down{}; // Runtime worker only.
@@ -54,6 +57,7 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
         Sample sample{};
         switch (observe(view, world, sample)) {
         case Observation::player:
+            inspect_camera(sample.world,sample.camera);
             players.fetch_add(1, std::memory_order_relaxed);
             if (TryAcquireSRWLockExclusive(&sample_lock)) {
                 latest = sample;
@@ -61,7 +65,8 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
                 latest_tick = GetTickCount64();
                 if (gameplay_enabled.load(std::memory_order_relaxed)) {
                     std::array<float,3> target{};
-                    Direction direction{float(down('D'))-float(down('A')), float(down(VK_SPACE))-float(down(VK_CONTROL)), float(down('W'))-float(down('S')), down(VK_SHIFT)};
+                    const Direction keys{float(down('D'))-float(down('A')), float(down(VK_SPACE))-float(down(VK_CONTROL)), float(down('W'))-float(down('S')), down(VK_SHIFT)};
+                    const auto direction=camera_relative(keys,sample.camera);
                     if (flight.step(sample, sample.world, latest_tick, focused() && !down(VK_ESCAPE), direction, target)) {
                         override_movement = replacement.prepare(view, sample, target);
                         if (override_movement) overrides.fetch_add(1, std::memory_order_relaxed);
@@ -80,6 +85,14 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
     }
     // Keep all six arguments intact. Do not intercept the game's exceptions.
     original(override_movement ? replacement.view.data() : view, world, collisions, callback, scene, time);
+    if(override_movement) {
+        Sample after{};
+        const bool valid=observe(view,world,after)==Observation::player;
+        AcquireSRWLockExclusive(&sample_lock);
+        for(int i=0;i<3;++i) { last_target[i]=replacement.transform[4+i]; last_controller_result[i]=valid?after.controller_position[i]:0.f; }
+        result_tick=GetTickCount64(); result_valid=valid;
+        ReleaseSRWLockExclusive(&sample_lock);
+    }
 }
 
 std::string fingerprint(const std::filesystem::path& path) {
@@ -136,7 +149,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
     gameplay_ = noclip_requested;
     gameplay_enabled.store(gameplay_);
     if (gameplay_) overlay_ = overlay_create();
-    output_ << "{\"schema\":2,\"mode\":\"" << (gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
+    output_ << "{\"schema\":3,\"mode\":\"" << (gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
     output_.flush();
     return gameplay_ ? "Experimental noclip bridge armed; requires player.noclip Wasm mod and F6. Live gameplay unverified."
                      : "Movement probe active; observing controller calls without changing gameplay";
@@ -148,20 +161,25 @@ void Recorder::poll() {
         const bool foreground = focused();
         AcquireSRWLockExclusive(&sample_lock);
         if (!foreground || !latest_tick || now-latest_tick > 500 || (flight.enabled && now-flight.lease > 500) || down(VK_ESCAPE)) flight.reset();
-        const int state = !foreground || !latest_tick || now-latest_tick > 500 || !last_poll || now-last_poll > 500 || latest.disabled || latest.keyframed[0] || latest.keyframed[1] ? -1 : flight.enabled ? 1 : 0;
+        const int state = !foreground || !latest_tick || now-latest_tick > 500 || !last_poll || now-last_poll > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1] ? -1 : flight.enabled ? 1 : 0;
+        const bool camera_valid=latest.camera.valid;
         ReleaseSRWLockExclusive(&sample_lock);
-        overlay_update(overlay_, foreground, state);
+        overlay_update(overlay_, foreground, state, camera_valid);
     }
     if (!output_.is_open() || ++polls_ % 10) return;
     Sample sample{};
     DWORD thread{};
     uint64_t tick{};
     bool enabled{};
+    std::array<float,3> target{}, controller_result{};
+    uint64_t outcome_tick{};
+    bool outcome_valid{};
     AcquireSRWLockShared(&sample_lock);
     sample = latest;
     thread = latest_thread;
     tick = latest_tick;
     enabled = flight.enabled;
+    target=last_target; controller_result=last_controller_result; outcome_tick=result_tick; outcome_valid=result_valid;
     ReleaseSRWLockShared(&sample_lock);
     const auto graphics=overlay_diagnostics();
     output_ << "{\"calls\":" << calls.load() << ",\"invalid\":" << invalid.load()
@@ -173,6 +191,11 @@ void Recorder::poll() {
             << ",\"frames\":" << graphics.frames << ",\"queue_matches\":" << graphics.queue_matches << "},\"rejections\":{";
     for(size_t i=0;i<rejected.size();++i) { if(i) output_ << ','; output_ << '\"' << rejection_names[i] << "\":" << rejected[i].load(); }
     output_ << '}';
+    output_ << ",\"camera_valid\":" << (sample.camera.valid?"true":"false") << ",\"camera_entity\":" << sample.camera.entity
+            << ",\"teleported\":" << unsigned(sample.teleported)
+            << ",\"last_override\":{\"valid\":" << (outcome_valid?"true":"false") << ",\"age_ms\":" << (outcome_tick?GetTickCount64()-outcome_tick:0)
+            << std::setprecision(9) << ",\"target\":[" << target[0] << ',' << target[1] << ',' << target[2]
+            << "],\"controller_result\":[" << controller_result[0] << ',' << controller_result[1] << ',' << controller_result[2] << "]}";
     output_ << std::setprecision(9) << ",\"position\":[" << sample.position[0] << ',' << sample.position[1] << ',' << sample.position[2]
             << "],\"controller_position\":[" << sample.controller_position[0] << ',' << sample.controller_position[1] << ',' << sample.controller_position[2]
             << "],\"keyframed\":[" << unsigned(sample.keyframed[0]) << ',' << unsigned(sample.keyframed[1])
@@ -193,7 +216,7 @@ int Recorder::noclip_poll(uint64_t owner, float speed) noexcept {
     const auto now = GetTickCount64();
     AcquireSRWLockExclusive(&sample_lock);
     int result = 0;
-    if (!focused() || !latest_tick || now-latest_tick > 500 || latest.disabled || latest.keyframed[0] || latest.keyframed[1]) {
+    if (!focused() || !latest_tick || now-latest_tick > 500 || latest.disabled || latest.teleported || latest.keyframed[0] || latest.keyframed[1]) {
         flight.reset(); result = -1;
     } else if (flight.owner && flight.owner != owner) result = -2;
     else {

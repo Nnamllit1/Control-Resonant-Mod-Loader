@@ -21,7 +21,10 @@
       "experimental_noclip": {
         "implemented": true,
         "live_verified": false,
-        "movement": "world-axes",
+        "movement": "camera-heading",
+        "wall_and_ceiling_traversal_reported": true,
+        "floor_descent_verified": false,
+        "camera_heading_verified": false,
         "requires_opt_in": true
       }
     }

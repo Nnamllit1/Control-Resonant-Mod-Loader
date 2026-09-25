@@ -65,9 +65,12 @@ Observation inspect_inner(const void* view, const void* world_view, uint16_t pla
     const auto controller = component(world, archetype, chunk, static_cast<uint32_t>(row), 0x9b382c56, 32);
     const auto keyframed = component(world, archetype, chunk, static_cast<uint32_t>(row), 0x5077c6e3, 2);
     const auto disabled = component(world, archetype, chunk, static_cast<uint32_t>(row), 0x6da4a5ae, 1);
-    if (!transform || !controller || !keyframed || !disabled) return Observation::invalid;
+    const auto pushability = component(world, archetype, chunk, static_cast<uint32_t>(row), 0x2a16db09, 8);
+    const auto teleported = component(world, archetype, chunk, static_cast<uint32_t>(row), 0xc55ae319, 1);
+    if (!transform || !controller || !keyframed || !disabled || !pushability || !teleported) return Observation::invalid;
     out.rejection=Rejection::layout;
     if (transform != read<uintptr_t>(ctx + 0x58) + row * 32 || controller != read<uintptr_t>(ctx) + row * 32 || keyframed != read<uintptr_t>(ctx + 0x38) + row * 2) return Observation::invalid;
+    if (pushability != read<uintptr_t>(ctx + 0x40) + row * 8 || teleported != read<uintptr_t>(ctx + 0x70) + row) return Observation::invalid;
     out.rejection=Rejection::controller;
     const auto physics = read<uintptr_t>(controller);
     const auto movement = read<uintptr_t>(controller + 8);
@@ -79,6 +82,7 @@ Observation inspect_inner(const void* view, const void* world_view, uint16_t pla
     std::memcpy(out.controller_position, reinterpret_cast<void*>(physics + 16), 12);
     std::memcpy(out.keyframed, reinterpret_cast<void*>(keyframed), 2);
     out.disabled = read<uint8_t>(disabled);
+    out.teleported = read<uint8_t>(teleported);
     out.rejection=Rejection::coordinates;
     for (int i = 0; i < 3; ++i) {
         if (!std::isfinite(out.position[i]) || !std::isfinite(out.controller_position[i])) return Observation::invalid;
@@ -86,6 +90,50 @@ Observation inspect_inner(const void* view, const void* world_view, uint16_t pla
     out.rejection=Rejection::none;
     return Observation::player;
 }
+
+bool camera_inner(uintptr_t world, CameraBasis& out) noexcept {
+    if(!world) return false;
+    // camera_look_direction resolves the main camera through this world-global entry.
+    const auto size=read<uint32_t>(world+0x585b8);
+    if(!size || size>16384) return false;
+    const auto hashes=read<uintptr_t>(world+0x585b0), values=read<uintptr_t>(world+0x585c0);
+    uintptr_t cameras{};
+    for(uint32_t i=0;i<size;++i) if(read<uint32_t>(hashes+i*4ull)==0xfe90f7f8) {
+        cameras=read<uintptr_t>(values+i*8ull); break;
+    }
+    if(!cameras) return false;
+    const auto entity=read<uint64_t>(cameras+4);
+    if(!entity || entity==UINT64_MAX) return false;
+    const auto index=static_cast<uint32_t>(entity);
+    const auto capacity=read<uint64_t>(world+0x58510);
+    if(capacity>16*1024*1024 || index>=capacity) return false;
+    if(read<uint32_t>(read<uintptr_t>(world+0x584e8)+index*8ull)!=entity>>32) return false;
+    const auto location=read<uint64_t>(read<uintptr_t>(world+0x58530)+index*8ull);
+    const auto archetype=static_cast<uint16_t>(location);
+    const auto row=static_cast<uint32_t>(location>>32);
+    const auto count=read<uint64_t>(read<uintptr_t>(world+0x58478)+8);
+    if(count>8192 || archetype>=count || row>=16384) return false;
+    const auto chunk=read<uintptr_t>(world+0x50+archetype*8ull);
+    if(!chunk || row>=read<uint32_t>(world+0x10448+archetype*4ull) || read<uint64_t>(chunk+0x10+row*8ull)!=entity) return false;
+    // nl_camera_ray reads this 64-byte Camera component: 3x4 world basis, then lens.
+    const auto camera=component(world,archetype,chunk,row,0x46967561,64);
+    if(!camera) return false;
+    float basis[9]; std::memcpy(basis,reinterpret_cast<void*>(camera),sizeof(basis));
+    for(float value:basis) if(!std::isfinite(value)) return false;
+    for(int a=0;a<3;++a) for(int b=a;b<3;++b) {
+        float dot{}; for(int i=0;i<3;++i) dot+=basis[a*3+i]*basis[b*3+i];
+        if(std::abs(dot-(a==b?1.f:0.f))>.1f) return false;
+    }
+    out.entity=entity;
+    std::memcpy(out.right,basis,12); std::memcpy(out.forward,basis+6,12);
+    out.valid=true;
+    return true;
+}
+}
+bool inspect_camera(uintptr_t world, CameraBasis& result) noexcept {
+    result={};
+    __try { return camera_inner(world,result); }
+    __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { result={}; return false; }
 }
 Observation inspect(const void* view, const void* world, uint16_t tag, Sample& result) noexcept {
     // Guard only diagnostic reads, never exceptions from the original game routine.

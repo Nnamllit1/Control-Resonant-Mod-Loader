@@ -1,8 +1,8 @@
 # Gameplay and noclip
 
-**Status: experimental prototype; live noclip behavior is unverified.**
+**Status: experimental. Wall and ceiling traversal have been reported in gameplay. The latest floor-descent and camera-heading changes await in-game verification.**
 
-The prototype targets the controlled character through the game's character-controller movement routine. It uses a private copy of the current call's transform and keyframed-mode arguments. It leaves the original entity components untouched and lets subsequent normal calls resume movement. Native tests cover this argument isolation and automatic cancellation; they do not prove that the game traverses walls correctly.
+The prototype targets the controlled character through the game's character-controller movement routine. Private per-call arguments supply the requested transform, select keyframed movement, and suppress the subsequent contact/push pass. Flight retains its requested position across small ground corrections. Original component values stay intact, so subsequent normal calls resume movement. Native tests cover argument isolation and automatic cancellation; they do not replace in-game traversal tests.
 
 ## Build and install for testing
 
@@ -21,20 +21,20 @@ Use a disposable save or a backed-up save for the first test. Launch normally th
 | Control | Action |
 | --- | --- |
 | F6 | Toggle noclip; starts off |
-| W / S | Positive / negative world Z |
-| D / A | Positive / negative world X |
+| W / S | Forward / backward along the camera's horizontal heading |
+| D / A | Right / left relative to the camera |
 | Space / Ctrl | Up / down |
 | Shift | Three times the base speed |
 | Esc | Cancel noclip |
 
-The example requests 5 world units per second. Movement is relative to world axes, **not the camera**. The status panel is informational and does not take mouse or keyboard focus. Camera-relative steering, controller support, a clickable panel, and a speed slider remain future work.
+The example requests 5 world units per second. Looking up or down does not change altitude when using WASD; Space/Ctrl controls altitude separately. If the camera cannot be validated, the panel indicates that only vertical movement is available. The status panel is informational and does not take mouse or keyboard focus. Controller support, a clickable panel, and a speed slider remain future work. Camera collision can still pull the view around when the player passes through geometry.
 
 1. Confirm the overlay shows OFF. If it stays UNAVAILABLE, inspect `crml/crml.log` and `crml/movement-probe.jsonl` instead of repeatedly toggling.
-2. Press F6 and move a short distance in open space. Check ascent and descent before approaching a wall.
+2. Press F6 and move a short distance in open space. Rotate the camera and check all four WASD directions. Check ascent and descent, including descending through a floor and returning upward through it.
 3. Cross a nearby wall, return to open space above solid ground, and press F6 again. Check walking, jumping, gravity, and collision afterward.
 4. Test Escape, alt-tab, pause/resume, and save reload. Report the first step that fails along with both logs. Do not save while inside geometry or outside the level.
 
-The native bridge cancels its override on focus loss, Escape, a missing mod heartbeat for 500 ms, changed player/world identity, engine keyframing, or a controller-update gap exceeding 250 ms. Cancellation returns control to the game at the current position; it does not rewind to the activation point. Menus, death, cutscenes, and streaming transitions still require live testing.
+The native bridge cancels its override on focus loss, Escape, a missing mod heartbeat for 500 ms, changed player/world identity, an engine teleport or keyframing, a displacement exceeding 5 units from the requested position, or a controller-update gap exceeding 250 ms. Cancellation returns control to the game at the current position; it does not rewind to the activation point. Menus, death, cutscenes, and streaming transitions still require live testing.
 
 ## Diagnostics and disabling
 
@@ -42,11 +42,15 @@ The bridge checks the executable SHA-256, hook bytes, entity generation, player 
 
 The runtime handle comes from the entity chunk header. The `GlobalID` component identifies persistent content and is not interchangeable with that handle. Earlier experimental builds confused these values, causing every sample to be rejected even though the Steam launch successfully loaded the mod.
 
-Diagnostic schema 2 adds `rejections` counters for failed validation stages and an `overlay` object:
+Diagnostic schema 3 includes validation counters, graphics status, camera availability, and the most recent movement result:
 
 | Field or value | Meaning |
 | --- | --- |
 | `player_samples` | Valid observations of the player |
+| `camera_valid` / `camera_entity` | Validated camera basis used for horizontal movement |
+| `last_override.target` | Requested noclip position |
+| `last_override.controller_result` | Controller position read after the movement routine returned |
+| `last_override.valid` / `age_ms` | Whether that read succeeded and how old it is |
 | `rejections.generation` / `location` / `layout` | Identity or component validation failed |
 | `rejections.memory` | A diagnostic read encountered unreadable memory |
 | `overlay.presents` | Intercepted non-test presentation calls |
@@ -64,10 +68,10 @@ For observation without a movement feature, build with `-MovementProbe` (an alia
 
 ## Remaining integration work
 
-1. Verify the movement hook's live arguments against the external player-position observations.
-2. Validate that the keyframed movement path provides actual noclip and restores normal movement.
+1. Verify camera-heading controls and floor traversal in gameplay.
+2. Validate restoration of normal walking, jumping, gravity, and collision.
 3. Verify transitions across menus, loading, death, cutscenes, and player replacement.
-4. Add camera-relative movement and a bounded UI control API.
+4. Improve camera collision behavior and add a bounded UI control API.
 5. Mark the compatibility profile supported only after live testing passes.
 
 ## UI direction

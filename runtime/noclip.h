@@ -4,11 +4,14 @@
 
 namespace crml::probe {
 struct Direction { float x{}, y{}, z{}; bool fast{}; };
+Direction camera_relative(Direction input, const CameraBasis& camera) noexcept;
 // Pure state machine, called under the bridge lock. No game memory is written.
 struct Flight {
     uint64_t owner{}, entity{}, world{}, lease{}, last_step{};
     float speed{5};
     bool enabled{};
+    bool positioned{};
+    std::array<float,3> position{};
     void reset() noexcept { *this = Flight{}; }
     bool step(const Sample& sample, uint64_t current_world, uint64_t now, bool focused,
               Direction input, std::array<float, 3>& target) noexcept;
@@ -19,6 +22,7 @@ struct Override {
     std::array<uintptr_t, 19> view{};
     std::array<uint8_t, 2> keyframed{1, 0};
     std::array<uint8_t, 6> padding{};
+    std::array<uint8_t, 8> pushability{};
     bool prepare(const void* original, const Sample& sample, const std::array<float, 3>& target) noexcept;
 };
 }
