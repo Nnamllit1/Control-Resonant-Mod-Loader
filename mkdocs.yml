@@ -60,6 +60,7 @@ nav:
   - Contributing:
       - Architecture: architecture.md
       - Engine research: engine-research.md
+      - Engine internals: engine-internals.md
       - Pack2 format: pack2.md
       - Gameplay and noclip: gameplay.md
       - Documentation: documentation.md

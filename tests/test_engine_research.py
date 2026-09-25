@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import engine_research as research
+from verify_engine_map import verify
 from engine_query import matches
 
 
@@ -182,6 +183,39 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(sampled['header_samples'][0]['first_16_bytes_hex'], (b'x' * 5).hex())
             missing = research.survey(root, ['missing.binlua'])
             self.assertEqual(missing['errors'][0]['error'], 'Requested sample not found')
+
+
+class EngineMapTests(unittest.TestCase):
+    def make_map(self):
+        data = pe_fixture()
+        data[0x230:0x235] = b'\xe8' + struct.pack('<i', 0x1080 - 0x1035)
+        data[0x238:0x23d] = b'\xe9' + struct.pack('<i', 0x1080 - 0x103d)
+        struct.pack_into('<Q', data, 0x440, 0x140001080)
+        struct.pack_into('<I', data, 0x448, 0xc0)
+        profile = {'schema': 1, 'executable_sha256': research.hashlib.sha256(data).hexdigest(),
+                   'checks': [{'kind': kind, 'rva': rva, 'target': target, 'label': kind}
+                              for kind, rva, target in [('call_rel32', '0x1030', '0x1080'),
+                                                       ('jump_rel32', '0x1038', '0x1080'),
+                                                       ('lea_rax_rip', '0x1000', '0x2000'),
+                                                       ('pointer64', '0x2040', '0x1080'),
+                                                       ('u32', '0x2048', '0xc0')]]}
+        return data, profile
+
+    def test_all_reference_encodings(self):
+        self.assertEqual(verify(*self.make_map()), [])
+
+    def test_wrong_build_rejected(self):
+        data, profile = self.make_map()
+        data[0x500] ^= 1
+        with self.assertRaisesRegex(ValueError, 'fingerprint'):
+            verify(data, profile)
+
+    def test_bad_reference_fails(self):
+        for key, value in [('target', '0x999'), ('kind', 'unknown'), ('rva', '0x500000')]:
+            data, profile = self.make_map()
+            profile['checks'][0][key] = value
+            with self.subTest(key=key):
+                self.assertEqual(len(verify(data, profile)), 1)
 
 
 if __name__ == '__main__':

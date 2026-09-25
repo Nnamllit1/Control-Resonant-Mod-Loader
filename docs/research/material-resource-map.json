@@ -1,0 +1,253 @@
+{
+  "schema": 1,
+  "title": "Material resource loading, dependencies, and rendering handoff",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static disassembly. Material read path and shared loader calls traced; draw submission and GPU bindings remain unresolved.",
+  "nodes": [
+    {
+      "id": "material_instance",
+      "rva": "0x4f6ca38",
+      "meaning": "RTTI-backed rend::MaterialResource instance vtable."
+    },
+    {
+      "id": "material_request",
+      "rva": "0x30427c0",
+      "meaning": "Async load through the same generic loader used by LuaScriptResource."
+    },
+    {
+      "id": "material_blocking",
+      "rva": "0x3042730",
+      "meaning": "Blocking generic load, then calls an additional renderer-side helper."
+    },
+    {
+      "id": "material_reader",
+      "rva": "0x3043bc0",
+      "meaning": "Replaces owned object at +0xa8, decodes material with typed metadata, publishes state 4."
+    },
+    {
+      "id": "decode_material",
+      "rva": "0x304c9b0",
+      "meaning": "Receives file wrapper, owned material data object, and metadata pointer. Internal format still to trace."
+    },
+    {
+      "id": "material_dependencies",
+      "rva": "0x3042b90",
+      "meaning": "Three metadata ID arrays resolved through resource manager with three different type descriptors; stores owned references."
+    },
+    {
+      "id": "material_release",
+      "rva": "0x30428e0",
+      "meaning": "Releases material data and emits command records through global context at 0x5e69000."
+    },
+    {
+      "id": "texture_instance",
+      "rva": "0x4ddc780",
+      "meaning": "RTTI-backed rend::TextureResource instance vtable."
+    },
+    {
+      "id": "texture_request",
+      "rva": "0x2e8ed20",
+      "meaning": "Branches on instance+0xa0: metadata-driven setup or queued LambdaStreamJob."
+    },
+    {
+      "id": "texture_job",
+      "rva": "0x4ddc9d8",
+      "meaning": "RTTI identifies LambdaStreamJob belonging to TextureResource::requestLoad."
+    }
+  ],
+  "object_layout": [
+    {
+      "owner": "MaterialResource",
+      "offset": "0xa8",
+      "meaning": "Owned decoded data pointer; replacement explicitly frees prior data."
+    },
+    {
+      "owner": "MaterialResource",
+      "offset": "0x58",
+      "meaning": "Metadata descriptor pointer; +0x38 type checked before reading descriptor+0x18 body pointer."
+    },
+    {
+      "owner": "Material metadata body",
+      "offset": "0x30",
+      "meaning": "Dependency ID array A; count +0x38; type descriptor 0x5e60cc0."
+    },
+    {
+      "owner": "Material metadata body",
+      "offset": "0x20",
+      "meaning": "Dependency ID array B; count +0x28; type descriptor 0x5e76dd8."
+    },
+    {
+      "owner": "Material metadata body",
+      "offset": "0x10",
+      "meaning": "Dependency ID array C; count +0x18; type descriptor 0x5d2b790."
+    },
+    {
+      "owner": "Material data",
+      "offset": "0x10",
+      "meaning": "Array A records stride 0x20; owned dependency reference at record+8."
+    },
+    {
+      "owner": "Material data",
+      "offset": "0x20",
+      "meaning": "Array B of owned dependency references, stride 8."
+    },
+    {
+      "owner": "Material data",
+      "offset": "0x30",
+      "meaning": "Array C of owned dependency references, stride 8."
+    }
+  ],
+  "checks": [
+    {
+      "kind": "pointer64",
+      "rva": "0x4f6ca48",
+      "target": "0x30427c0",
+      "label": "material requestLoad slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4f6ca68",
+      "target": "0x3042730",
+      "label": "material blockingLoad slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4f6ca50",
+      "target": "0x3042860",
+      "label": "material dependency wrapper slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4ddc790",
+      "target": "0x2e8ed20",
+      "label": "texture requestLoad slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4ddc7b0",
+      "target": "0x2e8eed0",
+      "label": "texture blockingLoad slot"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3043521",
+      "target": "0xc80b9065",
+      "label": "material reflection type key"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3043531",
+      "target": "0xc8",
+      "label": "material reflected size"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2e90421",
+      "target": "0x650f89b5",
+      "label": "texture reflection type key"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2e90431",
+      "target": "0x1b8",
+      "label": "texture reflected size"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x304279b",
+      "target": "0x31cf2a0",
+      "label": "shared blocking loader"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x304284b",
+      "target": "0x31cef20",
+      "label": "shared async loader"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x30427ab",
+      "target": "0x2f3a9f0",
+      "label": "additional renderer-side helper"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x3043cf4",
+      "target": "0x3043bc0",
+      "label": "blocking callback to material reader"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x3043d84",
+      "target": "0x3043bc0",
+      "label": "async callback to material reader"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3043c73",
+      "target": "0x304c9b0",
+      "label": "material decoder invocation"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x3043c90",
+      "target": "0x31cee00",
+      "label": "shared loaded-state publication"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3042881",
+      "target": "0x3042b90",
+      "label": "dependency wrapper to batch resolver"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3042c2d",
+      "target": "0x31cab80",
+      "label": "dependency A manager lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3042cea",
+      "target": "0x31cab80",
+      "label": "dependency B manager lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x30428c1",
+      "target": "0x30428e0",
+      "label": "release wrapper to batch release"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3042a46",
+      "target": "0x2fb8340",
+      "label": "command-storage allocation during release"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2e8ee68",
+      "target": "0x4ddc9d8",
+      "label": "texture queued job vtable"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2e8edea",
+      "target": "0x1d02c40",
+      "label": "texture metadata-driven setup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2e8eeae",
+      "target": "0x315d5f0",
+      "label": "texture worker notification"
+    }
+  ],
+  "gaps": [
+    "Resolve names of all three material dependency type descriptors.",
+    "Trace material streamIn system from scheduler registration to implementation and RenderQueue commands.",
+    "Trace RenderQueue consumer and material command decoding.",
+    "Identify shader/PSO and GPU descriptor binding; no draw-pass semantics established.",
+    "Validate load, dependency availability, streaming, and release ordering on owning threads."
+  ]
+}

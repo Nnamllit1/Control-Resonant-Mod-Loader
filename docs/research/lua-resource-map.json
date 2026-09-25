@@ -1,0 +1,283 @@
+{
+  "schema": 1,
+  "title": "Lua resource loading and ECS preload collection",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static disassembly; no callable ABI or live lifecycle verification.",
+  "nodes": [
+    {
+      "id": "lua_resource_type",
+      "rva": "0x3bebba0",
+      "meaning": "Reflection vtable; distinct from resource-instance vtable."
+    },
+    {
+      "id": "lua_resource",
+      "rva": "0x3bebee8",
+      "meaning": "LuaScriptResource instance vtable, confirmed through RTTI and allocation path."
+    },
+    {
+      "id": "allocate",
+      "rva": "0x713920",
+      "meaning": "Allocates 0xc0 bytes with alignment 8 and installs resource vtable."
+    },
+    {
+      "id": "request_load",
+      "rva": "0x711db0",
+      "meaning": "Builds requestLoad-named callback and hands it to generic loader."
+    },
+    {
+      "id": "blocking_load",
+      "rva": "0x711d30",
+      "meaning": "Builds blockingLoad-named callback and hands it to synchronous loader."
+    },
+    {
+      "id": "read_resource",
+      "rva": "0x712150",
+      "meaning": "Reads one byte into resource+0xb8, remaining file into buffer at resource+0xa0."
+    },
+    {
+      "id": "publish_loaded",
+      "rva": "0x31cee00",
+      "meaning": "Atomically stores 4 at resource+0x68. Loaded-state interpretation follows call position."
+    },
+    {
+      "id": "collect_registration",
+      "rva": "0x19c0330",
+      "meaning": "System registration, not the gameplay implementation."
+    },
+    {
+      "id": "collect_dispatch",
+      "rva": "0x19bbee0",
+      "meaning": "Unpacks three environment arguments from scheduler context."
+    },
+    {
+      "id": "collect_impl",
+      "rva": "0x19b3b80",
+      "meaning": "Gathers Lua resource IDs from bundle entries, deduplicates, checks LuaCachedScripts, requests missing resources into LuaPreloadQueue."
+    },
+    {
+      "id": "typed_request",
+      "rva": "0x19b7ce0",
+      "meaning": "Passes fixed type descriptor 0x5bec370 and resource ID to manager; transfers owned resource reference to caller."
+    },
+    {
+      "id": "throttled_registration",
+      "rva": "0x19c0c50",
+      "meaning": "Registers processThrottledLoading scheduler callback; callback body is next investigation target."
+    }
+  ],
+  "object_layout": [
+    {
+      "owner": "LuaScriptResource",
+      "offset": "0x00",
+      "meaning": "Instance vtable",
+      "evidence": "allocate"
+    },
+    {
+      "owner": "LuaScriptResource",
+      "offset": "0x08",
+      "meaning": "64-bit resource identifier used by preload collection; ID derivation not yet established",
+      "evidence": "collect_impl"
+    },
+    {
+      "owner": "LuaScriptResource",
+      "offset": "0x64",
+      "meaning": "Atomic reference count, decremented on owned-reference cleanup",
+      "evidence": "typed_request"
+    },
+    {
+      "owner": "LuaScriptResource",
+      "offset": "0x68",
+      "meaning": "Atomic state word; reader publishes value 4",
+      "evidence": "publish_loaded"
+    },
+    {
+      "owner": "LuaScriptResource",
+      "offset": "0xa0",
+      "meaning": "Compact buffer representation; inline/indirect selection performed by reader",
+      "evidence": "read_resource"
+    },
+    {
+      "owner": "LuaScriptResource",
+      "offset": "0xb8",
+      "meaning": "First file byte, meaning unresolved",
+      "evidence": "read_resource"
+    },
+    {
+      "owner": "SharedBundleState",
+      "offset": "0xd20",
+      "meaning": "Bundle entry array pointer, record stride 0x90; reached through incoming r::Ptr",
+      "evidence": "collect_impl"
+    },
+    {
+      "owner": "SharedBundleState",
+      "offset": "0xd28",
+      "meaning": "Bundle entry count",
+      "evidence": "collect_impl"
+    },
+    {
+      "owner": "LuaPreloadQueue",
+      "offset": "0x00",
+      "meaning": "Owned resource-reference array; count at +8, capacity at +0xc",
+      "evidence": "collect_impl"
+    },
+    {
+      "owner": "LuaPreloadQueue",
+      "offset": "0x10",
+      "meaning": "Previously observed bundle-ID array; count +0x18, capacity +0x1c",
+      "evidence": "collect_impl"
+    }
+  ],
+  "checks": [
+    {
+      "kind": "pointer64",
+      "rva": "0x3bebba0",
+      "target": "0x7123b0",
+      "label": "reflection name getter"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x3bebee8",
+      "target": "0x714c20",
+      "label": "instance first virtual method"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x3bebef8",
+      "target": "0x711db0",
+      "label": "instance requestLoad slot +0x10"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x3bebf18",
+      "target": "0x711d30",
+      "label": "instance blockingLoad slot +0x30"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x3bec130",
+      "target": "0x7135e0",
+      "label": "requestLoad callback invocation slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x3bec168",
+      "target": "0x713670",
+      "label": "blockingLoad callback invocation slot"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x71399e",
+      "target": "0x3bebee8",
+      "label": "allocator installs instance vtable"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x7123c1",
+      "target": "0xae98e778",
+      "label": "reflection type key constant"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x7123d1",
+      "target": "0xc0",
+      "label": "reflection allocation size"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x711d6a",
+      "target": "0x3bec158",
+      "label": "blocking callback type"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x711e12",
+      "target": "0x3bec120",
+      "label": "async callback type"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x711d9b",
+      "target": "0x31cf2a0",
+      "label": "blocking loader handoff"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x711e3b",
+      "target": "0x31cef20",
+      "label": "async loader handoff"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x7135e4",
+      "target": "0x712150",
+      "label": "async callback to reader"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x713674",
+      "target": "0x712150",
+      "label": "blocking callback to reader"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x712219",
+      "target": "0x31cee00",
+      "label": "reader to state publication"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19c0352",
+      "target": "0x4829030",
+      "label": "collection system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19c0490",
+      "target": "0x19bbee0",
+      "label": "registered collection dispatcher"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x19bbeef",
+      "target": "0x19b3b80",
+      "label": "dispatcher to implementation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19b3eb4",
+      "target": "0x7123a0",
+      "label": "Lua resource runtime type index getter"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19b4128",
+      "target": "0x19b7ce0",
+      "label": "missing resource to typed request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19b7d0b",
+      "target": "0x31cab80",
+      "label": "typed request to resource manager"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19c0c80",
+      "target": "0x4829fe0",
+      "label": "throttled loading system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19c0df5",
+      "target": "0x19bd7b0",
+      "label": "throttled loading scheduler callback"
+    }
+  ],
+  "gaps": [
+    "Resource ID derivation and manager cache lookup internals.",
+    "Loader adapter selection, mount precedence, and cancellation.",
+    "First-byte meaning and payload deserializer into Lua VM.",
+    "Throttled callback body, script-instance creation, scheduler order, and owning threads.",
+    "Typed refcount ownership contracts and safe mod-facing operations."
+  ]
+}

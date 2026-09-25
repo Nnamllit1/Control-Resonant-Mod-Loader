@@ -2,6 +2,8 @@
 
 The research tools map assets, scripting, and ECS systems independently of the experimental noclip bridge. They read installed files without starting the game. The resulting catalog preserves build fingerprints and evidence locations so contributors can reproduce and refine each finding.
 
+For the mapping from assets to native objects, owned dependencies, and execution stages, see [engine internals](engine-internals.md). That investigation traces individual code paths beyond the catalog.
+
 ## Generate and search a catalog
 
 Python 3.10 or newer is sufficient; no additional packages are needed. Run from the repository root:
