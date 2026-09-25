@@ -1,6 +1,8 @@
-param([ValidateSet('Debug','Release')][string]$Configuration = 'Release', [switch]$Test, [int]$Jobs = 1)
+param([ValidateSet('Debug','Release')][string]$Configuration = 'Release', [switch]$Test, [int]$Jobs = 1, [Alias('ExperimentalGameplay')][switch]$MovementProbe)
 $ErrorActionPreference = 'Stop'
-& python "$PSScriptRoot\tools\fetch-deps.py"
+$dependencyArgs = @()
+if ($MovementProbe) { $dependencyArgs += '--movement-probe' }
+& python "$PSScriptRoot\tools\fetch-deps.py" @dependencyArgs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 $vs = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json | ConvertFrom-Json)[0]
@@ -8,7 +10,8 @@ if (-not $vs) { throw 'Install Visual Studio with Desktop development with C++.'
 $cmake = Join-Path $vs.installationPath 'Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
 if (-not (Test-Path -LiteralPath $cmake)) { $cmake = (Get-Command cmake -ErrorAction Stop).Source }
 $generator = if (([version]$vs.installationVersion).Major -ge 18) { 'Visual Studio 18 2026' } else { 'Visual Studio 17 2022' }
-& $cmake -S $PSScriptRoot -B "$PSScriptRoot\build\native" -G $generator -A x64
+$probeOption = if ($MovementProbe) { 'ON' } else { 'OFF' }
+& $cmake -S $PSScriptRoot -B "$PSScriptRoot\build\native" -G $generator -A x64 "-DCRML_MOVEMENT_PROBE=$probeOption"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 & $cmake --build "$PSScriptRoot\build\native" --config $Configuration --parallel $Jobs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -24,3 +27,9 @@ Copy-Item -LiteralPath "$PSScriptRoot\examples\hello\mod.ini" -Destination "$PSS
 & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\hello\hello.wat" "$PSScriptRoot\dist\crml\mods\hello\hello.wasm"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Write-Host "Build ready in $PSScriptRoot\dist"
+@{ experimental_gameplay = [bool]$MovementProbe } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
+if ($MovementProbe) {
+    & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\noclip\noclip.wat" "$PSScriptRoot\dist\examples\noclip\noclip.wasm"
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    [System.IO.File]::WriteAllText("$PSScriptRoot\dist\examples\noclip\noclip.enabled", '')
+}

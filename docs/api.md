@@ -16,9 +16,9 @@ capabilities=log
 | `id` | Required, 1–64 lowercase letters, digits, `_` or `-`; unique within the host |
 | `abi` | Required, exactly `1` |
 | `module` | Required, local `.wasm` filename; no directories or absolute paths |
-| `capabilities` | Empty/omitted, or exactly `log`; other requests are rejected |
+| `capabilities` | Empty/omitted, or a comma-separated list of `log` and `player.noclip`; duplicates and unknown requests are rejected |
 
-There is currently one grantable capability. The host's policy allows logging when requested; declaring an arbitrary capability does not grant it.
+Logging is available when requested. The experimental noclip import also requires native build support, a matching game fingerprint, and installation opt-in; declaring the capability cannot bypass those gates.
 
 ## Guest exports
 
@@ -40,4 +40,12 @@ Requires `log`. `offset` and `length` describe guest memory, never a native addr
 
 One call accepts at most 4,096 bytes. Each lifecycle invocation accepts at most 32 calls and 16,384 bytes. Invalid ranges and exhausted logging budgets trap the guest.
 
-No gameplay or UI imports are available yet. The [gameplay milestone](gameplay.md) describes the intended next bridge without reserving an unverified ABI.
+### Experimental noclip
+
+`crml_v1.noclip_poll(speed: f32) -> i32`
+
+Requires `player.noclip`. Call on each worker heartbeat to keep the mod's native movement lease alive and service the fixed F6 keyboard toggle. Finite speeds from 0.25 through 20 world units per second are accepted; Shift multiplies movement speed by three. More than eight calls per lifecycle invocation, nonfinite values, and out-of-range speeds trap the guest.
+
+Returns `1` when enabled, `0` when off, `-1` when unavailable, or `-2` when another mod owns the override. The standalone host returns `-1`. Native cleanup releases ownership on load failure, traps, shutdown, and runtime destruction, independently of a guest shutdown export. Guests cannot provide addresses, native callbacks, arbitrary key codes, or entity IDs.
+
+The host handles movement keys and the status panel; this is not a general UI or keyboard API. See the [test guide and limitations](gameplay.md).

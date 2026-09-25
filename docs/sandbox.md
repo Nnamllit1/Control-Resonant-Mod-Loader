@@ -13,6 +13,7 @@ Each mod runs in its own Wasmtime store. The runtime exposes only explicitly lin
 | Wasm stack | 256 KiB |
 | Fuel | 100,000 per start/version/lifecycle invocation |
 | Log calls / bytes | 32 / 16 KiB per invocation |
+| Noclip host calls | 8 per invocation; finite speed 0.25–20 |
 | In-game log | Approximately 4 MiB per session, overwritten on next startup |
 
 Threads, memory64, multiple memories, and Wasm GC are disabled. Failed imports, invalid signatures, traps, and exhausted fuel reject or disable that mod. Fuel and memory limits apply before the Wasm start function executes.

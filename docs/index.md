@@ -5,7 +5,7 @@
 <p class="crml-intro">A mod framework for CONTROL Resonant. Build small, sandboxed mods against a versioned API, with a native loader handling the connection to the game.</p>
 
 !!! warning "Early development"
-    The sandbox and proxy work in standalone tests. In-game startup is unverified. There are no gameplay hooks, in-game menus, or noclip controls yet.
+    The sandbox and proxy pass automated tests, and the hello mod has loaded in the recorded game build. An opt-in noclip prototype and status overlay are available for testing. Actual wall traversal and restoration remain unverified, as do controller input and clean shutdown.
 
 ## Start here
 
@@ -18,7 +18,7 @@
 
 The standalone host discovers Wasm packages, validates their manifests, calls their lifecycle functions, and isolates guest traps. Each mod has its own memory and execution budget. The first example writes a greeting through the host logging API.
 
-The experimental Windows proxy forwards XInput calls to the system library and starts the trusted runtime from the first `XInputGetState` call. The installed game's import table contains that function by ordinal; this is evidence for a candidate loading route, not proof of in-game compatibility.
+The experimental Windows proxy forwards XInput calls to the system library and starts the trusted runtime from the first `XInputGetState` call. Startup and the hello greeting have been observed in the build recorded in `compatibility.json`. This confirms the loading route, not full gameplay compatibility.
 
 ## Mod format
 

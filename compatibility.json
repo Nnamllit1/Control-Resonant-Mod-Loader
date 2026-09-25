@@ -8,8 +8,22 @@
       "architecture": "x64",
       "proxy": "xinput1_4.dll",
       "observed_import_ordinals": [2],
-      "status": "static-inspection-only",
-      "gameplay_bridge": false
+      "status": "bootstrap-verified",
+      "verification": {
+        "date": "2026-09-24",
+        "runtime_loaded": true,
+        "wasm_hello_logged": true,
+        "gameplay_reported": true,
+        "controller_input_tested": false,
+        "shutdown_tested": false
+      },
+      "gameplay_bridge": false,
+      "experimental_noclip": {
+        "implemented": true,
+        "live_verified": false,
+        "movement": "world-axes",
+        "requires_opt_in": true
+      }
     }
   ]
 }

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -6,10 +7,16 @@
 
 namespace crml {
 using Log = std::function<void(const std::string&)>;
+// Trusted native service. Guests receive only bounded commands, never pointers.
+struct Gameplay {
+    virtual int noclip_poll(uint64_t owner, float speed) noexcept = 0;
+    virtual void release(uint64_t owner) noexcept = 0;
+    virtual ~Gameplay() = default;
+};
 // All lifecycle calls belong to one host thread. No game pointers cross this API.
 class Runtime {
 public:
-    explicit Runtime(Log log);
+    explicit Runtime(Log log, Gameplay* gameplay = nullptr);
     ~Runtime();
     Runtime(const Runtime&) = delete;
     Runtime& operator=(const Runtime&) = delete;

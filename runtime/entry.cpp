@@ -1,4 +1,7 @@
 #include "runtime.h"
+#ifdef CRML_MOVEMENT_PROBE
+#include "movement_probe.h"
+#endif
 #include <Windows.h>
 #include <chrono>
 #include <fstream>
@@ -21,22 +24,40 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
             if (!log) return;
             // Hard session cap prevents guests from growing logs indefinitely.
             size_t written = 0;
+#ifdef CRML_MOVEMENT_PROBE
+            crml::probe::Recorder probe;
+#endif
             crml::Runtime runtime([&](const std::string& text) {
                 if (written >= 4 * 1024 * 1024) return;
                 const auto line = text.substr(0, 16384);
                 log << line << '\n';
                 log.flush();
                 written += line.size() + 1;
-            });
-            log << "CRML 0.1.0 experimental bootstrap; gameplay bridge unavailable\n";
+            }
+#ifdef CRML_MOVEMENT_PROBE
+            , &probe
+#endif
+            );
+            log << "CRML 0.1.0 experimental bootstrap\n";
             log.flush();
+#ifdef CRML_MOVEMENT_PROBE
+            log << probe.start(root) << '\n';
+            log.flush();
+#endif
             runtime.load(root / "mods");
             auto last = std::chrono::steady_clock::now();
-            while (runtime.active()) {
+            while (runtime.active()
+#ifdef CRML_MOVEMENT_PROBE
+                   || probe.active()
+#endif
+            ) {
                 Sleep(100);
                 const auto now = std::chrono::steady_clock::now();
                 runtime.tick(std::chrono::duration<float>(now - last).count());
                 last = now;
+#ifdef CRML_MOVEMENT_PROBE
+                probe.poll();
+#endif
             }
             runtime.shutdown();
             result = 0;

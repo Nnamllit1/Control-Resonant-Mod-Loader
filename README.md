@@ -2,7 +2,7 @@
 
 A Windows x64 mod framework for **CONTROL Resonant**, with a native loader and sandboxed WebAssembly mods.
 
-**Experimental developer preview.** The standalone host runs real Wasm packages, and the XInput proxy is tested in a fixture process. In-game startup has not yet been verified. Gameplay hooks, an overlay, and noclip are not implemented.
+**Experimental developer preview.** The XInput proxy and sandboxed hello mod have loaded in the recorded game build. An opt-in noclip prototype includes a Wasm example and status overlay; wall traversal and restoration have not yet been verified in gameplay. Controller input and clean shutdown also need dedicated validation. See the [noclip test guide](docs/gameplay.md).
 
 ## Build and try it
 

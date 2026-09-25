@@ -120,6 +120,43 @@ class SandboxTests(unittest.TestCase):
         self.package(f'(module {BASE} (func (export "crml_init")))', 'b', 'id=a\nabi=1\nmodule=mod.wasm\n')
         self.assertIn('Duplicate mod id', self.run_host(1))
 
+    def test_noclip_capability_denied(self):
+        self.reject(f'(module (import "crml_v1" "noclip_poll" (func (param f32) (result i32))) {BASE} (func (export "crml_init")))', 'unknown import')
+
+    def test_packaged_noclip_example(self):
+        example = Path(__file__).resolve().parents[1] / 'examples/noclip'
+        manifest = (example / 'mod.ini').read_text().replace('noclip.wasm', 'mod.wasm')
+        self.package((example / 'noclip.wat').read_text(), manifest=manifest)
+        self.assertIn('[noclip] Experimental noclip: unavailable\n', self.run_host())
+
+    def test_noclip_unavailable_without_bridge(self):
+        self.package(f'(module (import "crml_v1" "noclip_poll" (func $p (param f32) (result i32))) {BASE} (func (export "crml_init") f32.const 5 call $p i32.const -1 i32.ne if unreachable end))', manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=player.noclip\n')
+        self.run_host()
+
+    def gameplay_fixture(self, body, calls, failures):
+        self.package(f'(module (import "crml_v1" "noclip_poll" (func $p (param f32) (result i32))) {BASE} {body})', manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=player.noclip\n')
+        result = subprocess.run([str(BIN / 'crml_gameplay_tests.exe'), str(self.mods)], capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn(f'Gameplay calls: {calls}; failures: {failures}; owners: 0', result.stdout)
+
+    def test_noclip_released_after_tick_trap(self):
+        self.gameplay_fixture('(func (export "crml_init")) (func (export "crml_tick") (param f32) f32.const 5 call $p drop unreachable)', 1, 1)
+
+    def test_noclip_released_after_start_trap(self):
+        self.gameplay_fixture('(func $start f32.const 5 call $p drop unreachable) (start $start) (func (export "crml_init"))', 1, 1)
+
+    def test_noclip_released_after_shutdown_trap(self):
+        self.gameplay_fixture('(func (export "crml_init") f32.const 5 call $p drop) (func (export "crml_shutdown") unreachable)', 1, 1)
+
+    def test_noclip_released_without_guest_shutdown(self):
+        self.gameplay_fixture('(func (export "crml_init") f32.const 5 call $p drop)', 1, 0)
+
+    def test_noclip_nan_rejected(self):
+        self.gameplay_fixture('(func (export "crml_init") f32.const nan call $p drop)', 0, 1)
+
+    def test_noclip_call_budget(self):
+        self.gameplay_fixture('(func (export "crml_init") (loop f32.const 5 call $p drop br 0))', 8, 1)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--bin', required=True, type=Path)

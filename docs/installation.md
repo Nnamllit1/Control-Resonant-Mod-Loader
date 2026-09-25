@@ -18,7 +18,7 @@ python tools/inspect-game.py "C:\Games\CONTROL Resonant\CONTROLResonant.exe"
 python tools/install.py "C:\Games\CONTROL Resonant"
 ```
 
-Replace `C:\Games\CONTROL Resonant` with your installation path. The installer defaults to a read-only preview. It checks the executable against `compatibility.json` and refuses any existing `xinput1_4.dll` or `crml/` directory. The recorded profile has only been statically inspected.
+Replace `C:\Games\CONTROL Resonant` with your installation path. The installer defaults to a read-only preview. It checks the executable against `compatibility.json` and refuses any existing `xinput1_4.dll` or `crml/` directory. The recorded profile has passed a live bootstrap check; it does not yet have a gameplay bridge.
 
 ## Experimental game bootstrap
 
@@ -41,4 +41,10 @@ python tools/install.py "C:\Games\CONTROL Resonant" --uninstall
 python tools/install.py "C:\Games\CONTROL Resonant" --uninstall --apply
 ```
 
-Removal checks the installation receipt and hashes first. Modified files are preserved by refusing the operation; extra mod files and logs are never removed. Empty directories may remain. Update by removing the prior installation and keeping any retained local content elsewhere before reinstalling.
+Removal checks the installation receipt and hashes first. Modified files are preserved by refusing the operation; extra mod files and logs are never removed. Empty directories may remain.
+
+## Update an existing installation
+
+With the game closed, run `python tools/install.py "C:\Games\CONTROL Resonant" --update` to preview, then add `--apply`. Updates verify every owned file, stage replacements, and roll back replaced files if publishing fails. Additional mods, logs, and settings are preserved. Modified owned files are refused rather than overwritten.
+
+The [experimental noclip guide](gameplay.md) describes the separate build and installation flags needed for gameplay testing.

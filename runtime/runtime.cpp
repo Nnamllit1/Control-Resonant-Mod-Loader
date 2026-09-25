@@ -54,7 +54,7 @@ std::string trim(std::string value) {
     if (first == std::string::npos) return {};
     return value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
 }
-struct Manifest { std::string id, module; bool log = false; };
+struct Manifest { std::string id, module; bool log = false, noclip = false; };
 Manifest manifest(const std::filesystem::path& path) {
     std::istringstream input(read(path, 8192));
     std::map<std::string, std::string> fields;
@@ -69,11 +69,20 @@ Manifest manifest(const std::filesystem::path& path) {
             throw std::runtime_error("Unknown manifest field: " + key);
         if (!fields.emplace(key, value).second) throw std::runtime_error("Duplicate manifest field");
     }
-    Manifest m{fields["id"], fields["module"], fields["capabilities"] == "log"};
+    Manifest m{fields["id"], fields["module"]};
+    std::istringstream capabilities(fields["capabilities"]);
+    std::set<std::string> seen;
+    for (std::string cap; std::getline(capabilities, cap, ',');) {
+        cap = trim(cap);
+        if (!seen.insert(cap).second) throw std::runtime_error("Duplicate capability");
+        if (cap == "log") m.log = true;
+        else if (cap == "player.noclip") m.noclip = true;
+        else throw std::runtime_error("Unsupported capability");
+    }
+    if (!fields["capabilities"].empty() && fields["capabilities"].back() == ',') throw std::runtime_error("Empty capability");
     if (m.id.empty() || m.id.size() > 64 || m.id.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") != std::string::npos)
         throw std::runtime_error("Invalid mod id");
     if (fields["abi"] != "1") throw std::runtime_error("Unsupported manifest ABI");
-    if (!fields["capabilities"].empty() && !m.log) throw std::runtime_error("Unsupported capability");
     if (m.module.empty() || m.module.size() > 100 || m.module.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-") != std::string::npos ||
         std::filesystem::path(m.module).extension() != ".wasm")
         throw std::runtime_error("Module must be a local .wasm filename");
@@ -89,6 +98,10 @@ struct Runtime::Impl {
     struct Mod {
         Manifest info;
         Log* log;
+        Gameplay* gameplay{};
+        uint64_t owner{};
+        size_t gameplay_calls{};
+        ~Mod() { if (gameplay) gameplay->release(owner); }
         size_t log_bytes = 0;
         size_t log_calls = 0;
         bool alive = true;
@@ -100,6 +113,7 @@ struct Runtime::Impl {
         void budget() {
             log_bytes = 0;
             log_calls = 0;
+            gameplay_calls = 0;
             check(wasmtime_context_set_fuel(context(), fuel));
         }
         bool function(const char* name, const std::vector<wasm_valkind_t>& params,
@@ -131,6 +145,18 @@ struct Runtime::Impl {
             wasm_trap_t* trap = nullptr;
             auto* error = wasmtime_func_call(context(), &fn, args, nargs, results, nresults, &trap);
             check(error, trap);
+        }
+        static wasm_trap_t* noclip_callback(void* data, wasmtime_caller_t*, const wasmtime_val_t* args,
+                                          size_t, wasmtime_val_t* results, size_t) noexcept {
+            auto& mod = *static_cast<Mod*>(data);
+            const auto speed = args[0].of.f32;
+            if (!std::isfinite(speed) || speed < 0.25f || speed > 20.0f || ++mod.gameplay_calls > 8) {
+                constexpr char error[] = "Noclip speed or call budget exceeded";
+                return wasmtime_trap_new(error, sizeof(error)-1);
+            }
+            results[0].kind = WASMTIME_I32;
+            results[0].of.i32 = mod.gameplay ? mod.gameplay->noclip_poll(mod.owner, speed) : -1;
+            return nullptr;
         }
         static wasm_trap_t* log_callback(void* data, wasmtime_caller_t* caller, const wasmtime_val_t* args,
                                          size_t, wasmtime_val_t*, size_t) noexcept {
@@ -165,11 +191,13 @@ struct Runtime::Impl {
         }
     };
     Log log;
+    Gameplay* gameplay{};
+    uint64_t next_owner{1};
     Engine engine{nullptr, wasm_engine_delete};
     std::vector<std::unique_ptr<Mod>> mods;
     size_t failed = 0;
     bool loaded = false;
-    explicit Impl(Log sink) : log(std::move(sink)) {
+    explicit Impl(Log sink, Gameplay* game) : log(std::move(sink)), gameplay(game) {
         auto* config = wasm_config_new();
         wasmtime_config_consume_fuel_set(config, true);
         wasmtime_config_max_wasm_stack_set(config, 256 * 1024);
@@ -184,6 +212,8 @@ struct Runtime::Impl {
         auto mod = std::make_unique<Mod>();
         mod->info = std::move(info);
         mod->log = &log;
+        mod->gameplay = gameplay;
+        mod->owner = next_owner++;
         const auto bytes = read(directory / mod->info.module, max_module);
         if (bytes.size() < 8 || bytes.compare(0, 8, std::string("\0asm\1\0\0\0", 8)) != 0)
             throw std::runtime_error("Only binary core WebAssembly modules are accepted");
@@ -200,6 +230,10 @@ struct Runtime::Impl {
             wasm_valtype_vec_new_empty(&results);
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new(&params, &results), wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "log", 3, type.get(), Mod::log_callback, mod.get(), nullptr));
+        }
+        if (mod->info.noclip) {
+            Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_1_1(wasm_valtype_new_f32(), wasm_valtype_new_i32()), wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "noclip_poll", 11, type.get(), Mod::noclip_callback, mod.get(), nullptr));
         }
         // Fuel and memory limits apply even to the module's start function.
         mod->budget();
@@ -220,12 +254,13 @@ struct Runtime::Impl {
     }
     void fault(Mod& mod, const std::exception& error) {
         mod.alive = false;
+        if (mod.gameplay) mod.gameplay->release(mod.owner);
         ++failed;
         log("Disabled " + mod.info.id + ": " + clean(error.what()));
         mod.store.reset();
     }
 };
-Runtime::Runtime(Log log) : impl_(std::make_unique<Impl>(std::move(log))) {}
+Runtime::Runtime(Log log, Gameplay* gameplay) : impl_(std::make_unique<Impl>(std::move(log), gameplay)) {}
 Runtime::~Runtime() = default;
 void Runtime::load(const std::filesystem::path& root) {
     if (impl_->loaded) throw std::runtime_error("Runtime already loaded");
@@ -270,6 +305,7 @@ void Runtime::shutdown() {
         try { if (mod.has_stop) mod.call(mod.stop); }
         catch (const std::exception& error) { impl_->fault(mod, error); }
         mod.alive = false;
+        if (mod.gameplay) mod.gameplay->release(mod.owner);
         mod.store.reset();
     }
 }
