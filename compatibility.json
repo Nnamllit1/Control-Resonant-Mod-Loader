@@ -7,7 +7,9 @@
       "sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
       "architecture": "x64",
       "proxy": "xinput1_4.dll",
-      "observed_import_ordinals": [2],
+      "observed_import_ordinals": [
+        2
+      ],
       "status": "bootstrap-verified",
       "verification": {
         "date": "2026-09-24",
@@ -20,10 +22,18 @@
       "gameplay_bridge": false,
       "entity_inspector": {
         "implemented": true,
-        "live_verified": false,
+        "live_verified": true,
         "scope": "player component identities and controller state",
         "model_material_payloads_decoded": false,
-        "requires_opt_in": true
+        "requires_opt_in": true,
+        "live_sampling_verified": true,
+        "live_valid_samples": 51,
+        "complete_inventory_live_verified": true,
+        "reload_live_verified": false,
+        "observed_component_count_range": [
+          524,
+          531
+        ]
       },
       "experimental_noclip": {
         "implemented": true,
@@ -44,6 +54,18 @@
         "same_world_teleport_restoration_implemented": true,
         "same_world_teleport_restoration_verified": false,
         "requires_opt_in": true
+      },
+      "experimental_visibility": {
+        "implemented": true,
+        "live_verified": false,
+        "requires_opt_in": true,
+        "capability": "player.visibility",
+        "scope": "root player mesh hide while F7 is held",
+        "phase": "after coregame::mesh::applyHide",
+        "lease_ms": 500,
+        "native_hide_show_reported": true,
+        "guest_controlled_requests": true,
+        "guest_input_path_live_verified": false
       }
     }
   ]

@@ -62,6 +62,7 @@ nav:
       - Engine research: engine-research.md
       - Engine internals: engine-internals.md
       - Entity inspector: entity-inspector.md
+      - Player visibility: visibility.md
       - Pack2 format: pack2.md
       - Gameplay and noclip: gameplay.md
       - Documentation: documentation.md

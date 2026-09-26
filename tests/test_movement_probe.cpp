@@ -1,5 +1,6 @@
 #include "movement_view.h"
 #include "entity_inspector.h"
+#include "visibility.h"
 #include "noclip.h"
 #include "fall_guard.h"
 #include <cmath>
@@ -87,17 +88,49 @@ void detour(void* a,void* b,void* c,void* d,void* e,void* f) { ++intercepted; tr
 int main() {
     try {
         {
+            using namespace crml::probe::visibility;
+            Lease lease;
+            require(lease.renew(1,true,100)==1 && lease.active(599) && !lease.active(600),"Visibility lease expiry failed");
+            require(lease.renew(2,true,200)==-2,"Visibility lease stolen");
+            lease.release(2); require(lease.active(200),"Foreign release revoked visibility");
+            lease.release(1); require(!lease.active(200),"Visibility release failed");
+            require(lease.renew(2,true,700)==1 && lease.renew(2,false,701)==0 && !lease.active(701),"Key release failed");
+            Fixture f(3); Sample s{}; require(f.inspect(s)==Observation::player,"Visibility fixture failed");
+            f.hashes.resize(14*4); f.offsets.resize(14*4);
+            put(f.world,(1+0xc22)*32+0x10,address(f.hashes)); put(f.world,(1+0xc22)*32+0x24,uint32_t{14});
+            put(f.world,0x18478,address(f.offsets));
+            put(f.hashes,44,uint32_t{0xb1f2545a}); put(f.offsets,44,uint32_t{0xc00});
+            put(f.hashes,48,uint32_t{0x77d4f0ad}); put(f.offsets,48,uint32_t{0xc20});
+            put(f.hashes,52,uint32_t{0x0eee2128}); put(f.offsets,52,uint32_t{0xd00});
+            put(f.chunk,0xd00+3*24+16,uint32_t{123});
+            uint64_t bits=2;
+            std::array<uintptr_t,4> query{address(f.world),1,reinterpret_cast<uintptr_t>(&bits),2};
+            Target t{}; const auto before=f.chunk;
+            require(resolve(query.data(),s,t) && t.handle==123 && t.hidden==f.chunk.data()+0xc03,"Visibility target resolution failed");
+            require(before==f.chunk,"Visibility resolver mutated state");
+            bits=0; require(!resolve(query.data(),s,t) && !t.hidden,"Excluded archetype accepted"); bits=2;
+            put(f.generations,16,uint32_t{8}); require(!resolve(query.data(),s,t),"Stale visibility target accepted");
+            constexpr auto command=hide_command(123);
+            require(command.header==((1u<<9)|0x69) && command.handle==123,"Visibility command encoding failed");
+        }
+        {
             Fixture f(3); Sample s{}; require(f.inspect(s)==Observation::player,"Inspector fixture failed");
             const auto before=f.chunk;
             crml::probe::EntitySnapshot snapshot{};
             require(crml::probe::inspect_entity(s,snapshot) && snapshot.count==11 && snapshot.archetype==1,
                     "Component inventory failed");
             require(snapshot.player.world==0 && before==f.chunk,"Inspector retained world or changed entity");
-            std::vector<unsigned char> static_hashes(4);
-            put(static_hashes,0,uint32_t{0x1fda8b03});
             put(f.hashes,0,uint32_t{0x1fda8b03});
             require(crml::probe::inspect_entity(s,snapshot) && snapshot.components[0].hash==0x1fda8b03,
                     "Component identity not copied");
+            // Real player inventories exceed the original 512-entry buffer.
+            f.hashes.resize(2048*4);
+            for(uint32_t i=0;i<2048;++i) put(f.hashes,i*4,i+1);
+            put(f.world,(1+0xc22)*32+0x10,address(f.hashes));
+            put(f.world,(1+0xc22)*32+0x24,uint32_t{2048});
+            require(crml::probe::inspect_entity(s,snapshot) && snapshot.count==2048 &&
+                    !snapshot.truncated && snapshot.components[2047].hash==2048,
+                    "Large component inventory lost its tail");
             put(f.generations,16,uint32_t{8});
             require(!crml::probe::inspect_entity(s,snapshot) && !snapshot.valid && snapshot.count==0,
                     "Stale inspector entity accepted");

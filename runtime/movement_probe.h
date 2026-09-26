@@ -10,8 +10,11 @@ public:
     std::string start(const std::filesystem::path& root);
     void poll();
     ~Recorder();
-    bool active() const { return output_.is_open() || gameplay_; }
+    bool active() const { return output_.is_open() || gameplay_ || visibility_; }
     int noclip_poll(uint64_t owner, float speed) noexcept override;
+    uint32_t input_buttons() noexcept override;
+    int visibility_set(uint64_t owner, bool hidden) noexcept override;
+    int visibility_poll(uint64_t owner) noexcept override;
     void release(uint64_t owner) noexcept override;
 private:
     std::ofstream output_;
@@ -20,6 +23,7 @@ private:
     unsigned polls_{};
     unsigned reports_{};
     bool gameplay_{};
+    bool visibility_{};
     void* overlay_{};
 };
 }

@@ -13,24 +13,31 @@ FILES = ('xinput1_4.dll', 'crml/crml_runtime.dll', 'crml/wasmtime.dll',
          'crml/mods/hello/mod.ini', 'crml/mods/hello/hello.wasm',
          'crml/licenses/wasmtime.txt')
 RECEIPT = 'crml/install-receipt.json'
+INSPECTOR_FILES = {'crml/entity-inspector.enabled': 'crml/entity-inspector.enabled'}
 OPTIONAL_FILES = {'crml/licenses/minhook.txt': 'licenses/minhook/LICENSE.txt'}
 NOCLIP_FILES = {'crml/noclip.enabled': 'examples/noclip/noclip.enabled',
                 'crml/mods/noclip/mod.ini': 'examples/noclip/mod.ini',
                 'crml/mods/noclip/noclip.wasm': 'examples/noclip/noclip.wasm'}
 
+VISIBILITY_FILES = {'crml/visibility.enabled': 'examples/visibility/visibility.enabled',
+                    'crml/mods/visibility/mod.ini': 'examples/visibility/mod.ini',
+                    'crml/mods/visibility/visibility.wasm': 'examples/visibility/visibility.wasm'}
 
-def sources_for(dist, experimental_noclip=False, entity_inspector=False):
+
+def sources_for(dist, experimental_noclip=False, entity_inspector=False, experimental_visibility=False):
     sources = {name: dist / name for name in FILES}
     sources['crml/licenses/wasmtime.txt'] = dist / 'licenses/wasmtime/LICENSE'
     sources.update({name: dist / source for name, source in OPTIONAL_FILES.items() if (dist / source).is_file()})
-    if experimental_noclip or entity_inspector:
+    if experimental_noclip or entity_inspector or experimental_visibility:
         features = json.loads((dist / 'crml/build-features.json').read_text(encoding='utf-8-sig'))
         if features.get('experimental_gameplay') is not True:
-            raise ValueError('Rebuild with -ExperimentalGameplay before installing experimental noclip')
+            raise ValueError('Rebuild with -ExperimentalGameplay before installing experimental gameplay features')
         if experimental_noclip:
             sources.update({name: dist / source for name, source in NOCLIP_FILES.items()})
+        if experimental_visibility:
+            sources.update({name: dist / source for name, source in VISIBILITY_FILES.items()})
         if entity_inspector:
-            sources['crml/entity-inspector.enabled'] = dist / 'crml/entity-inspector.enabled'
+            sources.update({name: dist / source for name, source in INSPECTOR_FILES.items()})
     return sources
 
 
@@ -92,7 +99,7 @@ def checked_path(root, relative):
             raise ValueError(f'Linked installation path: {relative}')
     return path
 
-def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False):
+def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False):
     game = game.resolve(strict=True)
     executable = game / 'CONTROLResonant.exe'
     actual = digest(executable)
@@ -103,7 +110,7 @@ def install(game, dist, profiles, apply=False, experimental_noclip=False, entity
         path = checked_path(game, relative)
         if path.exists():
             raise ValueError(f'Refusing existing {relative}; no files overwritten')
-    sources = sources_for(dist, experimental_noclip, entity_inspector)
+    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility)
     hashes = {name: digest(path) for name, path in sources.items()}
     print('Experimental profile: ' + profile.get('status', 'unverified'))
     if experimental_noclip:
@@ -146,7 +153,7 @@ def read_receipt(game):
     receipt_path = checked_path(game, RECEIPT)
     receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     files = receipt.get('files', {})
-    if receipt.get('schema') != 1 or not set(FILES).issubset(files) or set(files) - set(FILES) - set(OPTIONAL_FILES) - set(NOCLIP_FILES):
+    if receipt.get('schema') != 1 or not set(FILES).issubset(files) or set(files) - set(FILES) - set(OPTIONAL_FILES) - set(NOCLIP_FILES) - set(INSPECTOR_FILES) - set(VISIBILITY_FILES):
         raise ValueError('Invalid installation receipt')
     for name, expected in files.items():
         path = checked_path(game, name)
@@ -172,13 +179,13 @@ def uninstall(game, apply=False):
     checked_path(game, RECEIPT).unlink()
     print('Removed owned files. Additional mods, logs, and directories were preserved.')
 
-def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False):
+def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False):
     game = game.resolve(strict=True)
     receipt = read_receipt(game)
     actual = digest(game / 'CONTROLResonant.exe')
     if actual != receipt.get('executable_sha256') or not any(p['sha256'] == actual and p['executable'] == 'CONTROLResonant.exe' for p in profiles):
         raise ValueError('Unknown game fingerprint; update refused')
-    sources = sources_for(dist, experimental_noclip, entity_inspector)
+    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility)
     hashes = {name: digest(source) for name, source in sources.items()}
     changes = {name: source for name, source in sources.items() if receipt['files'].get(name) != hashes[name]}
     for name in changes:
@@ -248,6 +255,7 @@ def main():
     mode.add_argument('--update', action='store_true')
     parser.add_argument('--experimental-noclip', action='store_true', help='Install the opt-in experimental noclip example and enable its native bridge')
     parser.add_argument('--entity-inspector', action='store_true', help='Enable read-only player inspection; takes precedence over noclip at runtime')
+    parser.add_argument('--experimental-visibility', action='store_true', help='Install the Wasm visibility example and enable hold-F7 player mesh hiding')
     args = parser.parse_args()
     try:
         if args.uninstall:
@@ -255,7 +263,7 @@ def main():
         else:
             profiles = json.loads((ROOT / 'compatibility.json').read_text())['profiles']
             action = update if args.update else install
-            action(args.game, args.dist, profiles, args.apply, args.experimental_noclip, args.entity_inspector)
+            action(args.game, args.dist, profiles, args.apply, args.experimental_noclip, args.entity_inspector, args.experimental_visibility)
     except (OSError, ValueError, KeyError) as error:
         parser.exit(1, f'{error}\n')
 

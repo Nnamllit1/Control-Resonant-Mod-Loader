@@ -10,7 +10,7 @@ struct EntitySnapshot {
     uint16_t archetype{};
     uint32_t row{}, count{};
     uint64_t entity{};
-    std::array<ComponentIdentity, 512> components{};
+    std::array<ComponentIdentity, 2048> components{};
     Sample player{};
 };
 // Called only on the observed movement thread. Copies identities, never follows

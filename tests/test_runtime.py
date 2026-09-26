@@ -40,6 +40,58 @@ class SandboxTests(unittest.TestCase):
         if text:
             self.assertIn(text, output)
 
+    def test_visibility_guest_chooses_key(self):
+        source=(Path(__file__).resolve().parents[1] / 'examples/visibility/visibility.wat').read_text()
+        self.package(source,manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=input.buttons,player.visibility\n')
+        result=subprocess.run([str(BIN / 'crml_gameplay_tests.exe'),str(self.mods),'sequence'],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertEqual([x for x in result.stdout.splitlines() if x.startswith('Visibility request:')],
+                         ['Visibility request: '+str(x) for x in [0,1,1,0,0]])
+        self.assertIn('failures: 0; owners: 0',result.stdout)
+        # Change only guest bytecode: the same native host now responds to F8.
+        wat=self.root / 'f8.wat'
+        wat.write_text(source.replace('(i32.const 1)) (i32.const 0)', '(i32.const 2)) (i32.const 0)'))
+        subprocess.run([str(BIN / 'crml_wat.exe'),str(wat),str(self.mods / 'test/mod.wasm')],check=True,capture_output=True)
+        result=subprocess.run([str(BIN / 'crml_gameplay_tests.exe'),str(self.mods),'sequence'],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertEqual([x for x in result.stdout.splitlines() if x.startswith('Visibility request:')],
+                         ['Visibility request: '+str(x) for x in [0,0,0,1,0]])
+
+    def test_visibility_set_requires_capability(self):
+        self.reject(f'(module (import "crml_v1" "visibility_set" (func (param i32) (result i32))) {BASE} (func (export "crml_init")))','unknown import')
+
+    def test_input_requires_separate_capability(self):
+        self.package(f'(module (import "crml_v1" "input_buttons" (func (result i32))) {BASE} (func (export "crml_init")))',manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=player.visibility\n')
+        self.assertIn('unknown import',self.run_host(1))
+
+    def test_guest_can_request_visibility_without_input(self):
+        self.package(f'(module (import "crml_v1" "visibility_set" (func $set (param i32) (result i32))) {BASE} (func (export "crml_init") i32.const 1 call $set drop) (func (export "crml_tick") (param f32) unreachable))',manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=player.visibility\n')
+        result=subprocess.run([str(BIN / 'crml_gameplay_tests.exe'),str(self.mods)],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('Visibility request: 1',result.stdout)
+        self.assertIn('Gameplay calls: 1; failures: 1; owners: 0',result.stdout)
+
+    def test_visibility_set_rejects_non_boolean(self):
+        self.package(f'(module (import "crml_v1" "visibility_set" (func $set (param i32) (result i32))) {BASE} (func (export "crml_init") i32.const 2 call $set drop))',manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=player.visibility\n')
+        self.assertIn('Visibility argument',self.run_host(1))
+
+    def test_input_and_visibility_share_budget(self):
+        self.package(f'(module (import "crml_v1" "input_buttons" (func $input (result i32))) (import "crml_v1" "visibility_set" (func $set (param i32) (result i32))) {BASE} (func (export "crml_init") (loop call $input drop i32.const 0 call $set drop br 0)))',manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=input.buttons,player.visibility\n')
+        self.assertIn('Gameplay call budget exceeded',self.run_host(1))
+
+    def test_visibility_capability_required(self):
+        self.reject(f'(module (import "crml_v1" "visibility_poll" (func (result i32))) {BASE} (func (export "crml_init")))', 'unknown import')
+
+    def test_visibility_lifecycle_release(self):
+        self.package(f'(module (import "crml_v1" "visibility_poll" (func $p (result i32))) {BASE} (func (export "crml_init") call $p drop) (func (export "crml_tick") (param f32) unreachable))', manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=player.visibility\n')
+        result=subprocess.run([str(BIN / 'crml_gameplay_tests.exe'),str(self.mods)],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('Gameplay calls: 1; failures: 1; owners: 0',result.stdout)
+
+    def test_visibility_budget(self):
+        self.package(f'(module (import "crml_v1" "visibility_poll" (func $p (result i32))) {BASE} (func (export "crml_init") (loop call $p drop br 0)))', manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=player.visibility\n')
+        self.assertIn('Gameplay call budget exceeded',self.run_host(1))
+
     def test_lifecycle(self):
         self.package(f'''(module {LOG} {BASE}
             (memory (export "memory") 1) (data (i32.const 0) "ITS")

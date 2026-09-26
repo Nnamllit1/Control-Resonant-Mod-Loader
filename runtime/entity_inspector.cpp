@@ -28,15 +28,12 @@ bool collect(const Sample& s, EntitySnapshot& out) noexcept {
     const auto metadata=world+(archetype+0xc22ull)*32;
     // Only the world layout validated by the movement probe is supported.
     // Other static accessor layouts may take a registry, not this world.
-    for(uint8_t table=1;table<2;++table) {
-        const auto size=read<uint32_t>(metadata+(table?0x24:0x1c));
-        if(size>2048) return false;
-        const auto hashes=read<uintptr_t>(metadata+(table?0x10:8));
-        if(size && !hashes) return false;
-        for(uint32_t i=0;i<size;++i) {
-            if(out.count==out.components.size()) { out.truncated=true; break; }
-            out.components[out.count++]={read<uint32_t>(hashes+i*4ull),table};
-        }
+    const auto size=read<uint32_t>(metadata+0x24);
+    if(size>out.components.size()) return false;
+    const auto hashes=read<uintptr_t>(metadata+0x10);
+    if(size && !hashes) return false;
+    for(uint32_t i=0;i<size;++i) {
+        out.components[out.count++]={read<uint32_t>(hashes+i*4ull),1};
     }
     if(read<uint64_t>(locations+index*8ull)!=location ||
        read<uint32_t>(generations+index*8ull)!=s.entity>>32 ||

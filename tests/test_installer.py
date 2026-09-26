@@ -24,6 +24,26 @@ class InstallerTests(unittest.TestCase):
         sources=installer.sources_for(self.dist, entity_inspector=True)
         self.assertEqual(sources['crml/entity-inspector.enabled'],marker)
         self.assertNotIn('crml/noclip.enabled',sources)
+    def test_inspector_receipt_roundtrip(self):
+        (self.dist / 'crml/build-features.json').write_text('{"experimental_gameplay": true}')
+        (self.dist / 'crml/entity-inspector.enabled').write_text('')
+        installer.install(self.game, self.dist, self.profiles, True, entity_inspector=True)
+        self.assertIn('crml/entity-inspector.enabled', installer.read_receipt(self.game)['files'])
+        installer.update(self.game, self.dist, self.profiles, True, entity_inspector=True)
+        installer.uninstall(self.game, True)
+        self.assertFalse((self.game / 'crml/entity-inspector.enabled').exists())
+
+    def test_visibility_roundtrip(self):
+        (self.dist / 'crml/build-features.json').write_text('{"experimental_gameplay": true}')
+        for name in installer.VISIBILITY_FILES.values():
+            p=self.dist / name
+            p.parent.mkdir(parents=True,exist_ok=True)
+            p.write_text('fixture')
+        installer.install(self.game,self.dist,self.profiles,True,experimental_visibility=True)
+        installer.update(self.game,self.dist,self.profiles,True,experimental_visibility=True)
+        installer.uninstall(self.game,True)
+        self.assertFalse((self.game / 'crml/visibility.enabled').exists())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT / 'build')
         self.root = Path(self.temp.name)

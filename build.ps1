@@ -29,6 +29,9 @@ if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Write-Host "Build ready in $PSScriptRoot\dist"
 @{ experimental_gameplay = [bool]$MovementProbe } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
 if ($MovementProbe) {
+    & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\visibility\visibility.wat" "$PSScriptRoot\dist\examples\visibility\visibility.wasm"
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+    [System.IO.File]::WriteAllText("$PSScriptRoot\dist\examples\visibility\visibility.enabled", '')
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\entity-inspector.enabled", '')
     & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\noclip\noclip.wat" "$PSScriptRoot\dist\examples\noclip\noclip.wasm"
     if ($LASTEXITCODE) { exit $LASTEXITCODE }

@@ -54,7 +54,7 @@ std::string trim(std::string value) {
     if (first == std::string::npos) return {};
     return value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
 }
-struct Manifest { std::string id, module; bool log = false, noclip = false; };
+struct Manifest { std::string id, module; bool log = false, noclip = false, visibility = false, input = false; };
 Manifest manifest(const std::filesystem::path& path) {
     std::istringstream input(read(path, 8192));
     std::map<std::string, std::string> fields;
@@ -77,6 +77,8 @@ Manifest manifest(const std::filesystem::path& path) {
         if (!seen.insert(cap).second) throw std::runtime_error("Duplicate capability");
         if (cap == "log") m.log = true;
         else if (cap == "player.noclip") m.noclip = true;
+        else if (cap == "player.visibility") m.visibility = true;
+        else if (cap == "input.buttons") m.input = true;
         else throw std::runtime_error("Unsupported capability");
     }
     if (!fields["capabilities"].empty() && fields["capabilities"].back() == ',') throw std::runtime_error("Empty capability");
@@ -158,6 +160,40 @@ struct Runtime::Impl {
             results[0].of.i32 = mod.gameplay ? mod.gameplay->noclip_poll(mod.owner, speed) : -1;
             return nullptr;
         }
+        static wasm_trap_t* input_callback(void* data, wasmtime_caller_t*, const wasmtime_val_t*,
+                                         size_t, wasmtime_val_t* results, size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) {
+                constexpr char error[]="Gameplay call budget exceeded";
+                return wasmtime_trap_new(error,sizeof(error)-1);
+            }
+            results[0].kind=WASMTIME_I32;
+            results[0].of.i32=mod.gameplay?static_cast<int32_t>(mod.gameplay->input_buttons() & 3u):0;
+            return nullptr;
+        }
+        static wasm_trap_t* visibility_set_callback(void* data, wasmtime_caller_t*, const wasmtime_val_t* args,
+                                                  size_t, wasmtime_val_t* results, size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            const int hidden=args[0].of.i32;
+            if((hidden!=0 && hidden!=1) || ++mod.gameplay_calls>8) {
+                constexpr char error[]="Visibility argument or gameplay call budget exceeded";
+                return wasmtime_trap_new(error,sizeof(error)-1);
+            }
+            results[0].kind=WASMTIME_I32;
+            results[0].of.i32=mod.gameplay?mod.gameplay->visibility_set(mod.owner,hidden==1):-1;
+            return nullptr;
+        }
+        static wasm_trap_t* visibility_callback(void* data, wasmtime_caller_t*, const wasmtime_val_t*,
+                                              size_t, wasmtime_val_t* results, size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) {
+                constexpr char error[]="Gameplay call budget exceeded";
+                return wasmtime_trap_new(error,sizeof(error)-1);
+            }
+            results[0].kind=WASMTIME_I32;
+            results[0].of.i32=mod.gameplay?mod.gameplay->visibility_poll(mod.owner):-1;
+            return nullptr;
+        }
         static wasm_trap_t* log_callback(void* data, wasmtime_caller_t* caller, const wasmtime_val_t* args,
                                          size_t, wasmtime_val_t*, size_t) noexcept {
             auto& mod = *static_cast<Mod*>(data);
@@ -234,6 +270,18 @@ struct Runtime::Impl {
         if (mod->info.noclip) {
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_1_1(wasm_valtype_new_f32(), wasm_valtype_new_i32()), wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "noclip_poll", 11, type.get(), Mod::noclip_callback, mod.get(), nullptr));
+        }
+        if (mod->info.input) {
+            Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_0_1(wasm_valtype_new_i32()), wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "input_buttons", 13, type.get(), Mod::input_callback, mod.get(), nullptr));
+        }
+        if (mod->info.visibility) {
+            Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_0_1(wasm_valtype_new_i32()), wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "visibility_poll", 15, type.get(), Mod::visibility_callback, mod.get(), nullptr));
+        }
+        if (mod->info.visibility) {
+            Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_1_1(wasm_valtype_new_i32(), wasm_valtype_new_i32()), wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "visibility_set", 14, type.get(), Mod::visibility_set_callback, mod.get(), nullptr));
         }
         // Fuel and memory limits apply even to the module's start function.
         mod->budget();

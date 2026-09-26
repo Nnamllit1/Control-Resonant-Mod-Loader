@@ -110,3 +110,56 @@ python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Reso
 ```
 
 Each map checks 24 encoded references after requiring an exact executable fingerprint. Checks cover vtable pointers, relative calls/jumps, address loads, and constants. They detect a mismatched map; they do not prove semantic labels, thread ownership, complete function signatures, or live behavior. No game functions are executed.
+
+## Player mesh and collision ownership
+
+The supported executable's component registrations and lifecycle callbacks establish the layouts below. Sizes are supported by both registration descriptors and array-stride instructions. These are static findings, not live payload validation or an SDK ABI. The [entity resource map](research/entity-resource-map.json) pins the encoded references to the executable fingerprint.
+
+| Component | Hash | Size / alignment | Observed payload |
+| --- | --- | --- | --- |
+| `MeshResourceID` | `6f477177` | 8 / 8 bytes | Eight-byte IDs gathered by mesh streaming |
+| `MeshResource` | `eece657a` | 8 / 8 bytes | Owned resource pointer at +0 |
+| `PhysicsResourceID` | `4a8e27fd` | 8 / 8 bytes | Registered ID storage; acquisition path unresolved |
+| `CollisionResource` | `e1da5fb1` | 16 / 8 bytes | Owned resource pointer at +0; byte at +8, meaning unresolved |
+| `MeshMaterialSet` | `355cf83d` | 1 / 1 byte | Resolved material-set selector, not an owned resource pointer |
+| `CharacterControllerBody` | `167fac8a` | 8 / 8 bytes | Owned controller-body object pointer |
+
+Mesh registration at RVA `0x197ba60` installs cleanup `0x196fa60` and move `0x196fb00`. Collision registration at `0x1914650` installs cleanup `0x1904990` and move `0x1904a50`. Both cleanup routines atomically decrement the pointed-to resource's 32-bit reference count at +0x64. When the old count equals one, they call `0x31cf8c0`, passing the resource and its +8 value. Collision cleanup also clears its pointer slot. Move callbacks transfer pointers and clear source slots without acquiring another reference; collision moves additionally copy the +8 byte. A raw pointer copied by an observer therefore does not acquire ownership.
+
+Mesh stream-in registration selects dispatcher `0x1977e20`, which calls implementation `0x196b9e0`. The implementation gathers eight-byte IDs, passes input/output arrays to batch lookup `0x31cabf0` with type descriptor `0x5e73b20`, and stages returned pointer values in command-buffer storage. Helper `0x19730c0` uses the `MeshResource` component hash. Command execution and resource readiness checks remain to trace. Stream-out dispatcher `0x1977b60` reaches `0x1974b90`; its registration query associates it with removal of `MeshResource` from entities outside the streamed-in set.
+
+Accessor offsets require the correct base address. The mesh path passes `world+8` to a query iterator builder, while accessor fragments use component metadata offsets +8/+0x1c and chunk-table offset +0x48. Adding eight reconciles these with the movement inspector's +0x10/+0x24 metadata and +0x50 chunk table. This is evidence for a shifted query view, not an additional component table. Trace the iterator builder's output before reusing those accessor fragments against a movement snapshot.
+
+The physics trace below follows `physics_module::streamIn` through resource acquisition and object staging; collision-template selection and backend actor creation remain incomplete. Its executable signature includes transform, layer, scale, frozen/keyframed state, collision resources and physics-scene inputs; the signature alone does not establish field offsets or parameter semantics. Neither mesh nor collision pointers should be retained across frames or exposed to Wasm based on this static pass.
+
+Verify the reviewed references without running the game:
+
+```powershell
+python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\CONTROLResonant.exe" docs/research/entity-resource-map.json
+```
+
+### Material selection and visibility commands
+
+`MeshMaterialSet` registration `0x18f5800` specifies one-byte storage. `updateMaterialsToRenderer` dispatcher `0x19783c0` calls `0x196b0c0`. On dirty bit 0, that implementation looks up a 32-bit material-set name through `0x303d5c0`, stores the result's low byte into the selector, and emits renderer opcode `0x70` with a render handle and the selector. Lookup treats name 0 and `0x933b5bde` as selector 0; otherwise it searches 24-byte entries at object+0x180, count+0x188, and returns a one-based index. Missing names are reported invalid and the caller falls back to selector 0. This establishes selection behavior, not material replacement or shader parameter editing.
+
+`applyHide` registration `0x197d0e0` selects dispatcher `0x1977540`, which calls `0x1969ca0`. Its inputs are a four-byte `HideReason` and one-byte `InvisibilityReason`; either nonzero means hidden. A state change updates one-byte `MeshHidden`, changes bit 16 of the four-byte `MeshFlags`, and collects the 32-bit renderer handle from `RenderObject+0x10` (component stride 24). Renderer opcodes `0x69` and `0x6a` respectively hide and show those handles. Small command headers pack opcode into bits 0?8 and element count above bit 8.
+
+Command storage comes from `*(renderer_global+0x18)`, with global RVA `0x5e69000`. Allocation helper `0x2fb8340` receives storage, byte length and a wait flag. Producers write the payload, publish its length at allocation-8, increment storage+0x30 by two atomically, and notify if the previous low bit was set. The notification thunk `0x393109d` imports `__std_atomic_notify_one_direct`. This producer-side protocol is traced; downstream GPU execution is not.
+
+The [visibility experiment](visibility.md) uses this observed path, on the owning mesh phase, with fresh entity and query-membership validation. It deliberately leaves native hide reasons intact and lets the original system restore its cached state after the lease ends. Live behavior remains unverified.
+
+### Physics acquisition and controller ownership
+
+Physics stream-in registration selects `0x191ac10`, whose dispatcher calls `0x18fdf10`. One resource-ID branch calls typed resource lookup `0x31cab80` using descriptor `0x5d215f0`, transfers the returned reference out of its temporary wrapper, and calls metadata accessor `0x2d44280`. That accessor validates a type key before returning metadata. The path branches on metadata+0x3b; the semantic name of this flag is not established.
+
+In one branch, factory `0x1914520` allocates a 0x1b8-byte object and calls constructor `0x2d0b3a0`. The stream-in implementation copies resource data reached through resource+0xa0, then calls `0x2d0b810` to populate the new object and additional helpers to process its contents. These instructions establish resource-to-runtime-object staging. Actor/shape creation, physics-scene insertion, mass and collision-filter semantics still need backend tracing; this object must not yet be described as a verified PhysX actor.
+
+`CharacterControllerBody` registration `0x1ba1aa0` installs an eight-byte stride. Cleanup `0x1b9ac90` delegates each slot to `0x1ba3be0`: it releases an allocation at owned-object+0x38, destroys objects at +0x10 and +0 through `0x2d17060`, frees those objects, then frees the container. Its move callback `0x1b9ad10` transfers the pointer and zeros the source. This is distinct from the shared mesh/collision resource reference-count protocol. The two nested physics objects' exact roles remain unresolved.
+
+### Collision package loader
+
+RTTI identifies `physics::CollisionPackageResource`, instance vtable `0x4d6db50`, with reflected size 0x270 and alignment 8. Its request-load slot reaches `0x2d441b0`, which uses FileBuffer loader `0x31cf050`. The callback at `0x2d45570` forwards to reader `0x2d44a60`.
+
+The reader validates metadata through its type key. When metadata+0x3b is nonzero, it retains a copy of incoming bytes in a compact buffer: pointer at resource+0xa0, length at +0xa8, capacity at +0xac. It then calls decoder `0x2d442c0` and publishes completion through `0x31cee00`, the same completion helper previously traced for Lua and material resources. Thus the +0x3b branch controls byte retention in this reader, although its original field name and all consumers are not established.
+
+The decoder creates another copy aligned to 0x80 bytes, owned at resource+0xb0 and initially referenced by +0xb8. It processes a structured stream and populates additional resource data. The complete binary schema and native actor bindings remain unresolved; these fields are not exposed as a modification API.

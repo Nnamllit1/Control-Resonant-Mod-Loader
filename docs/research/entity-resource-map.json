@@ -1,0 +1,302 @@
+{
+  "schema": 1,
+  "title": "Player mesh and collision component ownership",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static mapping of six player component representations, mesh/material renderer commands and physics resource acquisition. Visibility manipulation implemented; live behavior and full physics backend remain unverified.",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x197ba97",
+      "target": "0x196fa60",
+      "label": "mesh cleanup callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x197babb",
+      "target": "0x196fb00",
+      "label": "mesh move callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1914687",
+      "target": "0x1904990",
+      "label": "collision cleanup callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19146ab",
+      "target": "0x1904a50",
+      "label": "collision move callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1967444",
+      "target": "0x1977e20",
+      "label": "mesh stream-in dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1966766",
+      "target": "0x1977b60",
+      "label": "mesh stream-out dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x196bd2f",
+      "target": "0x5e73b20",
+      "label": "mesh batch resource type descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1977ec7",
+      "target": "0x196b9e0",
+      "label": "mesh stream-in implementation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1977c11",
+      "target": "0x1974b90",
+      "label": "mesh stream-out implementation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x196bd57",
+      "target": "0x31cabf0",
+      "label": "batch resource lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x196beba",
+      "target": "0x19730c0",
+      "label": "mesh component command"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x196fa9c",
+      "target": "0x31cf8c0",
+      "label": "mesh last-reference release"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19049cb",
+      "target": "0x31cf8c0",
+      "label": "collision last-reference release"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18f596a",
+      "target": "0x1d4cba0",
+      "label": "mesh ID registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19151aa",
+      "target": "0x1d4cba0",
+      "label": "physics ID registration"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x197ba8a",
+      "target": "0x8",
+      "label": "mesh component size"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191467a",
+      "target": "0x10",
+      "label": "collision component size"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f58f2",
+      "target": "0x8",
+      "label": "mesh ID size"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1915132",
+      "target": "0x8",
+      "label": "physics ID size"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x197d2c8",
+      "target": "0x1977540",
+      "label": "visibility dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x18fc4f2",
+      "target": "0x191ac10",
+      "label": "physics stream-in dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1ba1ad7",
+      "target": "0x1b9ac90",
+      "label": "controller body cleanup"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1ba1afb",
+      "target": "0x1b9ad10",
+      "label": "controller body move"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19775a5",
+      "target": "0x1969ca0",
+      "label": "visibility implementation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191ace9",
+      "target": "0x18fdf10",
+      "label": "physics stream-in implementation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18fe5be",
+      "target": "0x31cab80",
+      "label": "physics typed resource lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18fe675",
+      "target": "0x2d44280",
+      "label": "physics resource metadata accessor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1914540",
+      "target": "0x2d0b3a0",
+      "label": "physics object constructor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18fecc3",
+      "target": "0x2d0b810",
+      "label": "physics object population"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b9aca8",
+      "target": "0x1ba3be0",
+      "label": "controller body owned cleanup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba3c16",
+      "target": "0x2d17060",
+      "label": "controller body secondary object destroy"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba3c2f",
+      "target": "0x2d17060",
+      "label": "controller body primary object destroy"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x196b168",
+      "target": "0x303d5c0",
+      "label": "material-set name lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x196b194",
+      "target": "0x2fb8340",
+      "label": "material command allocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x196a379",
+      "target": "0x2fb8340",
+      "label": "show command allocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x196a329",
+      "target": "0x393109d",
+      "label": "visibility publication notification"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1969ca0",
+      "target": "0x56535540",
+      "label": "visibility hook prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f5832",
+      "target": "0x1",
+      "label": "MeshMaterialSet registered size"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ba1aca",
+      "target": "0x8",
+      "label": "CharacterControllerBody registered size"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x197d19b",
+      "target": "0x1",
+      "label": "MeshHidden registered size"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x196b19b",
+      "target": "0x270",
+      "label": "material selection command header"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4d6db60",
+      "target": "0x2d441b0",
+      "label": "RTTI collision package requestLoad slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4d6dce0",
+      "target": "0x2d45570",
+      "label": "collision package callback slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d4424a",
+      "target": "0x31cf050",
+      "label": "collision package FileBuffer load"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x2d45574",
+      "target": "0x2d44a60",
+      "label": "collision package reader callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d44b6f",
+      "target": "0x2d442c0",
+      "label": "collision package decode"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x2d44b8f",
+      "target": "0x31cee00",
+      "label": "collision package ready publication"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d44d01",
+      "target": "0x270",
+      "label": "collision package instance size"
+    }
+  ],
+  "gaps": [
+    "Physics backend shape/actor creation and scene insertion need further tracing.",
+    "Collision +8 flag semantics remain unresolved.",
+    "Resource readiness, GPU command consumers, shader bindings and full model decoding are not mapped.",
+    "Native visibility manipulation needs a real gameplay capture."
+  ]
+}

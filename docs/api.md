@@ -49,3 +49,19 @@ Requires `player.noclip`. Call on each worker heartbeat to keep the mod's native
 Returns `1` when enabled, `0` when off, `-1` when unavailable, or `-2` when another mod owns the override. The standalone host returns `-1`. Native cleanup releases ownership on load failure, traps, shutdown, and runtime destruction, independently of a guest shutdown export. Guests cannot provide addresses, native callbacks, arbitrary key codes, or entity IDs.
 
 The host handles movement keys and the status panel; this is not a general UI or keyboard API. While the lease is active, it consumes the fixed noclip keyboard controls, suppresses player fall/boundary recovery and fall monitoring, and neutralizes script-visible fall values. Once a flight position is acquired, same-player/world teleports restore that target instead of cancelling flight. This also affects intentional travel; disable noclip first. These overrides end when the lease is released or expires. See the [test guide and limitations](gameplay.md).
+
+## Bounded button input
+
+`crml_v1.input_buttons() -> i32` requires `input.buttons`. Bit 0 is F7, bit 1 is F8; other bits are zero. Returns zero while the game lacks focus, Escape is held, or no input service exists. No arbitrary key codes or text input are exposed. Polling runs on the worker heartbeat, so a press shorter than that interval can be missed.
+
+## Experimental player visibility
+
+`crml_v1.visibility_set(hidden: i32) -> i32` requires `player.visibility` and a native build installed with `--experimental-visibility`. Only 0 and 1 are accepted: 1 renews a 500 ms hide lease; 0 releases it. The **guest decides** when to request hiding, using button input, a timer, or other guest logic. It does not need the input capability if it does not read buttons.
+
+The native runtime validates the request, enforces focus/Escape cancellation and lease expiry, then submits the renderer command on the engine's mesh update phase. It releases ownership on mod failure and shutdown. The host accepts at most eight calls per lifecycle invocation shared across input and gameplay imports.
+
+Returns `1` for a renewed lease, `0` for release, `-1` when unavailable, and `-2` when another mod owns the lease. This is request status, not confirmation of a rendered result. The bridge targets only a fresh, generation-checked player entity in the mesh visibility query. Guests cannot supply a pointer, render handle, entity ID, or renderer opcode. Normal engine visibility resumes on the next eligible update after release or cancellation.
+
+The legacy `visibility_poll()` import remains available for older mods and combines native F7 polling with a visibility lease. New mods should use `visibility_set()` instead.
+
+See [the visibility example](visibility.md). The native renderer operation has been reported working in gameplay; the revised guest-controlled input path still needs live verification.
