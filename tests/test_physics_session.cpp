@@ -45,7 +45,28 @@ void test_selection() {
     search.begin(scope,100);
     auto ambiguous=[](uint32_t i,SelectionCandidate& c) {c={10+i,20+i,30+i};return i==0 || i==4096;};
     require(search.step(scope,101,ambiguous,no_yield)==SelectionResult::pending,"first candidate does not end search");
-    require(search.step(scope,102,ambiguous,no_yield)==SelectionResult::ambiguous,"ambiguity across batches");
+    require(search.step(scope,102,ambiguous,no_yield)==SelectionResult::pending,"possible later nearest candidate must be considered");
+    search.step(scope,103,ambiguous,no_yield);search.step(scope,104,ambiguous,no_yield);
+    require(search.step(scope,105,ambiguous,no_yield)==SelectionResult::ambiguous,"equal nearest distances across batches");
+    scope.slots=8193;
+    for(unsigned nearest=0;nearest<3;++nearest) {
+        search.begin(scope,100);
+        auto crowded=[&](uint32_t i,SelectionCandidate& c) {
+            if(i%4096) return false;
+            c={10+i,20+i,30+i,i/4096==nearest?.25f:1.f};return true;
+        };
+        require(search.step(scope,101,crowded,no_yield)==SelectionResult::pending,"crowded first batch");
+        require(search.step(scope,102,crowded,no_yield)==SelectionResult::pending,"equal distant props are not final ambiguity");
+        require(search.step(scope,103,crowded,no_yield)==SelectionResult::selected,"nearest wins regardless of table order");
+        require(search.candidate().body==20+nearest*4096 && search.matches()==3,"nearest identity and candidate count");
+        require(search.nearest_distance()==.5f && search.second_distance()==1.f,"distance diagnostics");
+    }
+    scope.slots=2;search.begin(scope,100);
+    require(search.step(scope,101,[](uint32_t i,SelectionCandidate& c){c={10+i,20+i,30+i,i?1.1f:1.f};return true;},no_yield)==SelectionResult::ambiguous,"near ties need repositioning");
+    for(float bad:{-1.f,4.1f,std::numeric_limits<float>::quiet_NaN()}) {
+        search.begin(scope,100);
+        require(search.step(scope,101,[&](uint32_t,SelectionCandidate& c){c={10,20,30,bad};return true;},no_yield)==SelectionResult::invalid,"invalid candidate distance");
+    }
     scope.slots=64;search.begin(scope,100);
     require(search.step(scope,101,[](uint32_t,SelectionCandidate&){return false;},no_yield)==SelectionResult::none,"empty nearby search");
     for(auto count:{0u,(1u<<20)+1}) {scope.slots=count;require(search.begin(scope,100)==SelectionResult::invalid,"invalid table bounds");}
@@ -56,5 +77,5 @@ void test_selection() {
 int main() {
     try {test_selection();} catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
     if(!crml::physics::test_session_prologues()) {std::cerr<<"Physics trial hook relocation failed\n";return 1;}
-    std::cout<<"Physics selection bounds, batched search, cancellation, identity changes and hook relocation passed\n";
+    std::cout<<"Physics nearest selection, bounds, batched search, cancellation, identity changes and hook relocation passed\n";
 }

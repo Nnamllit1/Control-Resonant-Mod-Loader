@@ -56,9 +56,19 @@ class AnalysisTests(unittest.TestCase):
         self.assertEqual(report['max_selection_slots'], 16609)
         self.assertEqual(report['max_selection_scanned'], 16384)
         self.assertEqual(report['selection_failures'], {'6': 1})
+        self.assertIsNone(report['latest_search'])
         for bad in [-1, 2**20 + 1, True]:
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 self.read([{**stats, 'selection_slots': bad}])
+
+    def test_nearest_selection_diagnostics(self):
+        stats = dict(type='stats', dropped=0, dispatches=100, context_rejections=0, retirements=0,
+                     selection_candidates=3, nearest_distance=.5, second_distance=1)
+        self.assertEqual(self.read([stats])['latest_search']['selection_candidates'], 3)
+        for field, bad in [('selection_candidates', -1), ('nearest_distance', float('nan')),
+                           ('second_distance', 3), ('second_distance', -.5)]:
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.read([{**stats, field: bad}])
 
     def test_invalid_records(self):
         for bad in [[], self.event(2, 0, 0), self.event(1, 8, 0), self.event(1, 1, 99), self.event(1, 2, 0, float('nan'))]:

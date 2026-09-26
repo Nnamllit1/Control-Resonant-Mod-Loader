@@ -14,6 +14,7 @@ def analyze(path):
     previous = 0
     dropped = dispatches = rejections = retirements = 0
     selection_slots = selection_scanned = 0
+    latest_search = None
     terminal = None
     header = False
     total = 0
@@ -44,6 +45,16 @@ def analyze(path):
                         raise ValueError('Invalid selection bounds')
                 selection_slots = max(selection_slots, item.get('selection_slots', 0))
                 selection_scanned = max(selection_scanned, item.get('selection_scanned', 0))
+                if 'selection_candidates' in item:
+                    count = item['selection_candidates']
+                    if type(count) is not int or not 0 <= count <= 2**20:
+                        raise ValueError('Invalid candidate count')
+                    for name in ('nearest_distance', 'second_distance'):
+                        value = item.get(name)
+                        if type(value) not in (int, float) or not (value == -1 or 0 <= value <= 2):
+                            raise ValueError('Invalid candidate distance')
+                    latest_search = {name: item[name] for name in
+                        ('selection_candidates', 'nearest_distance', 'second_distance')}
                 continue
             if kind == 'end':
                 terminal = item.get('reason')
@@ -98,6 +109,7 @@ def analyze(path):
             'retirements': retirements, 'dropped': dropped, 'terminal_reason': terminal,
             'selection_failures': failures, 'selections': selections,
             'max_selection_slots': selection_slots, 'max_selection_scanned': selection_scanned,
+            'latest_search': latest_search,
             'gameplay_effect_verified': False}
 
 

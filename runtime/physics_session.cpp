@@ -37,6 +37,8 @@ Buffer events;
 DampingTrial trial;
 SelectionSearch search;
 std::atomic<uint32_t> selection_slots{},selection_scanned{};
+std::atomic<uint32_t> selection_candidates{};
+std::atomic<float> selection_nearest{-1},selection_second{-1};
 Target selected{};
 uint64_t serial{},world_token{},owner_token{},actor_token{},selected_tick{};
 struct Player { uint64_t world{},entity{},tick{}; float position[3]{}; } player;
@@ -104,43 +106,45 @@ private:
     SimulationContext context_;
 };
 void select(const SimulationContext& context,uint64_t now,bool begin) noexcept {
-    if(begin) {selected={};watched_owner=0;retired=true;search.cancel();selection_scanned=0;}
+    if(begin) {selected={};watched_owner=0;retired=true;search.cancel();selection_scanned=0;selection_candidates=0;selection_nearest=-1;selection_second=-1;}
     if(player.world!=token(context.world) || !player.tick || now<player.tick || now-player.tick>500) {search.cancel();ui=3;record(0,1);return;}
     SelectionScope scope{token(context.world),token(context.owner),player.entity,retirement_serial.load(),body_slot_count(context.owner)};
     std::memcpy(scope.position,player.position,sizeof(scope.position));
     selection_slots=scope.slots;
     if(begin && search.begin(scope,now)==SelectionResult::invalid) {ui=3;record(0,2);return;}
-    if(retiring.load()) {search.cancel();ui=3;record(0,5);return;}
+    if(retiring.load()) {search.cancel();ui=7;record(0,5);return;}
     const auto result=search.step(scope,now,[&](uint32_t i,SelectionCandidate& candidate) {
         BodySnapshot body{}; BodyEntitySnapshot link{};
         if(read_body(context.owner,i,accessors().vtable,body)!=BodyRead::ok || body.alternate
            || read_body_entity(context.world,context.owner,body,link)!=LinkRead::ok || link.entity==player.entity) return false;
         if(!single_body({context.owner,body,link})) return false;
         float at[3]{}; if(!position(context.world,link.entity,at)) return false;
-        float distance{}; for(unsigned a=0;a<3;++a) distance+=(at[a]-player.position[a])*(at[a]-player.position[a]);
+        float distance{}; for(unsigned a=0;a<3;++a) distance+=(at[a]-search.scope().position[a])*(at[a]-search.scope().position[a]);
         if(!std::isfinite(distance) || distance>4) return false;
-        candidate={link.entity,body.handle,token(body.actor)};return true;
+        candidate={link.entity,body.handle,token(body.actor),distance};return true;
     },[&] {return GetTickCount64()-now>=2;});
     selection_scanned=search.scanned();
+    selection_candidates=search.matches();selection_nearest=search.nearest_distance();selection_second=search.second_distance();
     if(result==SelectionResult::pending) {ui=4;return;}
     if(result!=SelectionResult::selected) {
-        ui=3;record(0,result==SelectionResult::none?3:result==SelectionResult::ambiguous?4:result==SelectionResult::timeout?6:5);return;
+        ui=result==SelectionResult::none?5:result==SelectionResult::ambiguous?6:result==SelectionResult::timeout?8:7;
+        record(0,result==SelectionResult::none?3:result==SelectionResult::ambiguous?4:result==SelectionResult::timeout?6:5);return;
     }
     const auto choice=search.candidate();
     EntityBodySnapshot fresh{};
     float at[3]{};
     if(read_entity_body(context.world,choice.entity,0,choice.body,accessors().vtable,fresh)!=TargetRead::ok
        || token(fresh.body.actor)!=choice.actor || fresh.body.alternate || !single_body(fresh)
-       || !position(context.world,choice.entity,at)) {ui=3;record(0,5);return;}
+       || !position(context.world,choice.entity,at)) {ui=7;record(0,5);return;}
     float distance{};for(unsigned a=0;a<3;++a) distance+=(at[a]-player.position[a])*(at[a]-player.position[a]);
-    if(!std::isfinite(distance) || distance>4 || body_slot_count(context.owner)!=scope.slots) {ui=3;record(0,5);return;}
+    if(!std::isfinite(distance) || distance>4 || body_slot_count(context.owner)!=scope.slots) {ui=7;record(0,5);return;}
     selected={++serial,fresh.link.entity,fresh.body.handle,0}; selected_tick=now;
     world_token=token(context.world); owner_token=token(context.owner); actor_token=token(fresh.body.actor);
     watched_body.store(selected.body); watched_owner.store(owner_token); retired.store(false);
     // Registration cannot hide a concurrent retirement, including one that
     // completed between resolving the target and publishing these identities.
     if(retiring.load() || retirement_serial.load()!=search.scope().retirement) retired=true;
-    if(retired.load()) {selected={};ui=3;record(0,5);return;}
+    if(retired.load()) {selected={};ui=7;record(0,5);return;}
     ui=0;record(0,0,fresh.body.linear_damping,fresh.body.angular_damping);
 }
 void dispatch(void* view,uint16_t id,void* descriptor) {
@@ -265,6 +269,8 @@ void Session::poll() {
         text<<"{\"type\":\"stats\",\"tick_ms\":"<<now<<",\"dispatches\":"<<dispatches.load()<<",\"context_rejections\":"<<rejected_contexts.load()
             <<",\"retirements\":"<<retirements.load()<<",\"dropped\":"<<events.dropped()
             <<",\"selection_slots\":"<<selection_slots.load()<<",\"selection_scanned\":"<<selection_scanned.load()
+            <<",\"selection_candidates\":"<<selection_candidates.load()<<",\"nearest_distance\":"<<selection_nearest.load()
+            <<",\"second_distance\":"<<selection_second.load()
             <<",\"overlay\":\""<<probe::overlay_diagnostics().status<<"\"}\n";
         const auto line=text.str();
         if(bytes_+line.size()>4*1024*1024-2048) {accepting=false;commands.fetch_or(4);log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";log_.close();}

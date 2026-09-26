@@ -1,6 +1,7 @@
 #pragma once
 #include <cmath>
 #include <cstdint>
+#include <limits>
 
 namespace crml::physics {
 // Values and identity tokens only. Each batch receives a fresh callback scope.
@@ -9,12 +10,13 @@ struct SelectionScope {
     uint32_t slots{};
     float position[3]{};
 };
-struct SelectionCandidate { uint64_t entity{}, body{}, actor{}; };
+struct SelectionCandidate { uint64_t entity{}, body{}, actor{}; float distance_squared{}; };
 enum class SelectionResult { pending, selected, none, ambiguous, changed, invalid, timeout };
 class SelectionSearch {
 public:
     SelectionResult begin(const SelectionScope& scope, uint64_t now) noexcept {
         scope_=scope; started_=last_=now; next_=matches_=0; candidate_={};
+        nearest_=second_=std::numeric_limits<float>::infinity();
         return result_=valid(scope)?SelectionResult::pending:SelectionResult::invalid;
     }
     // visit resolves an eligible nearby candidate from current engine state.
@@ -32,17 +34,27 @@ public:
         for(unsigned work=0;next_<scope.slots && work<4096;++work) {
             SelectionCandidate candidate{};
             if(visit(next_++,candidate)) {
-                candidate_=candidate;
-                if(++matches_>1) return result_=SelectionResult::ambiguous;
+                if(!std::isfinite(candidate.distance_squared) || candidate.distance_squared<0 || candidate.distance_squared>4)
+                    return result_=SelectionResult::invalid;
+                ++matches_;
+                if(candidate.distance_squared<nearest_) {
+                    second_=nearest_;nearest_=candidate.distance_squared;candidate_=candidate;
+                } else if(candidate.distance_squared<second_) second_=candidate.distance_squared;
             }
             if((work&63)==63 && yield()) break;
         }
-        if(next_==scope.slots) result_=matches_?SelectionResult::selected:SelectionResult::none;
+        // Search the whole table: later entries can be closer than either of
+        // the first two. Near ties need a more deliberate player position.
+        if(next_==scope.slots) result_=!matches_?SelectionResult::none:
+            std::sqrt(second_)-std::sqrt(nearest_)<.1f?SelectionResult::ambiguous:SelectionResult::selected;
         return result_;
     }
     bool pending() const noexcept { return result_==SelectionResult::pending; }
     void cancel() noexcept { result_=SelectionResult::changed; }
     uint32_t scanned() const noexcept { return next_; }
+    uint32_t matches() const noexcept { return matches_; }
+    float nearest_distance() const noexcept { return matches_?std::sqrt(nearest_):-1.f; }
+    float second_distance() const noexcept { return matches_>1?std::sqrt(second_):-1.f; }
     const SelectionCandidate& candidate() const noexcept { return candidate_; }
     const SelectionScope& scope() const noexcept { return scope_; }
 private:
@@ -54,6 +66,7 @@ private:
     SelectionCandidate candidate_{};
     uint64_t started_{},last_{};
     uint32_t next_{},matches_{};
+    float nearest_{},second_{};
     SelectionResult result_{SelectionResult::invalid};
 };
 }

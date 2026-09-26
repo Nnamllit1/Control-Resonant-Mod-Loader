@@ -31,13 +31,15 @@ Launch through Steam and load a playable save. Stand beside a loose, movable pro
 
 | Key | Action |
 | --- | --- |
-| **F9** | Select the single eligible prop within two world units of the player |
+| **F9** | Select the nearest eligible prop within two world units of the player |
 | **F10** | Set the selected prop's linear damping to `8` for five seconds |
 | **F11** or **Esc** | Request immediate restoration, or cancel an unused selection |
 
 Stay still while the panel shows **Searching nearby props**. Selection searches the body table across physics callbacks, checking at most 4,096 slots per callback and yielding after approximately two milliseconds. Tables up to 1,048,576 slots are supported. Moving more than a quarter world unit, a scene or body-lifetime change, a table-size change, or a search lasting 15 seconds cancels the search. Press **F9** to retry.
 
-Completed selection expires after 15 seconds. A selection request fails if multiple eligible props are nearby; move closer to an isolated prop and try again. The selector excludes the player, entities with a character-controller component, instances with multiple bodies, and alternate damping storage. It rechecks the selected body's identity and proximity after the search before enabling application.
+Completed selection expires after 15 seconds. Stand closest to the prop you intend to change. The search compares all eligible props and selects the nearest; if the closest two distances differ by less than 0.1 world units, the panel asks you to move closer to one and retry. Distances use entity origins and the player's position at the start of the search, rather than the camera crosshair or mesh surfaces.
+
+The selector excludes the player, entities with a character-controller component, instances with multiple bodies, and alternate damping storage. It rechecks the selected body's identity and proximity after the search before enabling application. The panel distinguishes no nearby candidate, nearly equal distances, a changed selection, and a timed-out search.
 
 Gently move the prop before and during the trial to compare how quickly its motion slows. Damping does not change friction or mass, and its effect may be hard to see on an object already at rest. The panel reports when the trial is active and when it finishes. A finished trial can include retirement or a conflicting game change; the log distinguishes these outcomes.
 
