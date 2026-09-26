@@ -10,45 +10,28 @@
       "observed_import_ordinals": [
         2
       ],
-      "status": "bootstrap-verified",
-      "verification": {
-        "date": "2026-09-24",
-        "runtime_loaded": true,
-        "wasm_hello_logged": true,
-        "gameplay_reported": true,
-        "controller_input_tested": false,
-        "shutdown_tested": false
-      },
+      "status": "experimental",
       "gameplay_bridge": false,
       "engine_observer": {
         "implemented": true,
-        "live_verified": false,
-        "live_capture_received": true,
         "requires_opt_in": true,
         "suspends_mods_and_gameplay_features": true,
         "scope": "selected update phases, player/resource identity snapshots, normal physics completion",
-        "destruction_and_scheduler_safety_verified": false,
         "capture_schema": 4,
         "body_observation": {
           "implemented": true,
-          "live_verified": false,
-          "live_samples_observed": true,
           "scope": "bounded dynamic-body identity and damping snapshots after physics post-processing",
           "physx_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
-          "calls_property_setters": false,
-          "ecs_prop_selection_verified": false
+          "calls_property_setters": false
         },
         "body_entity_observation": {
           "implemented": true,
-          "live_verified": false,
-          "live_samples_observed": true,
           "scope": "bounded same-callback world, body and ECS association checks",
           "calls_property_setters": false,
           "evidence": "docs/engine-validation.md#body-to-entity-observation-schema-3"
         },
         "damping_accessor_observation": {
           "implemented": true,
-          "live_verified": false,
           "calls_property_setters": false,
           "scope": "bounded comparison of native damping getters with guarded snapshots",
           "evidence": "docs/engine-validation.md#native-damping-readback-schema-4"
@@ -58,45 +41,29 @@
       },
       "entity_inspector": {
         "implemented": true,
-        "live_verified": true,
         "scope": "player component identities and controller state",
         "model_material_payloads_decoded": false,
-        "requires_opt_in": true,
-        "live_sampling_verified": true,
-        "complete_inventory_live_verified": true,
-        "reload_live_verified": false
+        "requires_opt_in": true
       },
       "experimental_noclip": {
         "implemented": true,
-        "live_verified": false,
         "movement": "camera-heading",
-        "wall_and_ceiling_traversal_reported": true,
-        "floor_descent_verified": false,
-        "camera_heading_verified": false,
         "keyboard_isolation_implemented": true,
-        "keyboard_isolation_verified": false,
         "fall_and_boundary_reset_suppression_implemented": true,
-        "fall_and_boundary_reset_suppression_verified": false,
-        "fall_reset_suppression_reported": true,
         "fall_monitor_suppression_implemented": true,
-        "white_fog_suppression_verified": false,
         "active_recovery_guard_implemented": true,
         "fall_camera_cleanup_implemented": true,
         "same_world_teleport_restoration_implemented": true,
-        "same_world_teleport_restoration_verified": false,
         "requires_opt_in": true
       },
       "experimental_visibility": {
         "implemented": true,
-        "live_verified": false,
         "requires_opt_in": true,
         "capability": "player.visibility",
         "scope": "root player mesh hide while F7 is held",
         "phase": "after coregame::mesh::applyHide",
         "lease_ms": 500,
-        "native_hide_show_reported": true,
-        "guest_controlled_requests": true,
-        "guest_input_path_live_verified": false
+        "guest_controlled_requests": true
       }
     }
   ]

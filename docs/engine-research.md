@@ -104,13 +104,8 @@ The catalog resolves `data/uiresources/game/ui/ui.bundle.css`, compiled `ui.ui`,
 
 The existing native bridge also demonstrates entity handles, generation checks, archetype rows, component lookup, and shared environment data; see `runtime/movement_view.cpp`. ECS signatures expose component access definitions and environment inputs. Component identities, resource identities, entity handles, and persistent GlobalIDs must remain distinct when tracing their relationships.
 
-## Next investigation steps
+## Related references
 
-The [engine atlas](engine-atlas.md) now indexes every recovered system declaration and the complete candidate-binding catalog. [Reviewed operation paths](engine-paths.md) connect representative script, spawn/remove, physics, material, UI, audio, animation, camera, AI, and save entries to their implementations. The remaining work concerns ownership, scheduling, consumers, and live verification rather than finding names alone.
+The [engine atlas](engine-atlas.md) indexes recovered system declarations and candidate bindings. [Engine operation paths](engine-paths.md) connect script, spawn/remove, physics, material, UI, audio, animation, camera, AI, and save entries to their implementations. Each reference describes the available evidence and its limits.
 
-1. Extend the now-connected resource-to-bytecode-loader path through complete per-entity initialization and teardown; establish callback and VM-reference lifetimes.
-2. Follow `processPendingRegistrations`, script initialization, and `luaFixedUpdate` to establish ownership and lifecycle order. Match at least one named asset to its live instance.
-3. Trace resource mount selection and `nl_resource_stream_in` to determine identity lookup, cache behavior, and whether a supported override mechanism exists.
-4. Trace the compiled UI page reader and Lua UI callbacks to identify a bounded UI extension point.
-
-The Wasm sandbox remains the mod boundary. Discovering engine Lua callbacks does not make arbitrary engine-script execution safe for guests. New mod capabilities should expose reviewed operations with validated arguments, lifetimes, and thread ownership through the trusted native bridge.
+Engine Lua callbacks are separate from the Wasm host API. Only the operations documented in the [SDK reference](api.md) are exposed to guest modules.

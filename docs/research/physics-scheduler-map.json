@@ -2,7 +2,7 @@
   "schema": 1,
   "title": "Scheduler execution during physics wait and post-processing",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
-  "status": "Static call references supporting the observed nested completion intervals; exclusive mutation ownership remains unverified.",
+  "status": "Static scheduler and physics-completion call references.",
   "checks": [
     {"kind": "call_rel32", "rva": "0x2cdbc29", "target": "0x3271510", "label": "completion-byte polling executes scheduler helper"},
     {"kind": "call_rel32", "rva": "0x3271520", "target": "0x3272a70", "label": "scheduler helper selects work"},

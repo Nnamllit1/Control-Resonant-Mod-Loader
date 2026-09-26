@@ -26,15 +26,15 @@ Samples are copied immediately before the original player-controller update. The
 
 Only the world component table validated by the existing movement probe is read. Other accessor layouts remain unresolved. Unknown hashes remain unnamed, and rendering presence does not imply a decoded render handle. The inspector reports the player only; related model entities, rigid-body shapes, mass, gravity, and GPU bindings are not yet mapped. There is no in-game inspector panel in this version.
 
-For feedback, preserve the JSONL file after walking, jumping, and a normal loading transition. Check that timestamps advance, records are valid, and identities change appropriately across reloads. Synthetic tests validate reads and rejection paths. An observed gameplay capture on the supported executable produced 51 valid samples over 50 seconds, with 524?531 component hashes per sample and no truncation. Movement and an archetype change on the same entity were observed. Reload and entity recreation have not been verified.
+When reporting an inspector issue, preserve the JSONL file before restarting the game. Include the actions that caused the issue and whether it occurred during movement or a loading transition.
 
-To return to the previous mode, close the game and remove `crml/entity-inspector.enabled`. The installer will subsequently detect the missing owned marker; restore it before a receipt-validated update or uninstall. Prefer retaining inspector mode during engine research.
+To return to the previous mode, close the game and remove `crml/entity-inspector.enabled`. The installer will subsequently detect the missing owned marker; restore it before a receipt-validated update or uninstall.
 
-## Component mapping leads
+## Component identities
 
-Matching captured hashes with FNV-1a hashes of fully qualified type names in the executable's ECS signatures produced 451 candidate names out of 531 observed identities. These matches identify investigation targets, not validated payload layouts or callable APIs.
+FNV-1a hashes of fully qualified type names in the executable's ECS signatures can be matched to captured component hashes. A name match identifies a candidate type; it does not determine the payload layout or provide a callable API.
 
-| Hash | Candidate type in `coregame::component` | Investigation target |
+| Hash | Candidate type in `coregame::component` | Relationship |
 | --- | --- | --- |
 | `6f477177` | `MeshResourceID` | Asset identity to mesh resource |
 | `eece657a` | `MeshResource` | Resource ownership and lifetime |
@@ -43,4 +43,4 @@ Matching captured hashes with FNV-1a hashes of fully qualified type names in the
 | `e1da5fb1` | `CollisionResource` | Collision resource ownership |
 | `167fac8a` | `CharacterControllerBody` | Controller to physics body |
 
-The observed archetype transition added seven identities, with no removals. Candidate names associate them with cloth state, shield effects, Lua streaming, and an active material override. This observation does not establish which subsystem caused the transition. Follow the corresponding native accessors and lifecycle systems before reading these payloads or exposing operations to mods.
+Component membership can change without replacing the entity. Use the current component set and generation when interpreting each sample.

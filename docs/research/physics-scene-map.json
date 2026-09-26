@@ -253,13 +253,6 @@
       }
     }
   },
-  "gaps": [
-    "Prove physics backend object classes and exact actor/shape API mappings.",
-    "Trace slot recycling, generation policy and scheduler exclusion before retaining handles.",
-    "Identify per-body filter, gravity, mass and constraint layouts.",
-    "Validate read-only observations against a live scene before adding physics writes.",
-    "Resolve backend object virtual slot +0x30 and returned owner slot +0xf8; verify live callback identity and final associated-pointer ownership."
-  ],
   "corrections": [
     "0x2d816c0 is batch activation, not cleanup: skips active records and sets +0x58 after submission.",
     "Associated-pointer batch is not a proven deferred destruction queue; installed callback clears its count without destroying elements."

@@ -2,7 +2,7 @@
   "schema": 1,
   "title": "Body handle validation, reverse association and retirement",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
-  "status": "Static references; the schema-2 observer implements guarded body snapshots, with live validation pending.",
+  "status": "Static body-handle, reverse-association and retirement references.",
   "checks": [
     {"kind": "call_rel32", "rva": "0x191f64c", "target": "0x2ce2ff0", "label": "staging publishes descriptor containing ECS handle at +0x30"},
     {"kind": "call_rel32", "rva": "0x19d68f6", "target": "0x2cf07a0", "label": "VM body consumer resolves reverse association from world scene owner"},
@@ -45,11 +45,5 @@
       "encoding": "0x2d83c60 preserves the handle high word and stores (index * 2) | 1 in the low word",
       "retirement": "0x2d83e20 writes UINT64_MAX before virtual slot zero, then clears the actor pointer table"
     }
-  },
-  "gaps": [
-    "Full allocation/recycling coverage and wraparound policy are not yet established.",
-    "Read/recheck rejects some races but does not acquire ownership or prove absence of an ABA reuse.",
-    "Reverse association still needs to be connected to a freshly validated ECS entity and a selected disposable prop.",
-    "Live body generation changes, accessor agreement, scheduling exclusion, property restoration and teardown remain unverified."
-  ]
+  }
 }

@@ -2,7 +2,7 @@
   "schema": 1,
   "title": "Dynamic-body damping, sleep, solver and contact properties",
   "executable_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
-  "status": "Backend static references; engine property ownership, units and live phase safety remain unverified.",
+  "status": "Static backend property references.",
   "documentation": "../physics-dynamics.md",
   "checks": [
     {"kind": "pointer64", "rva": "0x15deb8", "target": "0x22360", "label": "linear damping getter slot"},

@@ -69,7 +69,7 @@ This separates four identities/lifetimes: bundle ID, resource ID, owned resource
 
 The Lua resource reader at `0x712150` uses the file object's virtual operations to obtain its length, reads one byte into resource `+0xb8`, allocates/resizes a compact buffer at `+0xa0`, and reads the remaining bytes into that buffer. The first byte's meaning remains unknown. The [buffer consumer](engine-paths.md#script-resources-and-the-vm) now connects to a Luau-like bytecode loader through `0x19c3730` and `0x3229280`. Loading these bytes is not proof that the VM has instantiated or initialized an entity's script.
 
-The registered `processThrottledLoading` dispatcher at `0x19bd7b0` calls `0x19c4d60`, which processes entity loading and the owned resource preload array. The [reviewed path](engine-paths.md#script-resources-and-the-vm) records cache lookup, VM loading, and reference release. ECS signatures also name `LuaScriptPendingResource`, `FreshlyCreatedLuaScript`, `LuaInitEvents`, and `LuaPendingCallbackInstallations`; complete lifecycle ordering and teardown still require verification.
+The registered `processThrottledLoading` dispatcher at `0x19bd7b0` calls `0x19c4d60`, which processes entity loading and the owned resource preload array. The [reviewed path](engine-paths.md#script-resources-and-the-vm) records cache lookup, VM loading, and reference release. ECS signatures also name `LuaScriptPendingResource`, `FreshlyCreatedLuaScript`, `LuaInitEvents`, and `LuaPendingCallbackInstallations`; these declarations alone do not specify lifecycle ordering or teardown.
 
 ## Rendering: material data and dependency ownership
 
@@ -87,20 +87,13 @@ The IDs become owned runtime references, with old references released during rep
 
 `rend::TextureResource` has another distinct object layout: reflected size `0x1b8`, instance vtable `0x4ddc780`, and async loading entry at `0x2e8ed20`. One branch builds metadata-driven setup arguments; another creates a `LambdaStreamJob` identified by RTTI as belonging to `TextureResource::requestLoad`, atomically appends it to a queue, and notifies a worker. The branch selector and metadata field semantics still require investigation. Texture loading is therefore not interchangeable with invoking the generic material reader.
 
-ECS metadata separately names `MaterialResourceID`, `MaterialResource`, `MaterialRenderHandle`, `MaterialOverrideTargets`, and `coregame::global::RenderQueue`, with material stream-in, stream-out, and destruction systems. [Material stream-in and parameter override paths](engine-paths.md#materials-and-renderer-handoff) now connect world processing to command submission through global context `0x5e69000`. Material release also allocates command storage there; identifying the consumer and retirement rules remains a specific next step.
+ECS metadata separately names `MaterialResourceID`, `MaterialResource`, `MaterialRenderHandle`, `MaterialOverrideTargets`, and `coregame::global::RenderQueue`, with material stream-in, stream-out, and destruction systems. [Material stream-in and parameter override paths](engine-paths.md#materials-and-renderer-handoff) now connect world processing to command submission through global context `0x5e69000`. Material release also allocates command storage there; the consumer and retirement rules are unresolved.
 
 The GPU-facing work remains open: command decoding, shader selection, pipeline-state objects, descriptor binding, visibility, pass scheduling, and resource retirement. None of the recovered load methods is established as a safe draw or material-edit API yet.
 
-## What this means for the mod bridge
+## Mod API boundary
 
-The intended boundary is an operation with an engine-owned lifetime, rather than exposing raw memory to Wasm. For example, a future material override could:
-
-1. Resolve a validated entity handle to its material target.
-2. Resolve and retain the requested material resource and dependencies.
-3. Apply the override through the engine's update/render command path.
-4. Release it on removal, entity destruction, or stream-out.
-
-This is a proposed integration contract, not an implemented SDK call. The same approach applies to spawning, scripting events, and physics operations: find the engine's existing operation, establish ownership and execution context, then expose a bounded guest API. This can give sandboxed mods useful native engine capabilities while keeping native code in the trusted bridge.
+The resource and entity maps describe native engine internals. They do not expose material overrides, spawning, scripting events, or general physics operations to Wasm. Available guest operations and capability requirements are documented in the [SDK reference](api.md).
 
 ## Reproduce the static checks
 
@@ -152,7 +145,7 @@ python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/e
 
 Command storage comes from `*(renderer_global+0x18)`, with global RVA `0x5e69000`. Allocation helper `0x2fb8340` receives storage, byte length and a wait flag. Producers write the payload, publish its length at allocation-8, increment storage+0x30 by two atomically, and notify if the previous low bit was set. The notification thunk `0x393109d` imports `__std_atomic_notify_one_direct`. This producer-side protocol is traced; downstream GPU execution is not.
 
-The [visibility experiment](visibility.md) uses this observed path, on the owning mesh phase, with fresh entity and query-membership validation. It deliberately leaves native hide reasons intact and lets the original system restore its cached state after the lease ends. Live behavior remains unverified.
+The [visibility experiment](visibility.md) uses this observed path, on the owning mesh phase, with fresh entity and query-membership validation. It deliberately leaves native hide reasons intact and lets the original system restore its cached state after the lease ends.
 
 ### Physics acquisition and controller ownership
 
@@ -213,13 +206,13 @@ The [body lifetime map](research/physics-body-lifetime-map.json) connects three 
 
 The actor pointer array at owner+0x1d0 has its own count/capacity at +0x1d8/+0x1dc. Creation helper `0x2d83c60` stores an encoded handle at actor+0x10: the high word is preserved, while the low word becomes `(index * 2) | 1`. It then publishes the actor through `0x2d83e80`. The encoding must be decoded before comparing it with a body handle.
 
-Helper `0x2cf0800` records a reverse association in the view at owner+0x2e8. Its array at view+8 holds pairs of 32-bit values indexed by the body handle's low word: scene-record slot and local body index. Reader `0x2cf07a0` uses that pair to return a scene-record pointer and local index, treating slot `UINT32_MAX` as absent. This reader also lacks complete bounds/generation validation. Another array at owner+0x300 contains 16-byte records with an instance pointer and local body index. Connecting these associations to a freshly validated ECS entity remains a targeted observation requirement.
+Helper `0x2cf0800` records a reverse association in the view at owner+0x2e8. Its array at view+8 holds pairs of 32-bit values indexed by the body handle's low word: scene-record slot and local body index. Reader `0x2cf07a0` uses that pair to return a scene-record pointer and local index, treating slot `UINT32_MAX` as absent. This reader also lacks complete bounds/generation validation. Another array at owner+0x300 contains 16-byte records with an instance pointer and local body index. The [body-to-entity observer](engine-validation.md#body-to-entity-observation-schema-3) checks these associations against the current ECS entity.
 
 The static connection to the ECS handle is now traced through staging `0x191ede0`. At `0x191f3c7`, it reads the entity handle from query chunk `+0x10 + row*8`, then stores it at descriptor `+0x30` before calling scene allocation `0x2ce2ff0`. The allocator copies that field into scene record `+0x30`. Record `+0x20` is the instance pointer; the separate `+0x28` content identity must not be used as an ECS runtime handle, and `+0x38` is a structured data pointer.
 
 The `nl_particle_system_attach_body` callback at `0x19d6820` provides an independent world-to-scene consumer path. It searches the world's global hash/value arrays (`+0x585b0`, count `+0x585b8`, values `+0x585c0`) for key `0x2eb2d62c`, dereferences the selected payload to obtain the scene owner, and passes owner `+0x2e8` to the reverse reader. This consumer subsequently uses scene record `+0x28`, not the ECS handle at `+0x30`.
 
-Together these traces supply a candidate association chain: current world → scene owner → generation-checked body → scene record → ECS handle. Validation must additionally check the ECS generation and location in that same world, match the entity's `Physics` scene slot, and round-trip the instance's local body handle. A copied entity value or cached world address does not establish lifetime. The [schema-3 observer](engine-validation.md#body-to-entity-observation-schema-3) implements these guarded checks; lifetime guarantees and disposable-prop selection remain separate validation requirements.
+Together these traces supply a candidate association chain: current world → scene owner → generation-checked body → scene record → ECS handle. Validation must additionally check the ECS generation and location in that same world, match the entity's `Physics` scene slot, and round-trip the instance's local body handle. A copied entity value or cached world address does not establish lifetime. The [schema-3 observer](engine-validation.md#body-to-entity-observation-schema-3) implements these guarded checks; it does not retain ownership or select a prop for modification.
 
 Retirement helper `0x2d829a0` calls metadata cleanup, clears associated-pointer tables through `0x2cd5550`, then invokes `0x2d83e20`. That helper writes `UINT64_MAX` to actor+0x10 before invoking virtual slot zero, then clears the actor pointer through `0x2d83e80`. Retirement invalidates the reverse association and the 16-byte instance association. Finally, it writes the previous free-list head into the handle entry's low word, writes the incoming generation plus two into its high word, and makes this slot the new free-list head at owner+0x2e0.
 
@@ -291,4 +284,4 @@ The earlier unnamed cached vector channels are now connected to linear and angul
 
 Additional metadata identifies inverse mass, inverse inertia, sleep threshold, stabilization threshold, wake counter and scene gravity. Scene gravity metadata references a write wrapper at DLL RVA `0xc200` forwarding to slot +0x2a8. The metadata alone does not establish per-body gravity controls or game-specific overrides. Forces and impulses are operations rather than entries in this property table; their implementation and gravity overrides are traced in the subsequent dynamics investigation.
 
-The [game rigid-body map](research/game-rigid-body-map.json) verifies the game helper connections. The subsequent [physics dynamics trace](physics-dynamics.md) identifies concrete backend implementations, force modes, per-body and scene gravity, inertia conditioning and the normal simulation sequence. No runtime writes or API additions are part of this research.
+The [game rigid-body map](research/game-rigid-body-map.json) verifies the game helper connections. The subsequent [physics dynamics trace](physics-dynamics.md) identifies concrete backend implementations, force modes, per-body and scene gravity, inertia conditioning and the normal simulation sequence. These references are separate from the [Wasm API](api.md).

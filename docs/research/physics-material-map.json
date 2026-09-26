@@ -2,7 +2,7 @@
   "schema": 1,
   "title": "Physics material loading and creation-time friction overrides",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
-  "status": "Static trace only; no live material writes or settings changes.",
+  "status": "Static material registry and creation-setting references.",
   "checks": [
     {
       "kind": "call_rel32",
@@ -120,11 +120,5 @@
         "0x18": "ID mapping count"
       }
     }
-  },
-  "gaps": [
-    "Identify concrete backend material type and setter methods.",
-    "Trace shape-to-material attachment, sharing and reference release.",
-    "Resolve safe live update ordering and cache synchronization.",
-    "Trace character ground friction separately before claiming a global ice effect."
-  ]
+  }
 }

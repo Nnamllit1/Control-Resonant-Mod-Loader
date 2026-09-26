@@ -1,10 +1,10 @@
 ---
-description: Explore the experimental CONTROL Resonant Wasm visibility mod, its renderer connection, capability requirements, and validation limits.
+description: Explore the experimental CONTROL Resonant Wasm visibility mod, its renderer connection, capability requirements, and controls.
 ---
 
 # Experimental player visibility
 
-The `visibility` Wasm example hides the player's root mesh while F7 is held. It is an initial renderer manipulation experiment; it does not affect collisions, AI awareness, or gameplay invisibility. Separately rendered equipment and effects may remain visible.
+The `visibility` Wasm example hides the player's root mesh while F7 is held. It changes rendered visibility only; it does not affect collisions, AI awareness, or gameplay invisibility. Separately rendered equipment and effects may remain visible.
 
 Build and preview installation:
 
@@ -14,9 +14,9 @@ $gameDir = Read-Host 'Path to your CONTROL Resonant installation'
 python tools/install.py "$gameDir" --update --experimental-visibility
 ```
 
-Close the game and add `--apply` to install. Omit `--update` for a fresh installation. The installer owns `crml/visibility.enabled` and the example under `crml/mods/visibility`. Inspector capture can remain enabled, but this session is no longer read-only. Noclip is disabled while visibility mode is installed.
+Close the game and add `--apply` to install. Omit `--update` for a fresh installation. The installer owns `crml/visibility.enabled` and the example under `crml/mods/visibility`. Inspector capture can remain enabled alongside visibility changes. Noclip is disabled while visibility mode is installed.
 
-Load a playable save, hold F7, then release it. The expected result is a hidden root mesh while held, followed by normal engine visibility on release. Also check Escape and focus loss. The native hide/show operation has been reported working in gameplay. The revised guest-controlled input path still needs live verification; a renewed lease alone does not confirm a rendered result. The movement log's `visibility_submissions` counter reports submitted hide commands.
+Load a playable save, hold F7, then release it. The expected result is a hidden root mesh while held, followed by normal engine visibility on release. Also check Escape and focus loss. The Wasm input-to-render path is experimental. A renewed lease alone does not confirm a rendered result. The movement log's `visibility_submissions` counter reports submitted hide commands.
 
 The native bridge runs after `coregame::mesh::applyHide`, preserves the game's own hide reasons, updates its cached hidden flag, and submits the observed single-handle renderer command. On release the original system recomputes visibility on its next eligible update. There is no saved pointer or saved visibility state to restore into a different entity. If gameplay is paused and the mesh system stops updating, restoration waits for it to resume.
 

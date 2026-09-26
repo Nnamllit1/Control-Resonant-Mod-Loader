@@ -30,7 +30,7 @@ Confirm the panel shows ON and the first line of `crml/movement-probe.jsonl` rep
 
 The log includes `input_consumed`, `fall_checks_skipped`, and `boundary_targets_skipped` counters. Report both logs and whether the panel changed to OFF when the problem occurred. A boundary reset after disabling noclip is expected; normal recovery resumes at the current position. Scripted transitions and deaths may still interrupt flight.
 
-If resetting stops but white fog still appears, include `last_stop`, `active_recoveries_skipped`, `fall_camera_overrides`, and `fall_camera_clear_requests` along with the fall-monitor counters. A relocation can cancel noclip between the one-second samples; `last_stop` preserves that reason and the coordinates. The remaining visual effect has not yet been confirmed fixed in gameplay.
+If resetting stops but white fog still appears, include `last_stop`, `active_recoveries_skipped`, `fall_camera_overrides`, and `fall_camera_clear_requests` along with the fall-monitor counters. A relocation can cancel noclip between the one-second samples; `last_stop` preserves that reason and the coordinates.
 
 If the player is still moved during flight, include `teleport_restores` and `last_override`. Teleport-flagged movement of the same player/world now retains the flight target. A world/player change, an unflagged large displacement, or an expired lease still cancels the override. Disable noclip before intentional teleports or fast travel.
 

@@ -5,11 +5,11 @@ description: Research CONTROL Resonant physics forces, gravity, mass, inertia, d
 
 # Physics dynamics research
 
-This page connects game-side body operations to the shipped physics backend. It is a research map, not a supported mod API. The read-only observer samples body state; its schema-4 diagnostic also compares damping getters. Property writes and their effects have not been verified through a live physics experiment.
+This page connects game-side body operations to the shipped physics backend. It is a research map, not a supported mod API. The read-only observer samples body state; its schema-4 diagnostic also compares damping getters.
 
 Game RVAs refer to the executable fingerprint in the [game dynamics map](research/game-dynamics-map.json). DLL RVAs refer to the separate `PhysX_64.dll` fingerprint in the [backend dynamics map](research/physx-dynamics-map.json). Virtual slots are byte offsets into a vtable, not object fields. See [engine internals](engine-internals.md) for entity handles, resource ownership, material sharing and the initial property table.
 
-## Evidence and remaining work
+## Evidence and limitations
 
 | Area | Established from the binaries | Still unresolved |
 | --- | --- | --- |
@@ -51,9 +51,9 @@ Mode terminology follows NVIDIA's [force-mode definitions](https://nvidiagamewor
 
 DLL `addForce` forwards the linear vector to `0x20d20` with a null angular-vector argument; `addTorque` uses the angular-vector argument. In that dispatcher, modes 0 and 1 multiply the linear input by inverse mass through helper `0xfe570` and transform angular input through a matrix-producing helper. The inverse-mass interpretation is corroborated by `0xff320`, which writes the mass setter's reciprocal to the same fields that `0xfe570` reads. Mode 1 then reaches the same accumulator path as mode 2, which skips that scaling. Mode 0 reaches the alternate accumulator path also used by mode 3. This matches the distinction between velocity-change and acceleration accumulation in NVIDIA's [rigid-body API](https://nvidia-omniverse.github.io/PhysX/physx/5.1.3/_build/physx/latest/class_px_rigid_body.html).
 
-Concrete force and torque implementations reject certain simulation-running states, reject a body-state bit, and contain a direct-GPU-mode rejection path. After forwarding a vector, they call `0x25e70` with both the incoming boolean and a test for nonzero input. These are meaningful behavioral requirements, not optional checks that a future API should bypass.
+Concrete force and torque implementations reject certain simulation-running states, reject a body-state bit, and contain a direct-GPU-mode rejection path. After forwarding a vector, they call `0x25e70` with both the incoming boolean and a test for nonzero input. These checks constrain when the backend accepts a force or torque request.
 
-The game-side helpers return without applying anything when their checks fail; their call sites do not receive a structured success result. A future bridge must distinguish a valid request from a confirmed applied change rather than report success solely because the native call returned.
+The game-side helpers return without applying anything when their checks fail; their call sites do not receive a structured success result. A normal return therefore does not confirm that the change was applied.
 
 ### Accumulator storage and consumption
 
@@ -174,7 +174,7 @@ Most helper calls receive **actor `+0x50`**, called the core below. Normal linea
 
 That is the same state pointer whose **tag 0** interpretation holds force/velocity accumulators in the earlier trace. Reading `+0x30` without checking the representation can therefore mistake damping for an angular velocity-change term. The alternate path assumes its state invariant rather than providing a safe fallback for an invalid pointer.
 
-The corresponding linear getter is slot `+0x130`, DLL RVA `0x22360`, which passes actor `+0x50` to `0xfe600`. The angular getter is slot `+0x140`, DLL RVA `0x21870`, forwarding to `0xfe4f0`. Both return a float and select the same normal or tag-1 storage described above. A missing or incorrectly tagged alternate state leads to an invalid read, not a normal-storage fallback. These accessor traces independently support the observer's storage selection. The [schema-4 diagnostic](engine-validation.md#native-damping-readback-schema-4) calls these getters with guarded identity and target checks; live accessor agreement remains unverified.
+The corresponding linear getter is slot `+0x130`, DLL RVA `0x22360`, which passes actor `+0x50` to `0xfe600`. The angular getter is slot `+0x140`, DLL RVA `0x21870`, forwarding to `0xfe4f0`. Both return a float and select the same normal or tag-1 storage described above. A missing or incorrectly tagged alternate state leads to an invalid read, not a normal-storage fallback. These accessor traces independently support the observer's storage selection. The [schema-4 diagnostic](engine-validation.md#native-damping-readback-schema-4) calls these getters with guarded identity and target checks.
 
 Normal damping changes propagate through `0x10e7d0` when an associated simulation object exists. Sleep threshold, stabilization threshold, maximum contact impulse, and contact slop similarly write core `+0x94`, `+0x98`, `+0x90`, and `+0xa8`, respectively, before the same propagation route. The full downstream effect of `0x10e7d0` is not yet traced.
 
@@ -199,9 +199,9 @@ Before either branch, both callbacks call body validator `0x19f7870`. It resolve
 
 Two reviewed body-population branches apply linear and angular damping from source-record offsets `+0x20` and `+0x24`, through call sites `0x2d83585`/`0x2d83596` and `0x2d83994`/`0x2d839a5`. This shows a path by which population can reapply source values. The full resource schema, triggers for reapplication, and all indirect/gameplay overrides remain unresolved.
 
-A reversible experiment must resolve a selected entity and body afresh in an established owning phase, capture the original through the accessor, apply a bounded finite value, and verify readback. Before restoring, it must revalidate identity and check for intervening changes. An unexpected current value is a conflict to record, not permission to overwrite another producer. Reload invalidation and observable effect still require live evidence; these static references do not enable a runtime setter or Wasm operation.
+The static references establish property consumers and validation checks. They do not establish a phase for external writes, restoration semantics, or reload invalidation. No runtime setter or Wasm operation is provided by this map.
 
-## Verification and next investigation
+## Reference verification
 
 ```powershell
 $gameDir = Read-Host 'Path to your CONTROL Resonant installation'
@@ -213,4 +213,4 @@ python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/g
 
 The checks validate encoded references for these exact files. They do not prove callable ABIs, complete semantics, live scheduler safety, or behavior after a scene reload.
 
-The subsequent [shape-filter trace](engine-paths.md#shape-filters-and-collision-ownership) separates query and simulation storage, identifies the game filter packer, and follows shape creation through attach/release. Filter bit meanings and complete shape ownership remain open, alongside immediate-mode constraint data/writeback and solver/task-manager dependencies. These address which contacts a body participates in and where a future bridge can safely apply changes. The acceleration-retention flag route and all gameplay override producers also remain open. Character-controller movement should remain a separate investigation before returning to noclip or free flight. The [engine atlas](engine-atlas.md) places these properties in the broader engine surface.
+The subsequent [shape-filter trace](engine-paths.md#shape-filters-and-collision-ownership) separates query and simulation storage, identifies the game filter packer, and follows shape creation through attach/release. Filter bit meanings and complete shape ownership remain open, alongside immediate-mode constraint data/writeback and solver/task-manager dependencies. These limits affect contact participation and the validity of external changes. The acceleration-retention flag route and all gameplay override producers also remain open. Character-controller movement is separate from the rigid-body paths described here. The [engine atlas](engine-atlas.md) places these properties in the broader engine surface.

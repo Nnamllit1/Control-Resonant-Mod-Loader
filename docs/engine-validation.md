@@ -1,13 +1,13 @@
 ---
-title: Engine runtime validation
+title: Engine observer diagnostics
 description: Capture CONTROL Resonant update phases, body identities, and ECS associations with read-only diagnostics to investigate runtime safety.
 ---
 
-# Observe-only engine validation
+# Engine observer diagnostics
 
-The engine observer records selected engine phases and player/resource identities so contributors can investigate update timing and object lifetime. It is the first validation stage following the [static engine atlas](engine-atlas.md). A successful capture supplies evidence for review; it does not establish a safe modification API.
+The engine observer records selected engine phases and player/resource identities so contributors can investigate update timing and object lifetime. Use it alongside the [engine atlas](engine-atlas.md) to interpret native update phases. The observer has no modification API.
 
-Observation mode suspends all Wasm mods and the existing noclip, visibility, input-filter, and fall-recovery features. It installs version-gated native hooks that forward the selected engine calls and copy diagnostic records. It does not intentionally change gameplay state or call property setters. Hooks still introduce overhead, and live compatibility must be established for the recorded build.
+Observation mode suspends all Wasm mods and the existing noclip, visibility, input-filter, and fall-recovery features. It installs version-gated native hooks that forward the selected engine calls and copy diagnostic records. It does not intentionally change gameplay state or call property setters. Hooks introduce overhead, and capture durations include that overhead.
 
 ## Build and enable
 
@@ -123,10 +123,6 @@ Rejection bits 1–10 are `arguments`, `bounds`, `generation`, `missing_actor`, 
 
 The analyzer's `body_probe` groups samples by scene/full handle/actor token, reports damping ranges, observed slot replacements, and scans containing each rejection category. `observed` means samples exist; `ownership_or_mutation_verified` remains false. A schema-2 capture with no accepted body samples is `incomplete`. Unobserved recycling, world/address reuse and missing lifecycle markers still limit interpretation. The existing gameplay sequence is sufficient for this diagnostic stage; it does not require a property-edit hotkey. Post-processing durations include the sampler's overhead, so they are not directly comparable to uninstrumented timings.
 
-## Next validation gate
-
-Review the capture before adding any mutation. Establish which phases run on which threads, how normal physics submission/completion/wait relate, whether identities change or disappear across the performed reload, and where observations have gaps. Follow unresolved ownership or scheduling questions with targeted research or additional observation. Only then select one reversible physics-property operation on a disposable object and test effect, restoration and teardown before exposing it through Wasm.
-
 ## Body-to-entity observation: schema 3
 
 Schema 3 retains the eight hooks and backend fingerprint gate. During the existing player sample, at most once per 100 ms, it obtains the scene owner from the world supplied by that movement callback. It scans up to 64 slots and attempts publication of at most four accepted associations. This additional rotating scan is separate from the post-processing damping scan. It does not retain world or actor pointers for another callback, and it adds no property getter/setter calls.
@@ -155,7 +151,7 @@ The getter results are compared with the stable before/after snapshot. Agreement
 
 Rejection bits 1–7 are `arguments`, `snapshot`, `slot`, `scalar`, `changed`, `mismatch`, and `memory`. Mismatch records preserve the finite getter values; other failures publish no value record. Publication losses can remove either a result or a scan summary. The analyzer flags a mismatch seen in either source and treats missing agreement or any observed mismatch as incomplete. Older schemas report `accessor_probe` as `not_recorded`; `agreement_observed` always retains `ownership_or_mutation_verified: false`.
 
-The same walk/reload/walk sequence collects these comparisons automatically. Native getter agreement remains pending live verification. Selection of a disposable prop, scheduling exclusion, the reversible write, conflict-aware restoration and reload cleanup remain separate gates.
+The capture procedure collects these comparisons automatically. Getter agreement does not establish scheduler exclusion, property-write behavior, restoration, or reload cleanup.
 
 ## Scheduler and lifetime requirements
 
@@ -168,14 +164,6 @@ python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/p
 ```
 
 Treat persistent resource IDs, native object pointers, full entity handles, and world identities as separate concepts. Equal resource IDs do not prove that the same resource object survived a reload. A gap in observations does not prove destruction or identify a reload without a corresponding lifecycle marker. Capture loss limits all absence and ordering conclusions.
-
-## Reversible experiment requirements
-
-Before attempting a change, establish a disposable object's current ECS identity, native body handle, generation and scene ownership. Validate them in the callback that will perform the operation. The small body resolver `0x2d83f70` uses only the low handle word; calling it with an old handle does not provide validation.
-
-Use a scalar property such as linear damping for the first experiment. Capture its original value through the owning accessor, apply a bounded value, confirm readback and an observable effect, then restore it. Treat an intervening property change as a conflict rather than overwriting it. Verify that reload and unload reject old identities and clear pending requests. Requests must not retain raw native pointers across callbacks or reloads.
-
-The [damping trace](physics-dynamics.md#game-damping-accessors-and-overrides) identifies accessors and paths that can reapply properties. The [association trace](engine-internals.md#full-body-handles-reverse-association-and-retirement) identifies the relationship between body and ECS handles. These maps guide validation; neither a static reference nor an accepted observation establishes a safe Wasm operation.
 
 ## Handling diagnostic reports
 

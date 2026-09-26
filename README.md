@@ -4,7 +4,7 @@ A Windows x64 mod framework for **CONTROL Resonant**, with a native loader and s
 
 [Documentation and Northlight engine research](https://crml.nnamllit.de/) cover installation, mod development, asset formats, scripting, ECS entities, rendering, and physics. The research is also available to native mod and tool developers independently of the loader.
 
-**Experimental developer preview.** The XInput proxy and sandboxed hello mod have loaded in the recorded game build. An opt-in noclip prototype includes a Wasm example and status overlay; wall and ceiling traversal have been reported in gameplay. Floor descent, camera-heading controls, input isolation, boundary-reset suppression, and restoration still need verification. Controller input and clean shutdown also need dedicated validation. See the [noclip test guide](docs/gameplay.md).
+**Experimental developer preview.** Includes an XInput proxy, a sandboxed hello mod, and an opt-in noclip prototype with a Wasm example and status overlay. Compatibility is limited to the fingerprinted game build. See the [noclip guide](docs/gameplay.md) for controls and known limitations.
 
 ## Build and try it
 
@@ -32,7 +32,7 @@ tests/      Sandbox and proxy integration tests
 
 The organization and documentation style follow Hammer Addons. The mod execution model is different: each Wasm mod receives a separate store with bounded memory and execution fuel.
 
-Read the [installation guide](docs/installation.md), [create a mod](docs/developing.md), or review the [architecture](docs/architecture.md) and [noclip milestone](docs/gameplay.md).
+Read the [installation guide](docs/installation.md), [create a mod](docs/developing.md), or review the [architecture](docs/architecture.md) and [noclip guide](docs/gameplay.md).
 
 ```powershell
 python -m venv .venv-docs

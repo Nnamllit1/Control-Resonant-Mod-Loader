@@ -233,11 +233,6 @@
     "https://nvidiagameworks.github.io/PhysX/4.0/documentation/PhysXAPI/files/structPxForceMode.html",
     "https://nvidia-omniverse.github.io/PhysX/physx/5.1.3/_build/physx/latest/program_listing_file_include_PxActor.h.html"
   ],
-  "gaps": [
-    "Complete solver scheduling, output-consumer branches and public acceleration-retention flag route",
-    "Complete flag setter body and GPU-path behavior",
-    "Live object identity and engine scheduling"
-  ],
   "layouts": {
     "internal_simulation_object": {
       "access": "dereference actor+0x50; not a stable handle",

@@ -2,7 +2,7 @@
   "schema": 1,
   "title": "Forces, gravity, inertia conditioning and simulation phases",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
-  "status": "Static references only; no runtime modifications or live phase validation.",
+  "status": "Static game-side dynamics references.",
   "checks": [
     {
       "kind": "call_rel32",
@@ -364,12 +364,6 @@
       "target": "0xdad206",
       "label": "PxConstructStaticSolverBodyTGS call IAT displacement"
     }
-  ],
-  "gaps": [
-    "Complete force consumer scheduling, solver paths and acceleration-retention flag route.",
-    "Immediate-mode constraint data, writeback and complete scheduler dependency graph.",
-    "All gameplay gravity overrides and character-controller gravity.",
-    "Shape mass integration and density-to-mass derivation."
   ],
   "backend_imports": [
     {

@@ -1,11 +1,11 @@
 ---
 title: Northlight engine atlas
-description: Explore recovered CONTROL Resonant engine systems, script bindings, rendering, physics, resource lifetimes, and unresolved integration work.
+description: Browse CONTROL Resonant engine systems, script bindings, rendering, physics, resource lifetimes, and native reference maps.
 ---
 
 # Engine atlas
 
-This reference maps the recovered engine surface from packaged assets through ECS systems, scripting, rendering, physics, and gameplay. It is a guide to where an operation belongs and what still needs establishing before that operation can become a mod API. The current pass is static research; it adds no runtime hooks or guest capabilities.
+This reference maps the recovered engine surface from packaged assets through ECS systems, scripting, rendering, physics, and gameplay. It describes subsystem responsibilities and native code references. For guest functions, see the [Wasm API](api.md).
 
 The [complete system index](engine-system-index.md) contains **2,474 recovered system declarations across 543 namespace families**. The [machine-readable atlas](research/engine-atlas.json) also contains **904 script-binding candidates**, **1,044 imported functions from 49 modules**, and the declared component/environment inputs. Registration patterns identify candidate dispatchers for **2,143 systems**; **331 remain unresolved by that pattern**. Families group the first two namespace segments and are not a count of independent engine subsystems.
 
@@ -26,23 +26,23 @@ All executable RVAs refer to SHA-256 `2c6575be23ea9a2d316fb530d094773b371ab1da63
 
 ## Foundation, identity, and world ownership
 
-| Area | Recovered surface | Developer operations to investigate | Current boundary |
+| Area | Recovered surface | Operations | Current boundary |
 | --- | --- | --- | --- |
 | ECS/world | `ecs::World`, typed queries, removed-component queries, command buffers, entity generation | Enumerate entities, read components, request structural changes | Declarations indexed; entity inspection and selected access paths covered in [entity internals](engine-internals.md) |
 | Scheduling | Fixed/variable update declarations, factory and stream flushes, task helpers | Select the owning update stage, defer commands, wait for completion | Selected flush/AI paths reviewed; full dependency graph and worker ownership unresolved |
 | Identity | `global_id_to_entity_map`, resource IDs, bundle IDs, live entity handles | Resolve persistent content to a current entity | These identifiers have different lifetimes; raw scene slots are not validated entity handles |
-| Transforms/hierarchy | `transform`, attachment factories/sockets, skeleton slaves, local time scale | Move an object, attach it, update local/world transforms | Declarations indexed; transform propagation and ownership need separate verification |
+| Transforms/hierarchy | `transform`, attachment factories/sockets, skeleton slaves, local time scale | Move an object, attach it, update local/world transforms | Declarations indexed; transform propagation and ownership are not specified by declarations |
 | Time/input | `time`, `legacy_time`, fixed/variable input, gyro, player input and input logic | Read actions, control time, suppress gameplay input during a mod operation | Declaration coverage; ordering, action consumption, focus and pause semantics unresolved |
 | Streaming/lifetime | `streaming`, broadphase, bundles, lifetime, hotload, manually managed resources | Load/unload regions, retain resources, react to removal | Selected resource retain/release paths reviewed; no arbitrary long-lived component pointers |
 | Spawn/remove | `spawning`, `luaspawning`, NPC/player spawners, bundle roots | Instantiate bundles, await readiness, remove entities and children | [Spawn and removal paths](engine-paths.md#world-spawning-and-removal) show structural commands and cleanup stages; full creation ABI unresolved |
 
-An entity can exist before its resources, physics body, or render handle are ready. Removal can likewise start before each subsystem has released its owned objects. A future handle API needs readiness, invalidation, and world-generation rules, not just a pointer lookup.
+An entity can exist before its resources, physics body, or render handle are ready. Removal can likewise start before each subsystem has released its owned objects. A pointer lookup alone does not establish readiness, validity, or world ownership.
 
 ## Physics and movement
 
 The physics surface spans engine resource construction, scene ownership, backend actors/shapes/materials, simulation, and gameplay systems that consume the results. The [physics dynamics reference](physics-dynamics.md) and [scene/body mappings](engine-internals.md) contain the deeper field and call evidence.
 
-| Property or operation | Evidence available | Remaining work |
+| Property or operation | Evidence available | Scope limits |
 | --- | --- | --- |
 | Static/dynamic friction and restitution | Material registry fields and backend material association | Shared-material ownership, per-shape override/clone policy, existing contacts, restoration |
 | Mass and inertia | Backend setters/inverse storage; game inertia calculation, principal-axis conversion and conditioning | Units for each game-facing operation, compound-shape updates, wake and phase guarantees |
@@ -94,7 +94,7 @@ The traced `.binlua` resource path reaches a **Luau-like bytecode loader** with 
 | Spawn events | `luaspawning::listen_for_spawn_events`, script initialization stages declared | Spawn request accepted versus entity ready versus script initialized |
 | Audio/music callbacks | Callback and playing-instance families declared | Audio-thread handoff, event lifetime and cancellation |
 
-Engine scripting is separate from the Wasm sandbox. These discoveries identify operations for a future trusted bridge; they do not give guest modules arbitrary access to the engine VM or native callback pointers.
+Engine scripting is separate from the Wasm sandbox. The mapped operations are not guest APIs and do not grant access to the engine VM or native callback pointers.
 
 ## AI, audio, and gameplay
 
@@ -134,19 +134,6 @@ python tests/test_engine_atlas.py
 
 The builder checks the exact executable fingerprint, declaration strings, name references, binding callback references and store encodings. Dispatcher scanning stops at the next system-name reference or exception-table fragment boundary. This intentionally misses some noncontiguous registration sequences rather than inventing associations. Import indexing covers the normal PE import table, not delay imports, runtime resolution, or all statically linked code.
 
-## Verification and subsequent integration
+## Runtime diagnostics
 
-The [observe-only validation build](engine-validation.md) supplies a reproducible capture procedure and an analyzer that reports missing coverage and losses. Its [scheduler and lifetime requirements](engine-validation.md#scheduler-and-lifetime-requirements) describe the evidence needed before mutation; an accepted observation does not establish exclusive ownership.
-
-The next phase should establish the scheduler and lifetime contract across representative operations before expanding the guest API. A useful first observation pass correlates entity generation, world transitions, script instance creation/removal, command flushes, physics completion, and renderer publication. Record thread IDs and event order; avoid treating a diagnostic overlay's frame as the owning engine update.
-
-| Subsequent experiment | What it must demonstrate before exposing an operation |
-| --- | --- |
-| Entity/resource observation across reload | Handles invalidate; retained resources release once; components can disappear between stages |
-| Callback observation | Immediate versus deferred delivery, correct thread, bounded payload lifetime, teardown behavior |
-| Physics property change on one disposable object | Correct material/body ownership, valid simulation phase, measurable change and restoration |
-| Spawn/remove one known bundle | Request/result correlation, readiness, child cleanup, no surviving callbacks or backend objects |
-| Material/camera/UI change | Owning update stage, expected output, cancellation and stream-out restoration |
-| Save/load observation | Which operations become persistent and which must be suspended or reconstructed |
-
-For the eventual flight/noclip/free-camera mod, first establish independent ownership of movement, input suppression, collision/query filtering, camera pose, and fall/reset behavior. That remains a later integration task. The current atlas supplies the research map and concrete entry points for those experiments; it does not claim a general-purpose engine API is ready.
+The [engine observer](engine-validation.md) records update phases, body and entity identities, and damping readbacks. Its analyzer reports event order, identity changes, and dropped records. See the [capture format](engine-validation.md#capture-format-and-loss-handling) for record fields and interpretation.

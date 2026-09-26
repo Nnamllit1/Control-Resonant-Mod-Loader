@@ -2,7 +2,7 @@
   "schema": 1,
   "title": "Lua resource loading and ECS preload collection",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
-  "status": "Static disassembly; no callable ABI or live lifecycle verification.",
+  "status": "Static Lua resource-loading references.",
   "nodes": [
     {
       "id": "lua_resource_type",
@@ -62,7 +62,7 @@
     {
       "id": "throttled_registration",
       "rva": "0x19c0c50",
-      "meaning": "Registers processThrottledLoading scheduler callback; callback body is next investigation target."
+      "meaning": "Registers the processThrottledLoading scheduler callback."
     }
   ],
   "object_layout": [
@@ -272,12 +272,5 @@
       "target": "0x19bd7b0",
       "label": "throttled loading scheduler callback"
     }
-  ],
-  "gaps": [
-    "Resource ID derivation and manager cache lookup internals.",
-    "Loader adapter selection, mount precedence, and cancellation.",
-    "Envelope-byte meaning, complete bytecode format and compiler compatibility; the loader transition is traced in engine-paths-map.json.",
-    "Complete script-instance lifecycle, scheduler order and owning threads; preload processing and selected callback paths are traced in engine-paths-map.json.",
-    "Typed refcount ownership contracts and safe mod-facing operations."
   ]
 }

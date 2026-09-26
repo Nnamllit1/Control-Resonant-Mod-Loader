@@ -3,7 +3,7 @@
   "title": "Rigid-body property metadata and access wrappers",
   "module": "PhysX_64.dll",
   "executable_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
-  "status": "Static property mapping; not a verified callable ABI or live modification API.",
+  "status": "Static backend property mapping.",
   "checks": [
     {
       "kind": "lea_rax_rip",
@@ -283,11 +283,5 @@
       "write_wrapper": "0xc1f0",
       "write_virtual_slot": "0x288"
     }
-  },
-  "gaps": [
-    "Concrete backend implementations and validation/update behavior.",
-    "Scene gravity versus per-actor flags and game gravity overrides.",
-    "Force and impulse modes and game-side accumulation.",
-    "Density-to-mass computation and recreation behavior."
-  ]
+  }
 }

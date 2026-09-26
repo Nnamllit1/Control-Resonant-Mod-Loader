@@ -43,7 +43,7 @@ This ordering and the version-error diagnostics correspond closely to [Luau's up
 
 The sampled `systems.binlua` header `00 06 03 2b` is consistent with envelope `00`, bytecode version `06`, type version `03`, and string count `0x2b`. The envelope byte's meaning remains unknown. The old Lua 5.1.4 identifier alone does not identify the serialized format. No game script body is reproduced here, and no replacement bytecode has been executed.
 
-Per-entity helper `0x19c4310` constructs tables using names `__index`, `_ENV`, and `self`, calls the resource/cache helper, and manages VM references. Complete initialization ordering, failure cleanup, and stream-out teardown remain open. Wasm guests should eventually reach reviewed engine operations through the native bridge; the engine VM is not an alternative guest sandbox.
+Per-entity helper `0x19c4310` constructs tables using names `__index`, `_ENV`, and `self`, calls the resource/cache helper, and manages VM references. Complete initialization ordering, failure cleanup, and stream-out teardown remain open. The engine VM is separate from the Wasm host API and is not a guest sandbox.
 
 ## Script callbacks and event timing
 
@@ -54,7 +54,7 @@ Per-entity helper `0x19c4310` constructs tables using names `__index`, `_ENV`, a
 | `nl_add_event_handler` | Binding callback `0x1a15670` | Checks active script context, retains a callback reference, chooses registration helper `0x1a1eec0` or `0x1a1ec90` |
 | `nl_send_custom_event` | Binding callback `0x1a15d30` | Builds the `lua.` event name, looks up handlers through `0x1a00060`, and invokes matching callbacks through `0x2c4fc90` within the same call |
 
-The custom-event error branch releases a VM reference, queues handler removal, and calls error helper `0x1a0a010`. Delivery can therefore be immediate even when cleanup is deferred. A future bridge must account for reentrancy and callback failure; it cannot assume that every event is delivered next frame.
+The custom-event error branch releases a VM reference, queues handler removal, and calls error helper `0x1a0a010`. Delivery can therefore be immediate even when cleanup is deferred. Callers must account for reentrancy and callback failure; delivery is not necessarily deferred to the next frame.
 
 These callbacks receive an engine VM context, not an ordinary application C function argument list. Complete argument schemas, VM stack rules, payload variants, and callback removal during entity destruction still need establishing. The numeric access modes in the recovered ECS declarations do not answer those questions.
 
@@ -115,7 +115,7 @@ Two normal packet forms are visible:
 
 Large payloads take a separate allocation/wrapper path. Publication later notifies through `0x393109d`. These are command encodings associated with material stream-in; exact command names and the consumer's validation/resource-retirement rules have not been recovered. They are not a supported packet-writing interface.
 
-Material override dispatcher `0x1995730` calls `0x198e550`, which routes named values including `EmissionMultiplier`, `EmissionIntensity`, and `ColorMultiplier` through parameter helpers. This establishes a higher-level parameter-update path worth investigating before implementing direct render-packet writes. It does not yet specify all accepted value types or which materials support those names.
+Material override dispatcher `0x1995730` calls `0x198e550`, which routes named values including `EmissionMultiplier`, `EmissionIntensity`, and `ColorMultiplier` through parameter helpers. This is a higher-level parameter-update path than direct render-packet submission. It does not yet specify all accepted value types or which materials support those names.
 
 `variableUpdateRendererSync` dispatches through `0x18d22c0` to `0x18d3e60`. The latter compares a renderer-context counter at `+0x468` with a current-counter-derived target and waits through `0x3933315`. This is evidence of producer/consumer synchronization; it is not sufficient to label the counter a GPU fence.
 
@@ -149,7 +149,7 @@ This demonstrates queued animation-to-script event production. It does not estab
 
 An internal `coregame::freecamera::update` implementation is present. Registration installs `0x1addab0`, whose reviewed call goes to `0x1ad9e30`. The latter references a free-camera debug panel, lens/FOV controls, and input/math helpers, and reaches transform helper `0x1811fe0`. Presence of that path does not prove a supported retail activation mechanism.
 
-Gameplay camera mixing, tail-camera behavior, lock-on, and clipping have separate declared families. A future free-camera operation must establish which system owns the final pose and how to restore that ownership; changing the player's movement is a different operation.
+Gameplay camera mixing, tail-camera behavior, lock-on, and clipping have separate declared families. The final camera-pose owner and its restoration contract are not established by this trace. Player movement and camera pose are separate operations.
 
 ## AI and navigation
 
@@ -161,7 +161,7 @@ This supports parallel work in that update path; it does not establish that the 
 
 `coregame::savegames::processWriteRequests` dispatches through `0x18c3770` to `0x18c0f90`. The latter traverses records at stride `0x5d8`, branches on request state, builds save-chunk storage and invokes serialization-related helpers. `processLoadRequests`, container updates, typed header caching, and gameplay save bindings are separately registered.
 
-This is a concrete request-processing entry, not a recovered save-file schema or proof of atomic/durable disk writes. Save cancellation, completion callbacks, version migration, checksums, and reconstruction of live entity/resource state remain unresolved. No save requests or writes were invoked during this pass.
+This is a concrete request-processing entry, not a recovered save-file schema or proof of atomic/durable disk writes. Save cancellation, completion callbacks, version migration, checksums, and reconstruction of live entity/resource state remain unresolved.
 
 ## Reproduce the reference checks
 
@@ -171,4 +171,4 @@ python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/e
 python tools/verify_engine_map.py "$gameDir\PhysX_64.dll" docs/research/physx-shape-map.json
 ```
 
-The [verification matrix](engine-atlas.md#verification-and-subsequent-integration) describes the subsequent observations needed before these paths become runtime operations. Static reference checks can fail safely on a different build, but passing them cannot substitute for phase, lifetime, error-path, and unload verification.
+Static reference checks compare encoded references with the fingerprinted binary. They do not execute the functions or establish their calling conventions and object lifetimes.

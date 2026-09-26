@@ -26,7 +26,7 @@ Threads, memory64, multiple memories, and Wasm GC are disabled. Failed imports, 
 
 Guest instructions cannot normally dereference game pointers or call Windows APIs. The trusted native host and Wasmtime still run inside the game process. Engine vulnerabilities, native bugs, allocation failures, and process crashes are not contained in a separate operating-system sandbox.
 
-Fuel limits guest execution, not wall-clock time spent compiling a module or running a host function. File-size and package-count limits reduce exposure but do not provide a hard total compiler-memory or compile-time budget. A future hardened mode may compile or execute in a separate process.
+Fuel limits guest execution, not wall-clock time spent compiling a module or running a host function. File-size and package-count limits reduce exposure but do not provide a hard total compiler-memory or compile-time budget.
 
 Package directories and module/manifest files may not be reparse points. The package tree must not be modified concurrently with loading; path checks do not defend against another native process racing filesystem operations.
 

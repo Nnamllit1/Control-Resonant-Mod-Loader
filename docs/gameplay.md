@@ -1,11 +1,11 @@
 ---
 title: Experimental noclip and gameplay bridge
-description: Track the CONTROL Resonant noclip prototype, movement and collision research, known limitations, and gameplay validation steps.
+description: Build and use the experimental CONTROL Resonant noclip mod, configure its controls, and diagnose movement and rendering issues.
 ---
 
 # Gameplay and noclip
 
-**Status: experimental. Wall/ceiling traversal and partial improvement of out-of-bounds behavior have been reported in gameplay. A remaining engine teleport cancelled flight in the recorded session. The latest position-restoration change targets that reset and needs in-game verification.**
+**Experimental:** noclip can encounter boundary resets, persistent fall-recovery fog, and camera collision artifacts.
 
 The prototype targets the controlled character through the game's character-controller movement routine. Private per-call arguments supply the requested transform, select keyframed movement, and suppress the subsequent contact/push pass. Flight retains its requested position across small ground corrections. Original component values stay intact, so subsequent normal calls resume movement. Native tests cover argument isolation and automatic cancellation; they do not replace in-game traversal tests.
 
@@ -18,11 +18,11 @@ python tools/install.py "$gameDir" --update --experimental-noclip
 python tools/install.py "$gameDir" --update --experimental-noclip --apply
 ```
 
-Replace the path with your installation. Close the game first. Omit `--update` for a fresh installation. This installs the sandboxed `noclip` example and `crml/noclip.enabled`. Normal builds omit the native hook. Experimental builds still require the enable file and a mod requesting `player.noclip`; merely loading the runtime does not activate flight.
+Enter your installation directory when prompted. Close the game first. Omit `--update` for a fresh installation. This installs the sandboxed `noclip` example and `crml/noclip.enabled`. Normal builds omit the native hook. Experimental builds still require the enable file and a mod requesting `player.noclip`; merely loading the runtime does not activate flight.
 
 ## Controls and test sequence
 
-Use a disposable save or a backed-up save for the first test. Launch normally through Steam and load a playable area. The status panel is rendered into the DirectX 12 back buffer. Automated tests verify its pixels, late initialization, resizing, and visibility; Steam screenshots and fullscreen behavior still require testing in the game.
+Use a disposable save or a backed-up save for the first test. Launch normally through Steam and load a playable area. The status panel is rendered into the DirectX 12 back buffer. See [diagnostics](#diagnostics-and-disabling) if the panel is missing.
 
 | Control | Action |
 | --- | --- |
@@ -33,7 +33,7 @@ Use a disposable save or a backed-up save for the first test. Launch normally th
 | Shift | Three times the base speed |
 | Esc | Cancel noclip |
 
-The example requests 5 world units per second. Looking up or down does not change altitude when using WASD; Space/Ctrl controls altitude separately. If the camera cannot be validated, the panel indicates that only vertical movement is available. The status panel is informational and does not take mouse or keyboard focus. Controller support, a clickable panel, and a speed slider remain future work. Camera collision can still pull the view around when the player passes through geometry.
+The example requests 5 world units per second. Looking up or down does not change altitude when using WASD; Space/Ctrl controls altitude separately. If the camera cannot be validated, the panel indicates that only vertical movement is available. The status panel is informational and does not take mouse or keyboard focus. Gamepad controls, an interactive panel, and a speed slider are not available. Camera collision can still pull the view around when the player passes through geometry.
 
 While noclip is active, the bridge consumes WASD, Space, Ctrl, and Shift before they reach normal keyboard actions. Space should raise the player without jumping, and Ctrl should lower them without activating its normal action. Mouse look, F6, Escape, and other keys remain available. This filtering ends with the movement lease; it does not change the operating system's physical keyboard state or add gamepad support.
 
@@ -41,7 +41,7 @@ The bridge also bypasses the player's fall-recovery checks and excludes that pla
 
 Once noclip has acquired a position, it restores its requested position when the same player is teleported within the same world. This also overrides intentional teleports: **turn noclip off before fast travel or scripted travel**. The controller call receives a private cleared teleport flag so it follows noclip movement; the real engine flag is left intact. The first flight update cannot adopt an already-teleporting player. Player/world replacement, stale heartbeats, disabled controllers, and engine keyframing still cancel flight.
 
-The independent player fall monitor, its fall-action trigger, and the active fall-recovery routine are bypassed during flight. The two fall values exposed to game scripts are set to zero on the monitor's game-thread call. The fall-camera updater receives a private copy of recovery data with its active bit cleared, allowing its native fade-out and camera cleanup to run. Normal monitoring resumes after noclip ends. Ambient fog and the global fade renderer remain unchanged; disappearance of the reported white fog has not yet been confirmed.
+The independent player fall monitor, its fall-action trigger, and the active fall-recovery routine are bypassed during flight. The two fall values exposed to game scripts are set to zero on the monitor's game-thread call. The fall-camera updater receives a private copy of recovery data with its active bit cleared, allowing its native fade-out and camera cleanup to run. Normal monitoring resumes after noclip ends. Ambient fog and the global fade renderer remain unchanged. Fall-recovery fog can persist despite reset suppression.
 
 The movement hook waits for the short state lock instead of allowing a normal collision update when diagnostics hold it. Cancellation snapshots record the reason and coordinates so a transient teleport or large correction remains visible after the next frame.
 
@@ -51,13 +51,13 @@ The movement hook waits for the short state lock instead of allowing a normal co
 4. Fly below the level and across a boundary that previously reset the player. Check that noclip remains active and that the white-fog effect no longer builds up. Return to open space above solid ground, then press F6 again and check walking, jumping, gravity, collision, and normal falling.
 5. Test Escape, alt-tab, pause/resume, and save reload. Report the first step that fails along with both logs. Do not save while inside geometry or outside the level.
 
-The native bridge cancels its override on focus loss, Escape, a missing mod heartbeat for 500 ms, changed player/world identity, engine keyframing, an unflagged displacement exceeding 5 units from the requested position, or a controller-update gap exceeding 250 ms. A teleport before the first flight position is acquired also cancels it. Cancellation returns control to the game at the current position; it does not rewind to the activation point. Menus, death, cutscenes, and streaming transitions still require live testing.
+The native bridge cancels its override on focus loss, Escape, a missing mod heartbeat for 500 ms, changed player/world identity, engine keyframing, an unflagged displacement exceeding 5 units from the requested position, or a controller-update gap exceeding 250 ms. A teleport before the first flight position is acquired also cancels it. Cancellation returns control to the game at the current position; it does not rewind to the activation point.
 
 ## Diagnostics and disabling
 
 The bridge checks the executable SHA-256, hook bytes, entity generation, player tag, component addresses, and controller ownership. A failed check leaves the original call in place. The bounded diagnostic log records counters, sampled coordinates, and controller flags for up to ten minutes. It is overwritten at the next start.
 
-The runtime handle comes from the entity chunk header. The `GlobalID` component identifies persistent content and is not interchangeable with that handle. Earlier experimental builds confused these values, causing every sample to be rejected even though the Steam launch successfully loaded the mod.
+The runtime handle comes from the entity chunk header. The `GlobalID` component identifies persistent content and is not interchangeable with that handle. A persistent GlobalID cannot be used for runtime entity-generation validation.
 
 Diagnostic schema 7 includes validation counters, graphics status, camera availability, input/reset filtering, the most recent movement result, cancellation evidence, and teleport restoration:
 
@@ -95,16 +95,6 @@ To disable the feature without removing the loader, close the game and rename `c
 
 For observation without a movement feature, build with `-MovementProbe` (an alias for `-ExperimentalGameplay`) and create only `crml/movement-probe.enabled`. This patches the routine for observation but makes no gameplay-state changes.
 
-## Remaining integration work
+## Status panel
 
-1. Verify camera-heading controls, floor traversal, keyboard isolation, boundary triggers, and white-fog suppression in gameplay.
-2. Validate restoration of normal walking, jumping, gravity, and collision.
-3. Verify transitions across menus, loading, death, cutscenes, and player replacement.
-4. Improve camera collision behavior and add a bounded UI control API.
-5. Mark the compatibility profile supported only after live testing passes.
-
-## UI direction
-
-The current UI is a small native DirectX 12 status panel with a keyboard toggle and an unavailable state. It draws into the game image rather than a desktop window. Later APIs can support interactive panels and selected game-UI manipulation. Arbitrary native callbacks, unrestricted JavaScript/Lua evaluation, and raw UI pointers are not mod APIs.
-
-No engine offsets or function signatures are inferred from the original Control. Free-camera strings and component names in a binary are investigation leads, not sufficient evidence for calling a function or changing player state.
+The native DirectX 12 panel displays the keyboard toggle state and feature availability inside the game image. It has no interactive controls and exposes no game-UI editing API. Arbitrary native callbacks, JavaScript/Lua evaluation, and raw UI pointers are not mod APIs.

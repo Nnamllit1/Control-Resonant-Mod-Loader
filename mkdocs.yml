@@ -62,7 +62,7 @@ nav:
       - Architecture: architecture.md
       - Northlight engine research: engine-research.md
       - Engine atlas: engine-atlas.md
-      - Engine validation: engine-validation.md
+      - Engine diagnostics: engine-validation.md
       - System index: engine-system-index.md
       - Reviewed engine paths: engine-paths.md
       - Engine internals: engine-internals.md

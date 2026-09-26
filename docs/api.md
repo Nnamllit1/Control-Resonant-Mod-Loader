@@ -69,4 +69,4 @@ Returns `1` for a renewed lease, `0` for release, `-1` when unavailable, and `-2
 
 The legacy `visibility_poll()` import remains available for older mods and combines native F7 polling with a visibility lease. New mods should use `visibility_set()` instead.
 
-See [the visibility example](visibility.md). The native renderer operation has been reported working in gameplay; the revised guest-controlled input path still needs live verification.
+See [the visibility example](visibility.md) for installation and controls.

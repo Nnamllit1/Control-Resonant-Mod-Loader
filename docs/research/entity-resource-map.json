@@ -2,7 +2,7 @@
   "schema": 1,
   "title": "Player mesh and collision component ownership",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
-  "status": "Static mapping of six player component representations, mesh/material renderer commands and physics resource acquisition. Visibility manipulation implemented; live behavior and full physics backend remain unverified.",
+  "status": "Static player component layouts, mesh/material commands and physics resource references.",
   "checks": [
     {
       "kind": "lea_rax_rip",
@@ -292,11 +292,5 @@
       "target": "0x270",
       "label": "collision package instance size"
     }
-  ],
-  "gaps": [
-    "Physics backend shape/actor creation and scene insertion need further tracing.",
-    "Collision +8 flag semantics remain unresolved.",
-    "Resource readiness, GPU command consumers, shader bindings and full model decoding are not mapped.",
-    "Native visibility manipulation needs a real gameplay capture."
   ]
 }

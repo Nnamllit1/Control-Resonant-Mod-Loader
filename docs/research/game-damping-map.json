@@ -2,7 +2,7 @@
   "schema": 1,
   "title": "Game damping accessors and property producers",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
-  "status": "Static references; accessor agreement, scheduling exclusion and restoration remain unverified live.",
+  "status": "Static game-side damping accessor and producer references.",
   "documentation": "../physics-dynamics.md#game-damping-accessors-and-overrides",
   "checks": [
     {"kind": "call_rel32", "rva": "0x19ee487", "target": "0x19f7870", "label": "linear VM accessor validates full body handle first"},
@@ -25,11 +25,5 @@
     {"kind": "call_rel32", "rva": "0x2d83596", "target": "0x2cfd120", "label": "population branch applies source angular damping"},
     {"kind": "call_rel32", "rva": "0x2d83994", "target": "0x2cfd090", "label": "alternate population branch applies source linear damping"},
     {"kind": "call_rel32", "rva": "0x2d839a5", "target": "0x2cfd120", "label": "alternate population branch applies source angular damping"}
-  ],
-  "gaps": [
-    "Direct callers do not cover indirect dispatch or every gameplay override.",
-    "Actor lookup does not validate bounds, generation or lifetime; a successful type check does not establish ownership.",
-    "The two source scalar fields are observed at record +0x20/+0x24; their complete resource schema and reapplication policy remain open.",
-    "A restore operation must validate identity and detect intervening property changes; restoring a captured scalar alone is insufficient."
   ]
 }
