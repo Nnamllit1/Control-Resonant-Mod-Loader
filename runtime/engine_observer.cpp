@@ -129,10 +129,14 @@ void sample_resources(const probe::Sample& player) noexcept {
         e.span=identity(player.world,salt); e.object=0; buffer.push(e);
     }
 }
-void sample_entity_bodies(uintptr_t world) noexcept {
+void sample_entity_bodies(uintptr_t world,uint64_t movement_span) noexcept {
     const auto owner=world_scene(world);
     const auto count=body_slot_count(owner);
     auto scan=event(Kind::entity_scan,0,identity(world,salt),owner);
+    auto access_scan=event(Kind::accessor_scan,0,movement_span,owner);
+    const auto physx_base=dynamic_vtable-0x15dd88;
+    const DampingAccessors accessors{dynamic_vtable,reinterpret_cast<DampingGetter>(physx_base+0x22360),
+        reinterpret_cast<DampingGetter>(physx_base+0x21870)};
     scan.detail=count;
     if(!owner) scan.flags=1u<<(16+static_cast<unsigned>(LinkRead::world));
     if(count) {
@@ -148,10 +152,21 @@ void sample_entity_bodies(uintptr_t world) noexcept {
             auto e=event(Kind::entity_body,0,scan.span,owner);
             e.entity=link.entity; e.value=body.handle; e.detail=identity(body.actor,salt); e.flags=1;
             buffer.push(e); ++scan.entity;
+            DampingReadback values{}; ++access_scan.value;
+            const auto accessed=read_damping_accessors(owner,body,accessors,values);
+            if(accessed!=AccessRead::ok) access_scan.flags|=1u<<static_cast<unsigned>(accessed);
+            if(accessed==AccessRead::ok || accessed==AccessRead::mismatch) {
+                auto a=event(Kind::body_accessor,0,movement_span,body.actor);
+                a.entity=body.handle; a.detail=identity(owner,salt);
+                a.value=uint64_t(std::bit_cast<uint32_t>(values.linear))|(uint64_t(std::bit_cast<uint32_t>(values.angular))<<32);
+                a.flags=(accessed==AccessRead::ok?1u:4u)|(values.alternate?2u:0u);
+                buffer.push(a); ++access_scan.entity;
+            }
         }
         entity_cursor.store((start+scan.value)%count,std::memory_order_relaxed);
     }
     buffer.push(scan);
+    buffer.push(access_scan);
 }
 void movement(void* view,void* world,void* collision,void* callback,void* scene,void* time) {
     uint64_t span{}; probe::Sample sample{};
@@ -165,7 +180,7 @@ void movement(void* view,void* world,void* collision,void* callback,void* scene,
             if(now>=next && next_player_ms.compare_exchange_strong(next,now+100)) {
                 auto e=event(Kind::player,0,span,sample.world); e.entity=sample.entity; e.value=sample.row;
                 e.flags=1; e.detail=uint64_t(sample.disabled)|(uint64_t(sample.teleported)<<8);
-                buffer.push(e); sample_resources(sample); sample_entity_bodies(sample.world);
+                buffer.push(e); sample_resources(sample); sample_entity_bodies(sample.world,span);
             }
         }
     }
@@ -286,7 +301,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
         return "Engine observer refused: cannot open diagnostic log";
     }
     std::ostringstream header;
-    header<<"{\"type\":\"header\",\"schema\":3,\"mode\":\"observe-only\",\"sha256\":\""<<fingerprint_expected
+    header<<"{\"type\":\"header\",\"schema\":4,\"mode\":\"observe-only\",\"sha256\":\""<<fingerprint_expected
           <<"\",\"physx_sha256\":\""<<physx_expected
           <<"\",\"pid\":"<<GetCurrentProcessId()<<",\"qpc_frequency\":"<<frequency.QuadPart
           <<",\"qpc_origin\":"<<stamp.QuadPart<<",\"max_bytes\":"<<max_bytes<<",\"max_ms\":"<<max_milliseconds

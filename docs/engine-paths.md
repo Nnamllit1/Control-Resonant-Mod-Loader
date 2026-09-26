@@ -166,8 +166,9 @@ This is a concrete request-processing entry, not a recovered save-file schema or
 ## Reproduce the reference checks
 
 ```powershell
-python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\CONTROLResonant.exe" docs/research/engine-paths-map.json
-python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\PhysX_64.dll" docs/research/physx-shape-map.json
+$gameDir = Read-Host 'Path to your CONTROL Resonant installation'
+python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/engine-paths-map.json
+python tools/verify_engine_map.py "$gameDir\PhysX_64.dll" docs/research/physx-shape-map.json
 ```
 
 The [verification matrix](engine-atlas.md#verification-and-subsequent-integration) describes the subsequent observations needed before these paths become runtime operations. Static reference checks can fail safely on a different build, but passing them cannot substitute for phase, lifetime, error-path, and unload verification.

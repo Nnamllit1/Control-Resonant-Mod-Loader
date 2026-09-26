@@ -12,9 +12,10 @@ The prototype targets the controlled character through the game's character-cont
 ## Build and install for testing
 
 ```powershell
+$gameDir = Read-Host 'Path to your CONTROL Resonant installation'
 .\build.bat -ExperimentalGameplay -Test
-python tools/install.py "C:\Games\CONTROL Resonant" --update --experimental-noclip
-python tools/install.py "C:\Games\CONTROL Resonant" --update --experimental-noclip --apply
+python tools/install.py "$gameDir" --update --experimental-noclip
+python tools/install.py "$gameDir" --update --experimental-noclip --apply
 ```
 
 Replace the path with your installation. Close the game first. Omit `--update` for a fresh installation. This installs the sandboxed `noclip` example and `crml/noclip.enabled`. Normal builds omit the native hook. Experimental builds still require the enable file and a mod requesting `player.noclip`; merely loading the runtime does not activate flight.

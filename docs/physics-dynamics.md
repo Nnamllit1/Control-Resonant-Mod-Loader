@@ -5,7 +5,7 @@ description: Research CONTROL Resonant physics forces, gravity, mass, inertia, d
 
 # Physics dynamics research
 
-This page connects game-side body operations to the shipped physics backend. It is a static research map, not a supported mod API. No operation described here has been invoked by the mod runtime or verified through a live physics experiment.
+This page connects game-side body operations to the shipped physics backend. It is a research map, not a supported mod API. The read-only observer samples body state; its schema-4 diagnostic also compares damping getters. Property writes and their effects have not been verified through a live physics experiment.
 
 Game RVAs refer to the executable fingerprint in the [game dynamics map](research/game-dynamics-map.json). DLL RVAs refer to the separate `PhysX_64.dll` fingerprint in the [backend dynamics map](research/physx-dynamics-map.json). Virtual slots are byte offsets into a vtable, not object fields. See [engine internals](engine-internals.md) for entity handles, resource ownership, material sharing and the initial property table.
 
@@ -120,7 +120,7 @@ RTTI identifies `physics::PhysXCompletionTask`, with vtable `0x4d54230`. Constru
 
 The phase flag is evidence about this sequence, **not a lock** or a universal permission to write. It must not be polled from an unrelated worker as a substitute for owning the correct engine phase. The separate immediate-mode branch does not pass through this same begin/wait sequence.
 
-The [reviewed live capture](engine-validation.md#reviewed-capture-2026-09-26) observes completion intervals nested within waits, including 1,105 strictly classified same-thread cases. Further static tracing shows that both the completion-byte wait and downstream post-processing can execute scheduler work through `0x3271510` and `0x3272ad0`. Neither phase entry is therefore an established exclusive modification point; thread identity and an apparently waiting call are insufficient ownership tests. The capture's reported drops and missing terminal marker leave lifecycle validation incomplete.
+Static tracing shows that both the completion-byte wait and downstream post-processing can execute scheduler work through `0x3271510` and `0x3272ad0`. Neither phase entry is therefore an established exclusive modification point; thread identity and an apparently waiting call are insufficient ownership tests. Follow the [scheduler and lifetime requirements](engine-validation.md#scheduler-and-lifetime-requirements) when evaluating a capture, including its record losses and lifecycle coverage.
 
 ### Immediate-mode solver sequence
 
@@ -174,7 +174,7 @@ Most helper calls receive **actor `+0x50`**, called the core below. Normal linea
 
 That is the same state pointer whose **tag 0** interpretation holds force/velocity accumulators in the earlier trace. Reading `+0x30` without checking the representation can therefore mistake damping for an angular velocity-change term. The alternate path assumes its state invariant rather than providing a safe fallback for an invalid pointer.
 
-The corresponding linear getter is slot `+0x130`, DLL RVA `0x22360`, which passes actor `+0x50` to `0xfe600`. The angular getter is slot `+0x140`, DLL RVA `0x21870`, forwarding to `0xfe4f0`. Both return a float and select the same normal or tag-1 storage described above. A missing or incorrectly tagged alternate state leads to an invalid read, not a normal-storage fallback. These accessor traces independently support the schema-2 observer's storage selection; the observer does not call them, and live accessor agreement remains unverified.
+The corresponding linear getter is slot `+0x130`, DLL RVA `0x22360`, which passes actor `+0x50` to `0xfe600`. The angular getter is slot `+0x140`, DLL RVA `0x21870`, forwarding to `0xfe4f0`. Both return a float and select the same normal or tag-1 storage described above. A missing or incorrectly tagged alternate state leads to an invalid read, not a normal-storage fallback. These accessor traces independently support the observer's storage selection. The [schema-4 diagnostic](engine-validation.md#native-damping-readback-schema-4) calls these getters with guarded identity and target checks; live accessor agreement remains unverified.
 
 Normal damping changes propagate through `0x10e7d0` when an associated simulation object exists. Sleep threshold, stabilization threshold, maximum contact impulse, and contact slop similarly write core `+0x94`, `+0x98`, `+0x90`, and `+0xa8`, respectively, before the same propagation route. The full downstream effect of `0x10e7d0` is not yet traced.
 
@@ -204,10 +204,11 @@ A reversible experiment must resolve a selected entity and body afresh in an est
 ## Verification and next investigation
 
 ```powershell
-python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\CONTROLResonant.exe" docs/research/game-dynamics-map.json
-python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\PhysX_64.dll" docs/research/physx-dynamics-map.json
-python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\PhysX_64.dll" docs/research/physx-properties-map.json
-python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\CONTROLResonant.exe" docs/research/game-damping-map.json
+$gameDir = Read-Host 'Path to your CONTROL Resonant installation'
+python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/game-dynamics-map.json
+python tools/verify_engine_map.py "$gameDir\PhysX_64.dll" docs/research/physx-dynamics-map.json
+python tools/verify_engine_map.py "$gameDir\PhysX_64.dll" docs/research/physx-properties-map.json
+python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/game-damping-map.json
 ```
 
 The checks validate encoded references for these exact files. They do not prove callable ABIs, complete semantics, live scheduler safety, or behavior after a scene reload.

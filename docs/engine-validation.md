@@ -17,11 +17,12 @@ Build on Windows with the dependencies described in [installation](installation.
 .\build.bat -EngineObserver -Test
 ```
 
-Close the game, then preview and apply an update to an existing loader installation. Replace the example installation path as needed:
+Close the game, then preview and apply an update to an existing loader installation. Enter your own installation directory when prompted:
 
 ```powershell
-python tools/install.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant" --update --engine-observer
-python tools/install.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant" --update --engine-observer --apply
+$gameDir = Read-Host 'Path to your CONTROL Resonant installation'
+python tools/install.py "$gameDir" --update --engine-observer
+python tools/install.py "$gameDir" --update --engine-observer --apply
 ```
 
 For a fresh installation, omit `--update`. The installer checks the supported executable, package feature metadata, existing ownership receipt, and whether the game is running. The observer option cannot be combined with other experimental mode selections. Existing mods and settings are preserved but remain suspended while observation mode is enabled.
@@ -44,7 +45,7 @@ Each session uses a new filename. Recording stops at **10 minutes or 64 MiB**, w
 ## Analyze a capture
 
 ```powershell
-python tools/analyze_engine_observer.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\crml\engine-observer-1234-5678.jsonl" --output .local/engine/observation-report.json
+python tools/analyze_engine_observer.py "$gameDir\crml\engine-observer-1234-5678.jsonl" --output .local/engine/observation-report.json
 ```
 
 The report includes observed thread IDs, paired phase durations, player identity transitions, resource identity replacements, and physics-wrapper correlations. Resource observations group IDs, raw state words and reference-count ranges by owner/component/object identity. Replacements within one owner are counted separately from changes across different player handles. `ready_for_manual_review` means the selected phases, player sampling, and some resource data were present without reported producer drops. It is **not** a gameplay compatibility result, proof of safe mutation, or confirmation that a reload occurred. Read the notes and compare the trace with the performed actions.
@@ -58,7 +59,7 @@ The report includes observed thread IDs, paired phase durations, player identity
 With the game closed:
 
 ```powershell
-python tools/install.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant" --update --disable-engine-observer --apply
+python tools/install.py "$gameDir" --update --disable-engine-observer --apply
 ```
 
 This removes the owned observer marker transactionally and updates the receipt. Logs remain available. The next launch resumes ordinary loader startup, including previously installed mods and experimental settings. Removing the loader through its normal uninstaller also removes the owned marker while preserving captures.
@@ -88,7 +89,7 @@ No engine pointer is dereferenced by the logging worker. Addresses become sessio
 
 ## Capture format and loss handling
 
-Schemas 1, 2 and 3 use JSON Lines with a header, events, periodic statistics, and a terminal record when the worker stops recording. The analyzer accepts all three versions. All 64-bit object/entity/value/detail identities use decimal strings; `span` and clock/sequence counters are integer fields.
+Schemas 1 through 4 use JSON Lines with a header, events, periodic statistics, and a terminal record when the worker stops recording. The analyzer accepts all four versions. All 64-bit object/entity/value/detail identities use decimal strings; `span` and clock/sequence counters are integer fields.
 
 | Field | Interpretation |
 | --- | --- |
@@ -141,60 +142,41 @@ The scan retains body-rejection bits 1–10. Association-rejection bits 17–25 
 
 The analyzer reports `entity_probe` associations grouped by world, scene, body handle, actor token and ECS handle. A schema-3 capture with none is incomplete; an older capture reports this probe as `not_recorded`. A recorded association is not proof that an object is disposable, selectable, or safe to modify. The same gameplay test sequence above collects these observations automatically. Movement timings include this sampler's overhead.
 
-## Reviewed body capture: 2026-09-26
+## Native damping readback: schema 4
 
-The schema-2 capture with SHA-256 `4858b9de066d393d9539529cf19a46cfb8a372a4a62416fd99556c4132d251e8` contains all eight selected phases and 750 player snapshots. Events span 140.090 seconds; the last statistics record is at 154.875 seconds. There are two observed player identities and four resource-object/ID combinations. This capture was collected during a reported walk/reload/walk sequence, but the log contains no explicit reload markers.
+Schema 4 adds a bounded native-getter comparison after each accepted body-to-entity sample, up to four comparisons per movement sampling pass. It uses the reviewed linear and angular damping getters in the fingerprinted PhysX module. Before calling them, the probe revalidates the body snapshot and requires virtual slots `+0x130` and `+0x140` to match the two exact expected targets. A changed body, representation or damping snapshot rejects the comparison. It rechecks after the first call before attempting the second, then checks again after the second call. Access violations and non-finite or negative returns are rejected.
 
-The body sampler produced **4,605 accepted snapshots across 749 scans**, grouped into 4,288 scene/handle/actor identities. Of those samples, 1,378 use tagged alternate damping storage. The analyzer observed 139 changes of full handle or actor token at previously sampled scene slots. These demonstrate observed identity changes, not complete destruction coverage or exclusively generation changes. Actor-type rejection occurred in 402 scans and handle-table identity rejection in 36; other rejection categories were not recorded.
+The getter results are compared with the stable before/after snapshot. Agreement is readback evidence, not proof of thread ownership or permission to write. The two scalars are not an atomic transaction, and identity/value rereads cannot rule out ABA reuse. The probe performs no property setters and does not expose accessors to Wasm.
 
-The capture remains incomplete: 61 reported dropped records, 59 unmatched wait entries, two orphan returns and no terminal marker. Of 2,771 physics windows, 2,708 had six distinct matched boundaries; completion was inside wait in all 2,708 (1,307 on the waiting thread and 1,401 on another thread). This supports the earlier scheduler observations without establishing exclusion for writes. Body-to-ECS associations, accessor agreement, property effects, restoration and teardown were not measured by this schema-2 capture.
+| Record | Fields |
+| --- | --- |
+| `body_accessor` | `span`: enclosing movement invocation; `object`: actor token; `entity`: full native body handle; `detail`: scene-owner token; `value`: getter float bits, linear low word and angular high word; `flags`: 1 = agreement, 4 = mismatch, plus bit 1 for alternate storage |
+| `accessor_scan` | `span`: movement invocation; `object`: scene-owner token; `entity`: readable comparisons attempted for publication, including mismatches; `value`: attempted getter comparisons; `detail`: zero; `flags`: rejection mask |
 
-## Reviewed capture: 2026-09-26
+Rejection bits 1–7 are `arguments`, `snapshot`, `slot`, `scalar`, `changed`, `mismatch`, and `memory`. Mismatch records preserve the finite getter values; other failures publish no value record. Publication losses can remove either a result or a scan summary. The analyzer flags a mismatch seen in either source and treats missing agreement or any observed mismatch as incomplete. Older schemas report `accessor_probe` as `not_recorded`; `agreement_observed` always retains `ownership_or_mutation_verified: false`.
 
-An observe-only capture for executable SHA-256 `2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0` contains all seven selected phases. The source capture SHA-256 is `d6e38d10aca4e308b9ccac4324ba0a6f85f162ccbe0b267c78f0afb793564703`. Raw session logs remain local; the table records the reproducible analyzer results without publishing game data or installation paths.
+The same walk/reload/walk sequence collects these comparisons automatically. Native getter agreement remains pending live verification. Selection of a disposable prop, scheduling exclusion, the reversible write, conflict-aware restoration and reload cleanup remain separate gates.
 
-The last statistics record is at 206.500 seconds. Events span 188.539 seconds, with 636 player snapshots. The analyzer reports **incomplete**: 27 reported drops, 27 unmatched entries (26 physics waits and one command flush), and no terminal marker. Missing exit instrumentation prevents a shutdown or teardown validation claim. The log does not distinguish capacity loss from lock contention, and a missing final statistics record could conceal additional loss.
+## Scheduler and lifetime requirements
 
-| Phase | Matched entry/return pairs | Distinct observed threads |
-| --- | ---: | ---: |
-| Player movement | 2,350 | 31 |
-| Command flush | 49,017 | 1 |
-| Fixed script update | 4,942 | 1 |
-| Renderer synchronization | 11,019 | 31 |
-| Normal physics submission | 2,350 | 31 |
-| Normal physics wait | 2,324 | 31 |
-| Normal physics completion | 2,350 | 31 |
+Polling helper `0x2cdbbf0` calls `0x3271510`, which selects work through `0x3272a70` and executes it through `0x3272ad0` before returning. The executor invokes a virtual callback, processes dependency counters, and has recursive execution branches. The trace establishes a scheduler execution path, not every concrete callback target or the complete task graph.
 
-Command flush and fixed script update shared one observed thread and each covered two world tokens. Movement covered one of those worlds. This describes the sample; it does not prove that either dispatcher always owns a fixed thread or that every engine callback follows the same schedule.
-
-### Physics intervals and scheduler work
-
-The three physics probes shared one wrapper token. Of 2,350 submission windows, 2,311 pass strict six-boundary classification. Another 26 lack a wait-return record and 13 contain timestamp ties. All 2,311 classified windows contain the complete completion interval inside the wait interval: 1,105 on the same thread and 1,206 on a different thread. No classified window has wait return before completion return. That last observation is not a synchronization guarantee, especially with losses and completion publication occurring inside the original function.
-
-Targeted static tracing explains why a waiting thread can execute work. Polling helper `0x2cdbbf0` calls `0x3271510`, which selects work through `0x3272a70` and executes it through `0x3272ad0` before returning. The executor invokes a virtual callback, processes dependency counters, and has recursive execution branches. The trace establishes a scheduler execution path, not every concrete callback target or the complete task graph.
-
-Post-processing is also substantial work: simulation tail-calls `0x2ce5310`, which forwards to `0x2cdbdb0`. That implementation includes another polling loop calling `0x3271510`. Therefore neither wait entry nor entry into post-processing is an established exclusive modification window. The [scheduler reference map](research/physics-scheduler-map.json) supplies 11 independently checkable static transfers:
+Simulation tail-calls `0x2ce5310`, which forwards to post-processing implementation `0x2cdbdb0`. That implementation also polls through `0x3271510`. Neither wait entry nor entry into post-processing is therefore an established exclusive modification window. The [scheduler reference map](research/physics-scheduler-map.json) supplies independently checkable static transfers:
 
 ```powershell
-python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\CONTROLResonant.exe" docs/research/physics-scheduler-map.json
+python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/physics-scheduler-map.json
 ```
 
-### Player and resource identity changes
+Treat persistent resource IDs, native object pointers, full entity handles, and world identities as separate concepts. Equal resource IDs do not prove that the same resource object survived a reload. A gap in observations does not prove destruction or identify a reload without a corresponding lifecycle marker. Capture loss limits all absence and ordering conclusions.
 
-Two full player handles were sampled in the same world token, separated by a 13.085-second observation gap at the transition. The requested test included a save reload, but the capture has no menu/reload markers; the gap itself cannot identify that action or prove destruction.
+## Reversible experiment requirements
 
-| Component | Resource ID in both player identities | Copied reference-count word | Raw state word | Resource object token |
-| --- | ---: | ---: | ---: | --- |
-| MeshResource | 37,474 | 3 | 5 | Different for each player identity |
-| CollisionResource | 37,473 | 2 | 5 | Different for each player identity |
-| Physics | 37,473 | 2 | 5 | Shared with CollisionResource for that player identity |
+Before attempting a change, establish a disposable object's current ECS identity, native body handle, generation and scene ownership. Validate them in the callback that will perform the operation. The small body resolver `0x2d83f70` uses only the low handle word; calling it with an old handle does not provide validation.
 
-The first player identity has 341 snapshots and the second 295. Each contains readable observations for all three components. Resource IDs remained equal across the identity change while pointer-derived tokens changed. Replacements *within* either owner were zero; that does not mean the resources survived the reload at the same address. Raw state 5 is left uninterpreted here, and the reference-count snapshots do not grant ownership.
+Use a scalar property such as linear damping for the first experiment. Capture its original value through the owning accessor, apply a bounded value, confirm readback and an observable effect, then restore it. Treat an intervening property change as a conflict rather than overwriting it. Verify that reload and unload reject old identities and clear pending requests. Requests must not retain raw native pointers across callbacks or reloads.
 
-### Next experiment requirements
+The [damping trace](physics-dynamics.md#game-damping-accessors-and-overrides) identifies accessors and paths that can reapply properties. The [association trace](engine-internals.md#full-body-handles-reverse-association-and-retirement) identifies the relationship between body and ECS handles. These maps guide validation; neither a static reference nor an accepted observation establishes a safe Wasm operation.
 
-The next focused probe should connect a disposable dynamic world object to its live body and scene, then establish the enclosing simulation phase and reload invalidation. The player resource pointer is not a selected dynamic prop, and the body resolver at `0x2d83f70` indexes scene storage using the low 32 bits of its argument without checking bounds or generation. Calling that resolver with a stale handle would not supply validation.
+## Handling diagnostic reports
 
-Use a scalar property such as linear damping as the first mutation candidate after those checks exist. Capture its original value, confirm an applied value through the owning accessor, demonstrate an observable change, restore it, and verify that reload/unload rejects old object identities. Pending requests must not hold raw native pointers across a scheduler callback or reload. This capture does not yet authorize a physics setter or a Wasm API; no additional broad catalog collection is needed to identify the remaining gaps.
-
-The [game damping trace](physics-dynamics.md#game-damping-accessors-and-overrides) identifies getter/setter consumers and two setup paths that can reapply damping. The [body association trace](engine-internals.md#full-body-handles-reverse-association-and-retirement) identifies the scene record's ECS handle. These narrow the remaining validation work: confirm the association on a disposable prop, establish scheduler exclusion, compare the guarded snapshot with accessor readback, and exercise restoration and reload invalidation. Restoration must report an intervening property change instead of silently replacing it.
+Keep raw captures, individual play-session results and investigation notes in the ignored `.local/` directory. Public documentation describes reproducible procedures, evidence requirements and supported behavior. Review any report before sharing it, and remove installation paths, user or machine names, session identifiers and save-specific details.

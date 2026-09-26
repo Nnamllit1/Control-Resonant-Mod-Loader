@@ -16,7 +16,8 @@ For the mapping from assets to native objects, owned dependencies, and execution
 Python 3.10 or newer is sufficient; no additional packages are needed. Run from the repository root:
 
 ```powershell
-python tools/engine_research.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant" --output .local/engine/baseline.json
+$gameDir = Read-Host 'Path to your CONTROL Resonant installation'
+python tools/engine_research.py "$gameDir" --output .local/engine/baseline.json
 python tools/engine_query.py .local/engine/baseline.json asset .binlua
 python tools/engine_query.py .local/engine/baseline.json binding nl_resource_stream
 python tools/engine_query.py .local/engine/baseline.json system coregame::lua_script
@@ -28,7 +29,7 @@ Searches use case-insensitive substrings. `--limit 50` changes the number displa
 The scanner reads the executable, selected middleware import tables, and asset indexes. It checks blob existence and sizes without scanning their contents. Optional `--sample-header` arguments decode the first block of specific resources and record only 16 header bytes, a hash, and the decoded block size:
 
 ```powershell
-python tools/engine_research.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant" --output .local/engine/headers.json --sample-header data/lua_scripts/systems.binlua --sample-header data/uiresources/game/ui/ui.ui --sample-header data/uiresources/game/ui/ui.bundle.css
+python tools/engine_research.py "$gameDir" --output .local/engine/headers.json --sample-header data/lua_scripts/systems.binlua --sample-header data/uiresources/game/ui/ui.ui --sample-header data/uiresources/game/ui/ui.bundle.css
 ```
 
 Choose a new report filename for each run. Reports cannot be written inside the game directory. Failed indexes and samples appear in `errors`, and the command exits nonzero while preserving successfully collected evidence. The tool rejects unsupported encodings and bounds decoded indexes to 128 MiB. Header sampling permits up to 16 requested paths and a first block of at most 16 MiB each. It does not extract asset files or execute scripts.

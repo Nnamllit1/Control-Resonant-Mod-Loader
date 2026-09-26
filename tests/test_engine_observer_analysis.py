@@ -118,6 +118,44 @@ class CaptureTests(unittest.TestCase):
         rows[-2].update(object='0', entity='0', value='0', detail='0', flags=1 << 18)
         self.assertEqual(analyze(stream(rows))['entity_probe']['scans_with_rejection'], {'link.world': 1})
 
+    def accessor_fixture(self):
+        rows = self.entity_fixture(); rows[0]['schema'] = 4
+        base = dict(rows[-3], kind='body_accessor', sequence=26, qpc=232, span=100,
+                    object='888', entity=str((7 << 32) | 1), detail='777',
+                    value=str(int.from_bytes(struct.pack('<ff', .25, .5), 'little')), flags=1)
+        rows[-1:-1] = [base, dict(base, kind='accessor_scan', sequence=27, qpc=233,
+                                  object='777', entity='1', value='1', detail='0', flags=0)]
+        return rows
+
+    def test_accessor_comparison_reports_and_missing_data(self):
+        rows = self.accessor_fixture(); report = analyze(stream(rows)); probe = report['accessor_probe']
+        self.assertEqual(report['status'], 'ready_for_manual_review')
+        self.assertEqual(probe['status'], 'agreement_observed')
+        self.assertEqual(probe['matched_samples'], 1)
+        self.assertFalse(probe['ownership_or_mutation_verified'])
+        self.assertEqual(probe['bodies'][0]['linear_min'], .25)
+        rows[-3]['flags'] = 6; report = analyze(stream(rows))
+        self.assertEqual(report['status'], 'incomplete')
+        self.assertEqual(report['accessor_probe']['mismatched_samples'], 1)
+        self.assertEqual(report['accessor_probe']['bodies'][0]['alternate_samples'], 1)
+        rows = [r for r in self.accessor_fixture() if r.get('kind') != 'body_accessor']
+        self.assertEqual(analyze(stream(rows))['accessor_probe']['status'], 'no_accepted_samples')
+        rows = self.accessor_fixture(); rows[-2]['flags'] = 1 << 6
+        self.assertEqual(analyze(stream(rows))['accessor_probe']['status'], 'mismatch_observed')
+        self.assertEqual(analyze(stream(rows))['status'], 'incomplete')
+        self.assertEqual(analyze(stream(self.entity_fixture()))['accessor_probe']['status'], 'not_recorded')
+
+    def test_accessor_records_validate_schema_values_and_bounds(self):
+        for field, value in [('flags', 0), ('flags', 5), ('span', 0), ('object', '0'),
+                             ('value', str(0x7fc00000)), ('detail', '0')]:
+            rows = self.accessor_fixture(); rows[-3][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError): analyze(stream(rows))
+        for field, value in [('entity', '2'), ('value', '5'), ('flags', 1), ('flags', 1 << 8), ('detail', '1')]:
+            rows = self.accessor_fixture(); rows[-2][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError): analyze(stream(rows))
+        rows = self.accessor_fixture(); rows[0]['schema'] = 3
+        with self.assertRaises(ValueError): analyze(stream(rows))
+
     def physics_cycle(self, complete_thread=1):
         return [(10, 'physics_begin', 1, 1, '123', 1),
                 (20, 'physics_begin', 2, 1, '123', 1),

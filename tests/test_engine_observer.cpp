@@ -14,13 +14,33 @@ void require(bool value,const char* message) { if(!value) throw std::runtime_err
 template<class T,size_t N> void put(std::array<unsigned char,N>& bytes,size_t offset,T value) {
     std::memcpy(bytes.data()+offset,&value,sizeof(value));
 }
+unsigned getter_mode{},linear_calls{},angular_calls{};
+float fixture_damping(uintptr_t actor,size_t offset) {
+    const auto sim=*reinterpret_cast<uintptr_t*>(actor+0x50);
+    if(sim && (*reinterpret_cast<uint8_t*>(actor+0x7c)&1))
+        return *reinterpret_cast<float*>(*reinterpret_cast<uintptr_t*>(sim+0xc0)+offset);
+    return *reinterpret_cast<float*>(actor+0xc8+offset-0x30);
+}
+float fixture_linear(uintptr_t actor) {
+    ++linear_calls;
+    if(getter_mode==1) return 20.0f;
+    if(getter_mode==2) return std::numeric_limits<float>::quiet_NaN();
+    if(getter_mode==3) *reinterpret_cast<uint64_t*>(actor+0x10)=UINT64_MAX;
+    if(getter_mode==4) RaiseException(EXCEPTION_ACCESS_VIOLATION,0,0,nullptr);
+    return fixture_damping(actor,0x30);
+}
+float fixture_angular(uintptr_t actor) { ++angular_calls; return fixture_damping(actor,0x34); }
 void test_body_observation() {
     std::array<unsigned char,0x320> owner{};
     std::array<unsigned char,0x100> actor{},sim{};
     std::array<unsigned char,0x40> state{};
     std::array<uint64_t,2> handles{UINT64_MAX,(uint64_t(7)<<32)|1};
     std::array<uintptr_t,2> actors{0,reinterpret_cast<uintptr_t>(actor.data())};
-    constexpr uintptr_t vtable=0x12345678;
+    std::array<unsigned char,0x148> vtable_bytes{};
+    const auto vtable=reinterpret_cast<uintptr_t>(vtable_bytes.data());
+    put(vtable_bytes,0x130,reinterpret_cast<uintptr_t>(&fixture_linear));
+    put(vtable_bytes,0x140,reinterpret_cast<uintptr_t>(&fixture_angular));
+    const DampingAccessors accessors{vtable,&fixture_linear,&fixture_angular};
     put(owner,0x2d0,reinterpret_cast<uintptr_t>(handles.data())); put(owner,0x2d8,2u); put(owner,0x2dc,2u);
     put(owner,0x1d0,reinterpret_cast<uintptr_t>(actors.data())); put(owner,0x1d8,2u); put(owner,0x1dc,2u);
     put(actor,0,vtable); put(actor,8,uint16_t(7)); put(actor,0x10,(uint64_t(7)<<32)|3);
@@ -32,6 +52,26 @@ void test_body_observation() {
     const auto before=actor; expect(BodyRead::ok);
     require(result.handle==handles[1] && result.linear_damping==.25f && result.angular_damping==.5f && !result.alternate,"normal damping snapshot");
     require(actor==before && body_slot_count(owner_at)==2,"read-only body snapshot and bounded count");
+    DampingReadback values{};
+    auto access=[&](AccessRead expected) {
+        require(read_damping_accessors(owner_at,result,accessors,values)==expected,"getter comparison result");
+        if(expected!=AccessRead::ok && expected!=AccessRead::mismatch)
+            require(!values.linear && !values.angular && !values.alternate,"failed getter clears output");
+    };
+    access(AccessRead::ok);
+    require(values.linear==.25f && values.angular==.5f && actor==before,"read-only native accessor agreement");
+    getter_mode=1; access(AccessRead::mismatch); require(values.linear==20.0f,"retain mismatching accessor value");
+    getter_mode=2; access(AccessRead::scalar);
+    getter_mode=3; auto angular_before=angular_calls; access(AccessRead::changed);
+    require(angular_before==angular_calls,"skip second getter after actor invalidation");
+    put(actor,0x10,(uint64_t(7)<<32)|3);
+    getter_mode=4; access(AccessRead::memory); getter_mode=0;
+    put(vtable_bytes,0x130,uintptr_t(1)); const auto linear_before=linear_calls; access(AccessRead::slot);
+    require(linear_before==linear_calls,"unexpected virtual target is never called");
+    put(vtable_bytes,0x130,reinterpret_cast<uintptr_t>(&fixture_linear));
+    put(actor,8,uint16_t(6)); access(AccessRead::snapshot); put(actor,8,uint16_t(7));
+    put(actor,0xc8,.75f); access(AccessRead::changed); put(actor,0xc8,.25f);
+    require(read_damping_accessors(0,result,accessors,values)==AccessRead::arguments,"getter missing owner rejected");
     handles[1]=(uint64_t(9)<<32)|1; expect(BodyRead::actor_identity); // Recycled handle, old actor.
     handles[1]=(uint64_t(7)<<32)|0; expect(BodyRead::generation); // Free-list link, not this index.
     handles[1]=(uint64_t(7)<<32)|1;
@@ -51,6 +91,8 @@ void test_body_observation() {
     expect(BodyRead::representation); // Tag 0 at this address means forces, not damping.
     put(state,0x1f,uint8_t(1)); expect(BodyRead::ok);
     require(result.alternate && result.linear_damping==3 && result.angular_damping==4,"tagged damping storage");
+    access(AccessRead::ok);
+    require(values.alternate && values.linear==3 && values.angular==4,"alternate getter agreement");
     require(read_body(1,1,vtable,result)==BodyRead::memory && !result.actor,"invalid owner address");
     actors[1]=1; expect(BodyRead::memory);
     require(read_body(0,1,vtable,result)==BodyRead::arguments,"missing owner rejected");

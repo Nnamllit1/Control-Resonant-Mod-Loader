@@ -24,36 +24,15 @@
         "implemented": true,
         "live_verified": false,
         "live_capture_received": true,
-        "capture_review": {
-          "date": "2026-09-26",
-          "status": "incomplete-with-useful-observations",
-          "all_selected_phases_observed": true,
-          "reported_dropped_records": 27,
-          "terminal_marker_present": false,
-          "player_identities_observed": 2,
-          "fixed_thread_ownership_supported": false,
-          "property_mutation_tested": false,
-          "evidence": "docs/engine-validation.md#reviewed-capture-2026-09-26"
-        },
         "requires_opt_in": true,
         "suspends_mods_and_gameplay_features": true,
         "scope": "selected update phases, player/resource identity snapshots, normal physics completion",
         "destruction_and_scheduler_safety_verified": false,
-        "capture_schema": 3,
+        "capture_schema": 4,
         "body_observation": {
           "implemented": true,
           "live_verified": false,
           "live_samples_observed": true,
-          "capture_review": {
-            "schema": 2,
-            "accepted_samples": 4605,
-            "scans": 749,
-            "observed_slot_identity_changes": 139,
-            "reported_dropped_records": 61,
-            "terminal_marker_present": false,
-            "accessor_agreement_verified": false,
-            "evidence": "docs/engine-validation.md#reviewed-body-capture-2026-09-26"
-          },
           "scope": "bounded dynamic-body identity and damping snapshots after physics post-processing",
           "physx_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
           "calls_property_setters": false,
@@ -62,9 +41,17 @@
         "body_entity_observation": {
           "implemented": true,
           "live_verified": false,
+          "live_samples_observed": true,
           "scope": "bounded same-callback world, body and ECS association checks",
           "calls_property_setters": false,
           "evidence": "docs/engine-validation.md#body-to-entity-observation-schema-3"
+        },
+        "damping_accessor_observation": {
+          "implemented": true,
+          "live_verified": false,
+          "calls_property_setters": false,
+          "scope": "bounded comparison of native damping getters with guarded snapshots",
+          "evidence": "docs/engine-validation.md#native-damping-readback-schema-4"
         },
         "max_capture_mib": 64,
         "max_capture_minutes": 10
@@ -76,13 +63,8 @@
         "model_material_payloads_decoded": false,
         "requires_opt_in": true,
         "live_sampling_verified": true,
-        "live_valid_samples": 51,
         "complete_inventory_live_verified": true,
-        "reload_live_verified": false,
-        "observed_component_count_range": [
-          524,
-          531
-        ]
+        "reload_live_verified": false
       },
       "experimental_noclip": {
         "implemented": true,

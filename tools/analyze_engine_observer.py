@@ -16,6 +16,7 @@ BODY_REJECTIONS = ('ok', 'arguments', 'bounds', 'generation', 'missing_actor',
                    'actor_type', 'actor_identity', 'representation', 'scalar', 'changed', 'memory')
 LINK_REJECTIONS = ('ok', 'arguments', 'world', 'bounds', 'association', 'scene',
                    'instance', 'entity', 'changed', 'memory')
+ACCESS_REJECTIONS = ('ok', 'arguments', 'snapshot', 'slot', 'scalar', 'changed', 'mismatch', 'memory')
 
 
 def physics_windows(boundaries):
@@ -149,6 +150,9 @@ def analyze(stream):
     entity_observations = {}
     entity_scans = 0
     entity_scan_rejections = Counter()
+    accessor_observations = {}
+    accessor_scans = 0
+    accessor_scan_rejections = Counter()
     orphan_returns = 0
     first_time = last_time = None
     for row in records(stream):
@@ -158,7 +162,7 @@ def analyze(stream):
             notes.add('Final partial line ignored; capture tail is incomplete.')
             break
         if header is None:
-            require(kind == 'header' and row.get('schema') in (1, 2, 3) and row.get('mode') == 'observe-only'
+            require(kind == 'header' and row.get('schema') in (1, 2, 3, 4) and row.get('mode') == 'observe-only'
                     and row.get('mods_suspended') is True, 'Unsupported or non-observational capture')
             require(number(row, 'qpc_frequency') > 0, 'Missing clock frequency')
             number(row, 'qpc_origin')
@@ -289,7 +293,7 @@ def analyze(stream):
             for i, reason in enumerate(BODY_REJECTIONS):
                 if flags & (1 << i):
                     body_scan_rejections[reason] += 1
-        elif name == 'entity_body' and header['schema'] == 3:
+        elif name == 'entity_body' and header['schema'] >= 3:
             require(edge == 0 and span > 0 and flags == 1 and obj != '0' and detail != '0'
                     and entity not in ('0', str((1 << 64) - 1))
                     and int(value) & 0xffffffff < 1 << 20, 'Invalid body/entity association')
@@ -302,7 +306,7 @@ def analyze(stream):
             observed['samples'] += 1
             observed['first_qpc'] = min(observed['first_qpc'], time)
             observed['last_qpc'] = max(observed['last_qpc'], time)
-        elif name == 'entity_scan' and header['schema'] == 3:
+        elif name == 'entity_scan' and header['schema'] >= 3:
             mask = ((1 << len(BODY_REJECTIONS)) - 2) | (((1 << len(LINK_REJECTIONS)) - 2) << 16)
             require(edge == 0 and span > 0 and int(value) <= 64 and int(entity) <= min(4, int(value))
                     and int(detail) <= 1 << 20 and not flags & ~mask
@@ -313,6 +317,28 @@ def analyze(stream):
                 for i, reason in enumerate(reasons):
                     if flags & (1 << (offset + i)):
                         entity_scan_rejections[prefix + reason] += 1
+        elif name == 'body_accessor' and header['schema'] == 4:
+            require(edge == 0 and span > 0 and flags in (1, 3, 4, 6) and obj != '0' and detail != '0'
+                    and (int(entity) & 0xffffffff) < 1 << 20, 'Invalid accessor sample')
+            linear, angular = struct.unpack('<ff', int(value).to_bytes(8, 'little'))
+            require(all(math.isfinite(v) and v >= 0 for v in (linear, angular)), 'Invalid getter values')
+            key = (detail, entity, obj)
+            require(key in accessor_observations or len(accessor_observations) < MAX_TRACKED, 'Too many accessor observations')
+            observed = accessor_observations.setdefault(key, {'scene': detail, 'handle': entity, 'actor': obj,
+                'matched_samples': 0, 'mismatched_samples': 0, 'alternate_samples': 0,
+                'linear_min': linear, 'linear_max': linear, 'angular_min': angular, 'angular_max': angular})
+            observed['matched_samples' if flags & 1 else 'mismatched_samples'] += 1
+            observed['alternate_samples'] += bool(flags & 2)
+            for prefix, v in (('linear', linear), ('angular', angular)):
+                observed[prefix + '_min'] = min(observed[prefix + '_min'], v)
+                observed[prefix + '_max'] = max(observed[prefix + '_max'], v)
+        elif name == 'accessor_scan' and header['schema'] == 4:
+            require(edge == 0 and span > 0 and int(value) <= 4 and int(entity) <= int(value)
+                    and detail == '0' and flags < 1 << len(ACCESS_REJECTIONS) and not flags & 1
+                    and (obj != '0' or (value == entity == '0' and flags == 0)), 'Invalid accessor scan')
+            accessor_scans += 1
+            for i, reason in enumerate(ACCESS_REJECTIONS):
+                if flags & (1 << i): accessor_scan_rejections[reason] += 1
         else:
             raise ValueError('Unknown event kind')
     require(header is not None, 'No capture header')
@@ -339,11 +365,17 @@ def analyze(stream):
     if header['schema'] >= 2 and not body_observations:
         failed = True
         notes.add('No accepted dynamic-body snapshots; body observation remains unvalidated.')
-    if header['schema'] == 3 and not entity_observations:
+    if header['schema'] >= 3 and not entity_observations:
         failed = True
         notes.add('No accepted body/entity associations; prop identity remains unvalidated.')
     if entity_observations:
         notes.add('Body/entity associations are guarded same-callback observations, not retained handles, selectable props, or scheduler exclusion.')
+    getter_matches = sum(o['matched_samples'] for o in accessor_observations.values())
+    getter_mismatches = sum(o['mismatched_samples'] for o in accessor_observations.values())
+    mismatch_seen = getter_mismatches > 0 or accessor_scan_rejections['mismatch'] > 0
+    if header['schema'] == 4 and (not getter_matches or mismatch_seen):
+        failed = True
+        notes.add('Native getter agreement is missing or a mismatch was recorded; investigate before using property writes.')
     return {'schema': 1, 'sha256': header['sha256'], 'status': 'incomplete' if failed or missing or not player_samples or not resource_ids or dropped else 'ready_for_manual_review',
             'not_a_gameplay_or_api_validation': True,
             'duration_seconds': (last_time - first_time) / header['qpc_frequency'] if first_time is not None else 0,
@@ -363,11 +395,17 @@ def analyze(stream):
                            'scans_with_rejection': dict(body_scan_rejections),
                            'bodies': list(body_observations.values()),
                            'ownership_or_mutation_verified': False},
-            'entity_probe': {'available': header['schema'] == 3, 'scans': entity_scans,
-                             'status': 'observed' if entity_observations else 'no_accepted_samples' if header['schema'] == 3 else 'not_recorded',
+            'entity_probe': {'available': header['schema'] >= 3, 'scans': entity_scans,
+                             'status': 'observed' if entity_observations else 'no_accepted_samples' if header['schema'] >= 3 else 'not_recorded',
                              'scans_with_rejection': dict(entity_scan_rejections),
                              'associations': list(entity_observations.values()),
                              'ownership_or_mutation_verified': False},
+            'accessor_probe': {'available': header['schema'] == 4, 'scans': accessor_scans,
+                              'status': 'not_recorded' if header['schema'] < 4 else 'mismatch_observed' if mismatch_seen else 'agreement_observed' if getter_matches else 'no_accepted_samples',
+                              'matched_samples': getter_matches, 'mismatched_samples': getter_mismatches,
+                              'scans_with_rejection': dict(accessor_scan_rejections),
+                              'bodies': list(accessor_observations.values()),
+                              'ownership_or_mutation_verified': False},
             'notes': sorted(notes)}
 
 

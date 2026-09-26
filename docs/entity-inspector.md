@@ -9,8 +9,9 @@ The experimental inspector records the player entity's component identities and 
 Build and preview an update with:
 
 ```powershell
+$gameDir = Read-Host 'Path to your CONTROL Resonant installation'
 .\build.bat -ExperimentalGameplay -Test
-python tools/install.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant" --update --entity-inspector
+python tools/install.py "$gameDir" --update --entity-inspector
 ```
 
 With the game closed, add `--apply` to install. For a fresh installation omit `--update`. The installer adds `crml/entity-inspector.enabled`. While that file is present, inspector mode takes precedence over `noclip.enabled`: the movement hook forwards the original arguments, and noclip input, recovery, and overlay hooks are not started. No Wasm mod is required to collect observations.

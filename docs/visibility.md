@@ -9,8 +9,9 @@ The `visibility` Wasm example hides the player's root mesh while F7 is held. It 
 Build and preview installation:
 
 ```powershell
+$gameDir = Read-Host 'Path to your CONTROL Resonant installation'
 .\build.bat -ExperimentalGameplay -Test
-python tools/install.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant" --update --experimental-visibility
+python tools/install.py "$gameDir" --update --experimental-visibility
 ```
 
 Close the game and add `--apply` to install. Omit `--update` for a fresh installation. The installer owns `crml/visibility.enabled` and the example under `crml/mods/visibility`. Inspector capture can remain enabled, but this session is no longer read-only. Noclip is disabled while visibility mode is installed.

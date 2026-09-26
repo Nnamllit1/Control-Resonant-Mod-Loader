@@ -22,4 +22,12 @@ struct BodyEntitySnapshot { uint64_t entity{}; uint32_t scene_slot{}, local_inde
 uintptr_t world_scene(uintptr_t world) noexcept;
 LinkRead read_body_entity(uintptr_t world, uintptr_t owner, const BodySnapshot& body,
                           BodyEntitySnapshot& result) noexcept;
+using DampingGetter = float(*)(uintptr_t);
+struct DampingAccessors { uintptr_t vtable{}; DampingGetter linear{}, angular{}; };
+enum class AccessRead : uint8_t { ok, arguments, snapshot, slot, scalar, changed, mismatch, memory, count };
+struct DampingReadback { float linear{}, angular{}; bool alternate{}; };
+// Internal read-only probe: exact fingerprinted getter targets, never guest function pointers.
+// Output is present for ok/mismatch only. Neither result authorizes mutation.
+AccessRead read_damping_accessors(uintptr_t owner, const BodySnapshot& expected,
+                                 const DampingAccessors& accessors, DampingReadback& result) noexcept;
 }

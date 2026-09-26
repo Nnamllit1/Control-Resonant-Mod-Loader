@@ -134,4 +134,34 @@ LinkRead read_body_entity(uintptr_t world,uintptr_t owner,const BodySnapshot& bo
     if(result==LinkRead::ok) out=copy;
     return result;
 }
+namespace {
+bool same_body(const BodySnapshot& a,const BodySnapshot& b) noexcept {
+    return a.handle==b.handle && a.actor==b.actor && a.actor_identity==b.actor_identity
+        && a.alternate==b.alternate && a.linear_damping==b.linear_damping && a.angular_damping==b.angular_damping;
+}
+AccessRead access_inner(uintptr_t owner,const BodySnapshot& expected,const DampingAccessors& accessors,DampingReadback& out) noexcept {
+    if(!owner || !expected.actor || !accessors.vtable || !accessors.linear || !accessors.angular) return AccessRead::arguments;
+    BodySnapshot before{},middle{},after{};
+    const auto index=uint32_t(expected.handle);
+    if(snapshot(owner,index,accessors.vtable,before)!=BodyRead::ok) return AccessRead::snapshot;
+    if(!same_body(expected,before)) return AccessRead::changed;
+    if(read<uintptr_t>(accessors.vtable+0x130)!=reinterpret_cast<uintptr_t>(accessors.linear)
+       || read<uintptr_t>(accessors.vtable+0x140)!=reinterpret_cast<uintptr_t>(accessors.angular)) return AccessRead::slot;
+    const auto linear=accessors.linear(before.actor);
+    // Do not call the second getter after a detected retirement or representation change.
+    if(snapshot(owner,index,accessors.vtable,middle)!=BodyRead::ok || !same_body(before,middle)) return AccessRead::changed;
+    const auto angular=accessors.angular(before.actor);
+    if(snapshot(owner,index,accessors.vtable,after)!=BodyRead::ok || !same_body(before,after)) return AccessRead::changed;
+    if(!std::isfinite(linear) || !std::isfinite(angular) || linear<0 || angular<0) return AccessRead::scalar;
+    out={linear,angular,before.alternate};
+    return linear==before.linear_damping && angular==before.angular_damping?AccessRead::ok:AccessRead::mismatch;
+}
+}
+AccessRead read_damping_accessors(uintptr_t owner,const BodySnapshot& expected,const DampingAccessors& accessors,DampingReadback& out) noexcept {
+    out={}; DampingReadback copy{}; AccessRead result{};
+    __try { result=access_inner(owner,expected,accessors,copy); }
+    __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return AccessRead::memory; }
+    if(result==AccessRead::ok || result==AccessRead::mismatch) out=copy;
+    return result;
+}
 }

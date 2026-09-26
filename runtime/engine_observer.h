@@ -9,9 +9,9 @@
 
 namespace crml::observer {
 enum class Kind : uint8_t { movement, command_flush, script_fixed, renderer_sync,
-    physics_begin, physics_wait, physics_complete, player, resource, post_physics, body, body_scan, entity_body, entity_scan, count };
+    physics_begin, physics_wait, physics_complete, player, resource, post_physics, body, body_scan, entity_body, entity_scan, body_accessor, accessor_scan, count };
 inline constexpr const char* names[]{"movement","command_flush","script_fixed","renderer_sync",
-    "physics_begin","physics_wait","physics_complete","player","resource","post_physics","body","body_scan","entity_body","entity_scan"};
+    "physics_begin","physics_wait","physics_complete","player","resource","post_physics","body","body_scan","entity_body","entity_scan","body_accessor","accessor_scan"};
 struct Event {
     uint64_t sequence{}, qpc{}, span{}, object{}, entity{}, value{}, detail{};
     uint32_t thread{}, flags{};

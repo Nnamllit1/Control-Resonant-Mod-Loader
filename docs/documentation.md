@@ -38,4 +38,6 @@ After deploying:
 
 A sitemap helps discovery; it does not guarantee indexing or search position. See Google's [sitemap submission guide](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap) and [site-name structured data guide](https://developers.google.com/search/docs/appearance/site-names). Public research pages should describe actual findings and their limits, using clear subsystem names rather than repeated search keywords.
 
-Public pages address players, mod authors, and contributors. Local binary-analysis reports belong in the ignored `.local/` directory. Do not publish game binaries or personal installation details as project assets.
+Public pages address players, mod authors, and contributors. Local binary-analysis reports, individual play-session results, and private progress notes belong in the ignored `.local/` directory. Do not publish game binaries, local drive names, user or machine names, installation paths, or save-specific details as project assets. Command examples should prompt for a reader's location or use repository-relative paths.
+
+Run `python tools/check_public_paths.py` before publishing. The documentation workflow checks repository text and generated pages for absolute drive paths, network shares and common user/mounted-volume directories. It reports locations without echoing the matched text. This catches accidental path publication; it does not replace reviewing content for other personal information.
