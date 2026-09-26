@@ -1,3 +1,7 @@
+---
+description: Understand the CONTROL Resonant loader, trusted native runtime, Wasm sandbox, SDK, and boundary between mods and game internals.
+---
+
 # Architecture
 
 ```text

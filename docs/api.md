@@ -1,3 +1,8 @@
+---
+title: Wasm mod API and package format
+description: Reference for CONTROL Resonant Wasm mod manifests, lifecycle functions, host imports, capabilities, and runtime limits.
+---
+
 # Package format and API
 
 ## Manifest

@@ -1,3 +1,8 @@
+---
+title: Northlight engine atlas
+description: Explore recovered CONTROL Resonant engine systems, script bindings, rendering, physics, resource lifetimes, and unresolved integration work.
+---
+
 # Engine atlas
 
 This reference maps the recovered engine surface from packaged assets through ECS systems, scripting, rendering, physics, and gameplay. It is a guide to where an operation belongs and what still needs establishing before that operation can become a mod API. The current pass is static research; it adds no runtime hooks or guest capabilities.

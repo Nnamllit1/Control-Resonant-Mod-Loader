@@ -1,3 +1,8 @@
+---
+title: Create a Wasm mod
+description: Create a CONTROL Resonant WebAssembly mod with a manifest, lifecycle exports, host logging, and explicit capabilities.
+---
+
 # Getting started
 
 ## Run the supplied example

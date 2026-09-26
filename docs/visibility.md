@@ -1,3 +1,7 @@
+---
+description: Explore the experimental CONTROL Resonant Wasm visibility mod, its renderer connection, capability requirements, and validation limits.
+---
+
 # Experimental player visibility
 
 The `visibility` Wasm example hides the player's root mesh while F7 is held. It is an initial renderer manipulation experiment; it does not affect collisions, AI awareness, or gameplay invisibility. Separately rendered equipment and effects may remain visible.

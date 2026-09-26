@@ -1,3 +1,7 @@
+---
+description: Learn how CRML isolates WebAssembly mods with Wasmtime, memory limits, execution budgets, and capability-based host access.
+---
+
 # Sandbox limits
 
 Each mod runs in its own Wasmtime store. The runtime exposes only explicitly linked functions; WASI is never linked. Native DLLs, serialized compiled modules, and text-format modules are rejected at the package boundary.

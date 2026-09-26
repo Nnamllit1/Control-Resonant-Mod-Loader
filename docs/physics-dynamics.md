@@ -1,3 +1,8 @@
+---
+title: Northlight physics dynamics research
+description: Research CONTROL Resonant physics forces, gravity, mass, inertia, damping, and simulation phases with fingerprinted native reference maps.
+---
+
 # Physics dynamics research
 
 This page connects game-side body operations to the shipped physics backend. It is a static research map, not a supported mod API. No operation described here has been invoked by the mod runtime or verified through a live physics experiment.

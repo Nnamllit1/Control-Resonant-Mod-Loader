@@ -1,3 +1,8 @@
+---
+title: Northlight Pack2 asset format
+description: Understand CONTROL Resonant Pack2 asset indexes, file records, metadata, block tables, and compression fields with reproducible inspection tools.
+---
+
 # Pack2 index format
 
 These notes describe the COTR version-3 indexes observed in the [engine research baseline](engine-research.md). The implementation is `tools/engine_research.py`. Every table range, file block total, typed metadata range, and referenced blob size was checked across all 25 installed indexes. This is an observed format description, not a promise that another game build uses it unchanged.

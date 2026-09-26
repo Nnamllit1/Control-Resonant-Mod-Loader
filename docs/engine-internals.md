@@ -1,3 +1,8 @@
+---
+title: Northlight engine internals
+description: Research CONTROL Resonant resource loading, script ownership, entity identities, physics bodies, and internal engine relationships.
+---
+
 # Internal engine mappings
 
 The integration goal is to make engine operations available to mods: finding a live object, changing its material, creating an entity, or subscribing to a gameplay event. That requires tracing the engine's own object relationships, lifetime rules, and execution stages. The [asset catalog](engine-research.md) supplies names and storage locations; this page records what happens beyond the files.

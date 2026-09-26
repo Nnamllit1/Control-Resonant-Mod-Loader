@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  {% if page and page.canonical_url %}
+    {% set title = page.meta.get("title", page.title) %}
+    {% set description = page.meta.get("description", config.site_description) %}
+    {% set full_title = title ~ " - " ~ config.site_name if not page.is_homepage else config.site_name ~ " | Modding Framework & Northlight Research" %}
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{ config.site_name | e }}">
+    <meta property="og:title" content="{{ full_title | e }}">
+    <meta property="og:description" content="{{ description | e }}">
+    <meta property="og:url" content="{{ page.canonical_url | e }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{{ full_title | e }}">
+    <meta name="twitter:description" content="{{ description | e }}">
+    {% if page.is_homepage %}
+      <script type="application/ld+json">{{ {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": config.site_name,
+        "alternateName": "CRML",
+        "url": config.site_url,
+        "description": config.site_description,
+        "inLanguage": "en"
+      } | tojson }}</script>
+    {% endif %}
+  {% else %}
+    <meta name="robots" content="noindex">
+  {% endif %}
+{% endblock %}
+
+{% block htmltitle %}
+  {% if page and page.is_homepage %}
+    <title>{{ config.site_name | e }} | Modding Framework &amp; Northlight Research</title>
+  {% else %}
+    {{ super() }}
+  {% endif %}
+{% endblock %}

@@ -1,3 +1,7 @@
+---
+description: Diagnose CONTROL Resonant mod loading, Wasm validation, proxy startup, logging, compatibility, and documentation deployment issues.
+---
+
 # Troubleshooting
 
 ## A mod is rejected or disabled

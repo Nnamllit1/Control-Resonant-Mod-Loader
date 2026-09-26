@@ -1,3 +1,8 @@
+---
+title: Install the mod loader
+description: Build and install the CONTROL Resonant mod loader developer preview, run the Wasm example, and check compatibility before testing mods.
+---
+
 # Installation
 
 ## Build the developer preview

@@ -1,3 +1,7 @@
+---
+description: Inspect the CONTROL Resonant player entity, component identities, and movement state using the experimental read-only diagnostic.
+---
+
 # Player entity inspector
 
 The experimental inspector records the player entity's component identities and known movement state without requesting gameplay changes when used alone. The separate `visibility.enabled` opt-in permits the visibility experiment during the same capture. It is the first step toward mapping live model, material, and physics relationships. It currently identifies selected rendering components by hash; it does **not** decode their payloads or resolve model/material resource names.

@@ -1,3 +1,8 @@
+---
+title: Engine runtime validation
+description: Capture CONTROL Resonant update phases, body identities, and ECS associations with read-only diagnostics to investigate runtime safety.
+---
+
 # Observe-only engine validation
 
 The engine observer records selected engine phases and player/resource identities so contributors can investigate update timing and object lifetime. It is the first validation stage following the [static engine atlas](engine-atlas.md). A successful capture supplies evidence for review; it does not establish a safe modification API.

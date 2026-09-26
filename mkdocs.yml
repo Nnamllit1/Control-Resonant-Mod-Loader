@@ -1,12 +1,13 @@
 site_name: CONTROL Resonant Mod Loader
-site_url: https://nnamllit1.github.io/Control-Resonant-Mod-Loader/
+site_url: https://crml.nnamllit.de/
 repo_url: https://github.com/Nnamllit1/Control-Resonant-Mod-Loader
 repo_name: Nnamllit1/Control-Resonant-Mod-Loader
 edit_uri: edit/main/docs/
-site_description: Sandboxed WebAssembly mods for CONTROL Resonant — installation, examples, and SDK reference.
+site_description: CONTROL Resonant modding framework with sandboxed WebAssembly mods, a native runtime, and public Northlight engine research for mod developers.
 strict: true
 theme:
   name: material
+  custom_dir: overrides
   language: en
   font: false
   logo: assets/icon.svg
@@ -59,7 +60,7 @@ nav:
       - Sandbox limits: sandbox.md
   - Contributing:
       - Architecture: architecture.md
-      - Engine research: engine-research.md
+      - Northlight engine research: engine-research.md
       - Engine atlas: engine-atlas.md
       - Engine validation: engine-validation.md
       - System index: engine-system-index.md

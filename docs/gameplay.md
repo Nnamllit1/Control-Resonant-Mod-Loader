@@ -1,3 +1,8 @@
+---
+title: Experimental noclip and gameplay bridge
+description: Track the CONTROL Resonant noclip prototype, movement and collision research, known limitations, and gameplay validation steps.
+---
+
 # Gameplay and noclip
 
 **Status: experimental. Wall/ceiling traversal and partial improvement of out-of-bounds behavior have been reported in gameplay. A remaining engine teleport cancelled flight in the recorded session. The latest position-restoration change targets that reset and needs in-game verification.**

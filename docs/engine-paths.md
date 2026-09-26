@@ -1,3 +1,8 @@
+---
+title: Northlight engine operation paths
+description: Reviewed CONTROL Resonant code paths for scripting, rendering, physics filters, events, audio, and entity operations, with evidence limits.
+---
+
 # Reviewed engine operation paths
 
 These paths connect selected entries in the [engine atlas](engine-atlas.md) to their implementations. They extend the [resource/lifetime mappings](engine-internals.md) and [physics dynamics research](physics-dynamics.md). All findings here come from static inspection; no new runtime operation was installed or tested in a gameplay session.

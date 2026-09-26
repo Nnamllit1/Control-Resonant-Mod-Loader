@@ -1,6 +1,13 @@
-# Engine research
+---
+title: Northlight engine research
+description: Public CONTROL Resonant reverse-engineering tools and Northlight research for Wasm and native mod developers: assets, scripts, and ECS systems.
+---
+
+# Northlight engine research for CONTROL Resonant
 
 The research tools map assets, scripting, and ECS systems independently of the experimental noclip bridge. They read installed files without starting the game. The resulting catalog preserves build fingerprints and evidence locations so contributors can reproduce and refine each finding.
+
+[Northlight](https://www.remedygames.com/northlight) is Remedy Entertainment's in-house game engine. This community research focuses on the recorded CONTROL Resonant builds. It is intended for Wasm mod authors, native DLL mod developers, and tooling contributors; using the findings does not require adopting CRML. It does not establish compatibility with Control, Alan Wake 2, or other Northlight titles.
 
 For the mapping from assets to native objects, owned dependencies, and execution stages, see [engine internals](engine-internals.md). That investigation traces individual code paths beyond the catalog.
 
