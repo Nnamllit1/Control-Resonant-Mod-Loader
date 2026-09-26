@@ -1,7 +1,9 @@
 #include "engine_observer.h"
+#include "physics_observation.h"
 #include <MinHook.h>
 #include <bcrypt.h>
 #include <algorithm>
+#include <bit>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
@@ -62,19 +64,23 @@ void write_event(std::ostream& out,const Event& e) {
 }
 namespace {
 constexpr char fingerprint_expected[]="2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0";
+constexpr char physx_expected[]="ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51";
 constexpr uint64_t max_bytes=64*1024*1024, max_milliseconds=10*60*1000;
 Buffer buffer;
 std::atomic<bool> enabled{};
 std::atomic<uint64_t> spans{}, next_player_ms{};
+std::atomic<uint64_t> next_body_ms{},body_cursor{};
+std::atomic<uint64_t> entity_cursor{};
 std::atomic<uint64_t> movement_calls{}, player_calls{};
 uintptr_t image_base{};
+uintptr_t dynamic_vtable{};
 uint64_t salt{};
 using One=void(*)(void*);
 using Three=void(*)(void*,void*,void*);
 using Move=void(*)(void*,void*,void*,void*,void*,void*);
 using Simulate=void(*)(void*,float);
 Move move_original{};
-One flush_original{},renderer_original{},wait_original{},complete_original{};
+One flush_original{},renderer_original{},wait_original{},complete_original{},post_original{};
 Three script_original{};
 Simulate begin_original{};
 
@@ -123,6 +129,30 @@ void sample_resources(const probe::Sample& player) noexcept {
         e.span=identity(player.world,salt); e.object=0; buffer.push(e);
     }
 }
+void sample_entity_bodies(uintptr_t world) noexcept {
+    const auto owner=world_scene(world);
+    const auto count=body_slot_count(owner);
+    auto scan=event(Kind::entity_scan,0,identity(world,salt),owner);
+    scan.detail=count;
+    if(!owner) scan.flags=1u<<(16+static_cast<unsigned>(LinkRead::world));
+    if(count) {
+        const auto start=entity_cursor.load(std::memory_order_relaxed)%count;
+        for(uint32_t i=0;i<(std::min)(count,64u) && scan.entity<4;++i) {
+            BodySnapshot body{};
+            const auto result=read_body(owner,static_cast<uint32_t>((start+i)%count),dynamic_vtable,body);
+            ++scan.value;
+            if(result!=BodyRead::ok) {scan.flags|=1u<<static_cast<unsigned>(result);continue;}
+            BodyEntitySnapshot link{};
+            const auto linked=read_body_entity(world,owner,body,link);
+            if(linked!=LinkRead::ok) {scan.flags|=1u<<(16+static_cast<unsigned>(linked));continue;}
+            auto e=event(Kind::entity_body,0,scan.span,owner);
+            e.entity=link.entity; e.value=body.handle; e.detail=identity(body.actor,salt); e.flags=1;
+            buffer.push(e); ++scan.entity;
+        }
+        entity_cursor.store((start+scan.value)%count,std::memory_order_relaxed);
+    }
+    buffer.push(scan);
+}
 void movement(void* view,void* world,void* collision,void* callback,void* scene,void* time) {
     uint64_t span{}; probe::Sample sample{};
     if(enabled.load(std::memory_order_relaxed)) {
@@ -135,7 +165,7 @@ void movement(void* view,void* world,void* collision,void* callback,void* scene,
             if(now>=next && next_player_ms.compare_exchange_strong(next,now+100)) {
                 auto e=event(Kind::player,0,span,sample.world); e.entity=sample.entity; e.value=sample.row;
                 e.flags=1; e.detail=uint64_t(sample.disabled)|(uint64_t(sample.teleported)<<8);
-                buffer.push(e); sample_resources(sample);
+                buffer.push(e); sample_resources(sample); sample_entity_bodies(sample.world);
             }
         }
     }
@@ -166,6 +196,35 @@ void complete(void* task) {
     const auto wrapper=reinterpret_cast<uintptr_t>(task)-0x148;
     const auto span=enter(Kind::physics_complete,wrapper); complete_original(task); leave(Kind::physics_complete,span,wrapper);
 }
+void post(void* owner) {
+    const auto address=reinterpret_cast<uintptr_t>(owner);
+    const auto span=enter(Kind::post_physics,address);
+    post_original(owner);
+    if(span && enabled.load(std::memory_order_relaxed)) {
+        const auto now=GetTickCount64(); auto next=next_body_ms.load(std::memory_order_relaxed);
+        if(now>=next && next_body_ms.compare_exchange_strong(next,now+100)) {
+            const auto count=body_slot_count(address);
+            auto scan=event(Kind::body_scan,0,span,address);
+            scan.detail=count;
+            if(count) {
+                const auto start=body_cursor.load(std::memory_order_relaxed)%count;
+                // Rotate through at most 128 slots, copying at most 8 bodies per poll.
+                for(uint32_t i=0;i<(std::min)(count,128u) && scan.entity<8;++i) {
+                    BodySnapshot body{}; const auto result=read_body(address,static_cast<uint32_t>((start+i)%count),dynamic_vtable,body);
+                    ++scan.value;
+                    if(result!=BodyRead::ok) {scan.flags|=1u<<static_cast<unsigned>(result);continue;}
+                    auto e=event(Kind::body,0,span,body.actor);
+                    e.entity=body.handle; e.detail=identity(address,salt);
+                    e.value=uint64_t(std::bit_cast<uint32_t>(body.linear_damping))|(uint64_t(std::bit_cast<uint32_t>(body.angular_damping))<<32);
+                    e.flags=body.alternate?3:1; buffer.push(e); ++scan.entity;
+                }
+                body_cursor.store((start+scan.value)%count,std::memory_order_relaxed);
+            }
+            buffer.push(scan);
+        }
+    }
+    leave(Kind::post_physics,span,address);
+}
 struct Hook { uint32_t rva; const char* name; std::array<unsigned char,18> prefix; void* detour; void** original; };
 const Hook hooks[]={
     {0x1b98950,"movement",{0x48,0x8b,0xc4,0x4c,0x89,0x48,0x20,0x4c,0x89,0x40,0x18,0x48,0x89,0x50,0x10,0x53,0x56,0x57},reinterpret_cast<void*>(&movement),reinterpret_cast<void**>(&move_original)},
@@ -175,6 +234,7 @@ const Hook hooks[]={
     {0x2cdba00,"physics_begin",{0x40,0x53,0x48,0x83,0xec,0x40,0x48,0x8b,0xd9,0x48,0x8d,0x51,0x20,0x48,0x8b,0x0d,0xec,0x04},reinterpret_cast<void*>(&begin),reinterpret_cast<void**>(&begin_original)},
     {0x2ce5380,"physics_wait",{0x40,0x53,0x48,0x83,0xec,0x20,0x48,0x8b,0xd9,0x48,0x8b,0xd1,0x48,0x8b,0x89,0x40,0x02,0},reinterpret_cast<void*>(&wait),reinterpret_cast<void**>(&wait_original)},
     {0x2cdb200,"physics_complete",{0x48,0x89,0x5c,0x24,0x18,0x57,0x48,0x83,0xec,0x30,0x48,0x8b,0xd9,0x48,0x8b,0x49,0x30,0x48},reinterpret_cast<void*>(&complete),reinterpret_cast<void**>(&complete_original)},
+    {0x2ce5310,"post_physics",{0x48,0x8b,0xd1,0x48,0x8b,0x89,0x40,0x02,0x00,0x00,0xe9,0x91,0x6a,0xff,0xff,0xcc,0xcc,0xcc},reinterpret_cast<void*>(&post),reinterpret_cast<void**>(&post_original)},
 };
 std::string fingerprint(const std::filesystem::path& path) {
     std::ifstream file(path,std::ios::binary);
@@ -198,6 +258,11 @@ bool Recorder::line(const std::string& text) {
 std::string Recorder::start(const std::filesystem::path& root) {
     wchar_t path[32768]{}; const auto length=GetModuleFileNameW(nullptr,path,32768);
     if(!length || length>=32768 || fingerprint(path)!=fingerprint_expected) return "Engine observer refused: unsupported executable fingerprint";
+    wchar_t backend_path[32768]{}; const auto backend=GetModuleHandleW(L"PhysX_64.dll");
+    const auto backend_length=backend?GetModuleFileNameW(backend,backend_path,32768):0;
+    if(!backend_length || backend_length>=32768 || fingerprint(backend_path)!=physx_expected)
+        return "Engine observer refused: unsupported physics backend fingerprint";
+    dynamic_vtable=reinterpret_cast<uintptr_t>(backend)+0x15dd88;
     image_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     for(const auto& hook:hooks) if(std::memcmp(reinterpret_cast<void*>(image_base+hook.rva),hook.prefix.data(),hook.prefix.size())!=0)
         return std::string("Engine observer refused: changed or already hooked entry ")+hook.name;
@@ -221,7 +286,8 @@ std::string Recorder::start(const std::filesystem::path& root) {
         return "Engine observer refused: cannot open diagnostic log";
     }
     std::ostringstream header;
-    header<<"{\"type\":\"header\",\"schema\":1,\"mode\":\"observe-only\",\"sha256\":\""<<fingerprint_expected
+    header<<"{\"type\":\"header\",\"schema\":3,\"mode\":\"observe-only\",\"sha256\":\""<<fingerprint_expected
+          <<"\",\"physx_sha256\":\""<<physx_expected
           <<"\",\"pid\":"<<GetCurrentProcessId()<<",\"qpc_frequency\":"<<frequency.QuadPart
           <<",\"qpc_origin\":"<<stamp.QuadPart<<",\"max_bytes\":"<<max_bytes<<",\"max_ms\":"<<max_milliseconds
           <<",\"mods_suspended\":true,\"hooks\":[";

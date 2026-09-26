@@ -5,6 +5,10 @@
   "status": "Backend static references; engine property ownership, units and live phase safety remain unverified.",
   "documentation": "../physics-dynamics.md",
   "checks": [
+    {"kind": "pointer64", "rva": "0x15deb8", "target": "0x22360", "label": "linear damping getter slot"},
+    {"kind": "pointer64", "rva": "0x15dec8", "target": "0x21870", "label": "angular damping getter slot"},
+    {"kind": "jump_rel32", "rva": "0x22364", "target": "0xfe600", "label": "linear damping getter core transfer"},
+    {"kind": "jump_rel32", "rva": "0x21874", "target": "0xfe4f0", "label": "angular damping getter core transfer"},
     {
       "kind": "pointer64",
       "rva": "0x15deb0",

@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "title": "Game damping accessors and property producers",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static references; accessor agreement, scheduling exclusion and restoration remain unverified live.",
+  "documentation": "../physics-dynamics.md#game-damping-accessors-and-overrides",
+  "checks": [
+    {"kind": "call_rel32", "rva": "0x19ee487", "target": "0x19f7870", "label": "linear VM accessor validates full body handle first"},
+    {"kind": "call_rel32", "rva": "0x19ee547", "target": "0x19f7870", "label": "angular VM accessor validates full body handle first"},
+    {"kind": "call_rel32", "rva": "0x19f789f", "target": "0x19e1fd0", "label": "body validator resolves current world scene"},
+    {"kind": "call_rel32", "rva": "0x19e200f", "target": "0x466c80", "label": "scene accessor checks world global hash presence"},
+    {"kind": "call_rel32", "rva": "0x2cfd09e", "target": "0x2d83f70", "label": "linear setter uses unchecked actor lookup"},
+    {"kind": "call_rel32", "rva": "0x2cfd0e4", "target": "0x2d83f70", "label": "linear getter uses unchecked actor lookup"},
+    {"kind": "call_rel32", "rva": "0x2cfd12e", "target": "0x2d83f70", "label": "angular setter uses unchecked actor lookup"},
+    {"kind": "call_rel32", "rva": "0x2cfd174", "target": "0x2d83f70", "label": "angular getter uses unchecked actor lookup"},
+    {"kind": "u32", "rva": "0x2cfd0bc", "target": "0x128", "label": "linear setter virtual slot"},
+    {"kind": "u32", "rva": "0x2cfd10c", "target": "0x130", "label": "linear getter virtual slot"},
+    {"kind": "u32", "rva": "0x2cfd14c", "target": "0x138", "label": "angular setter virtual slot"},
+    {"kind": "u32", "rva": "0x2cfd19c", "target": "0x140", "label": "angular getter virtual slot"},
+    {"kind": "call_rel32", "rva": "0x19ee4c8", "target": "0x2cfd090", "label": "VM linear damping write branch"},
+    {"kind": "call_rel32", "rva": "0x19ee4e5", "target": "0x2cfd0e0", "label": "VM linear damping read branch"},
+    {"kind": "call_rel32", "rva": "0x19ee588", "target": "0x2cfd120", "label": "VM angular damping write branch"},
+    {"kind": "call_rel32", "rva": "0x19ee5a5", "target": "0x2cfd170", "label": "VM angular damping read branch"},
+    {"kind": "call_rel32", "rva": "0x2d83585", "target": "0x2cfd090", "label": "population branch applies source linear damping"},
+    {"kind": "call_rel32", "rva": "0x2d83596", "target": "0x2cfd120", "label": "population branch applies source angular damping"},
+    {"kind": "call_rel32", "rva": "0x2d83994", "target": "0x2cfd090", "label": "alternate population branch applies source linear damping"},
+    {"kind": "call_rel32", "rva": "0x2d839a5", "target": "0x2cfd120", "label": "alternate population branch applies source angular damping"}
+  ],
+  "gaps": [
+    "Direct callers do not cover indirect dispatch or every gameplay override.",
+    "Actor lookup does not validate bounds, generation or lifetime; a successful type check does not establish ownership.",
+    "The two source scalar fields are observed at record +0x20/+0x24; their complete resource schema and reapplication policy remain open.",
+    "A restore operation must validate identity and detect intervening property changes; restoring a captured scalar alone is insufficient."
+  ]
+}

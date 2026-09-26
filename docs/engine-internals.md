@@ -192,7 +192,7 @@ The [physics scene map](research/physics-scene-map.json) contains reproducible e
 
 ### Backend handles and deactivation notifications
 
-The array at the scene record's +0x20 object, offset +0x90 with a 16-bit count at +0xa8, contains **eight-byte handles**, not directly callable object pointers. Deactivation passes each handle to resolver `0x2d83f70`. That resolver uses only the low 32 bits to index the pointer table at backend-owner+0x1d0, with no local bounds or generation check. The upper bits' meaning and the checks performed by callers remain unresolved.
+The array at the scene record's +0x20 object, offset +0x90 with a 16-bit count at +0xa8, contains **eight-byte handles**, not directly callable object pointers. Deactivation passes each handle to resolver `0x2d83f70`. That resolver uses only the low 32 bits to index the pointer table at backend-owner+0x1d0, with no local bounds or generation check. The separate validation and retirement paths below establish a generation comparison; the leaf resolver itself still supplies no validation.
 
 Batch helper `0x2cfea80` resolves those handles and calls virtual slot +0x30 on each resulting object. It groups objects by the non-null pointer returned from that call. For each group it invokes virtual slot +0xf8 on the returned owner, passing the object-pointer array, its count, and the inverse of the incoming boolean. This establishes an owner-grouped backend operation in the deactivation path. Identifying these virtual methods as specific middleware APIs still requires tracing the concrete vtables.
 
@@ -200,6 +200,24 @@ Deactivation also handles a separate pointer table at backend-owner+0x1f0. Helpe
 
 The binding path has another index space. Helper `0x2d812c0` allocates indices from backend-owner+0xd8 and writes them to the instance array at +0xe0, using the 16-bit count at +0xfa. It reads pairs of 16-bit indices at +0x7c/+0x7e from 0x230-byte source records, maps them through `0x2d689f0`, and selects endpoint handles from instance+0x90. Helper `0x2cf1030` stores two optional eight-byte endpoints in 24-byte records at owner+0x138 and updates reverse associations. This resembles a relationship/constraint binding path, but the precise constraint types are not yet established. Its indices must not be confused with scene slots or backend object handles.
 
+
+### Full body handles, reverse association and retirement
+
+The [body lifetime map](research/physics-body-lifetime-map.json) connects three different index spaces without making them interchangeable. A body handle contains a low-word slot index and a high-word generation. Endpoint reader `0x2cf08d0` checks the index against owner+0x2d8, reads an eight-byte entry from owner+0x2d0, and requires both words to match. Invalid optional endpoints become `UINT64_MAX`. This is a concrete generation check; calling the separate leaf actor resolver would skip it.
+
+The actor pointer array at owner+0x1d0 has its own count/capacity at +0x1d8/+0x1dc. Creation helper `0x2d83c60` stores an encoded handle at actor+0x10: the high word is preserved, while the low word becomes `(index * 2) | 1`. It then publishes the actor through `0x2d83e80`. The encoding must be decoded before comparing it with a body handle.
+
+Helper `0x2cf0800` records a reverse association in the view at owner+0x2e8. Its array at view+8 holds pairs of 32-bit values indexed by the body handle's low word: scene-record slot and local body index. Reader `0x2cf07a0` uses that pair to return a scene-record pointer and local index, treating slot `UINT32_MAX` as absent. This reader also lacks complete bounds/generation validation. Another array at owner+0x300 contains 16-byte records with an instance pointer and local body index. Connecting these associations to a freshly validated ECS entity remains a targeted observation requirement.
+
+The static connection to the ECS handle is now traced through staging `0x191ede0`. At `0x191f3c7`, it reads the entity handle from query chunk `+0x10 + row*8`, then stores it at descriptor `+0x30` before calling scene allocation `0x2ce2ff0`. The allocator copies that field into scene record `+0x30`. Record `+0x20` is the instance pointer; the separate `+0x28` content identity must not be used as an ECS runtime handle, and `+0x38` is a structured data pointer.
+
+The `nl_particle_system_attach_body` callback at `0x19d6820` provides an independent world-to-scene consumer path. It searches the world's global hash/value arrays (`+0x585b0`, count `+0x585b8`, values `+0x585c0`) for key `0x2eb2d62c`, dereferences the selected payload to obtain the scene owner, and passes owner `+0x2e8` to the reverse reader. This consumer subsequently uses scene record `+0x28`, not the ECS handle at `+0x30`.
+
+Together these traces supply a candidate association chain: current world → scene owner → generation-checked body → scene record → ECS handle. Validation must additionally check the ECS generation and location in that same world, match the entity's `Physics` scene slot, and round-trip the instance's local body handle. A copied entity value or cached world address does not establish lifetime. The [schema-3 observer](engine-validation.md#body-to-entity-observation-schema-3) implements these guarded checks; live association validation remains pending.
+
+Retirement helper `0x2d829a0` calls metadata cleanup, clears associated-pointer tables through `0x2cd5550`, then invokes `0x2d83e20`. That helper writes `UINT64_MAX` to actor+0x10 before invoking virtual slot zero, then clears the actor pointer through `0x2d83e80`. Retirement invalidates the reverse association and the 16-byte instance association. Finally, it writes the previous free-list head into the handle entry's low word, writes the incoming generation plus two into its high word, and makes this slot the new free-list head at owner+0x2e0.
+
+This establishes one retirement/recycling path, not complete lifetime coverage, wraparound handling, or permission to retain a raw pointer. The [schema-2 observer](engine-validation.md#guarded-body-observation-schema-2) uses bounded table reads, full identity comparisons, and a final recheck. Those checks can detect mismatches; they do not acquire a scene lock, retain the actor, or exclude reuse between reads.
 
 ### State application and the batch callback
 

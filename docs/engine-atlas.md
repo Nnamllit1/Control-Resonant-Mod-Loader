@@ -130,7 +130,7 @@ The builder checks the exact executable fingerprint, declaration strings, name r
 
 ## Verification and subsequent integration
 
-The [observe-only validation build](engine-validation.md) implements the first capture stage, with a short test sequence and an analyzer that reports missing coverage and losses. Live results are required before advancing to mutation.
+The [observe-only validation build](engine-validation.md) implements the first capture stage, with a short test sequence and an analyzer that reports missing coverage and losses. The [first reviewed capture](engine-validation.md#reviewed-capture-2026-09-26) observed all selected phases, nested physics completion intervals and changed player/resource identities. Record loss and unresolved ownership leave mutation validation pending.
 
 The next phase should establish the scheduler and lifetime contract across representative operations before expanding the guest API. A useful first observation pass correlates entity generation, world transitions, script instance creation/removal, command flushes, physics completion, and renderer publication. Record thread IDs and event order; avoid treating a diagnostic overlay's frame as the owning engine update.
 

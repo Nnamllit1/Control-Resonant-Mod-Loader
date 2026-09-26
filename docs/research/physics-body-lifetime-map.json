@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "title": "Body handle validation, reverse association and retirement",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static references; the schema-2 observer implements guarded body snapshots, with live validation pending.",
+  "checks": [
+    {"kind": "call_rel32", "rva": "0x191f64c", "target": "0x2ce2ff0", "label": "staging publishes descriptor containing ECS handle at +0x30"},
+    {"kind": "call_rel32", "rva": "0x19d68f6", "target": "0x2cf07a0", "label": "VM body consumer resolves reverse association from world scene owner"},
+    {"kind": "u32", "rva": "0x2cf0901", "target": "0x2d8", "label": "endpoint validation reads handle-table count"},
+    {"kind": "u32", "rva": "0x2cf0922", "target": "0x2d0", "label": "endpoint validation reads full handle table"},
+    {"kind": "call_rel32", "rva": "0x2d81de0", "target": "0x2cf0800", "label": "population stores body-to-scene-slot association"},
+    {"kind": "call_rel32", "rva": "0x2d824d7", "target": "0x2cf0800", "label": "second population branch stores reverse association"},
+    {"kind": "call_rel32", "rva": "0x2d821f5", "target": "0x2cf07a0", "label": "population resolves reverse scene-slot association"},
+    {"kind": "call_rel32", "rva": "0x2d83de5", "target": "0x2d83e80", "label": "actor creation publishes body table pointer after encoded identity"},
+    {"kind": "call_rel32", "rva": "0x2d829e9", "target": "0x2ccca90", "label": "retirement invokes body metadata cleanup"},
+    {"kind": "call_rel32", "rva": "0x2d829f4", "target": "0x2cd5550", "label": "retirement clears two associated-pointer tables"},
+    {"kind": "call_rel32", "rva": "0x2d829ff", "target": "0x2d83e20", "label": "retirement releases native actor"},
+    {"kind": "jump_rel32", "rva": "0x2d83e67", "target": "0x2d83e80", "label": "release tail clears native body pointer"},
+    {"kind": "call_rel32", "rva": "0x2d826ab", "target": "0x2d829a0", "label": "population replacement retires body handles"},
+    {"kind": "call_rel32", "rva": "0x18ffcb5", "target": "0x2d829a0", "label": "physics removal path retires body handles"}
+  ],
+  "layouts": {
+    "scene_record": {
+      "stride": "0x70; table owner+0xc8, count +0xd0, capacity +0xd4",
+      "0x20": "instance pointer",
+      "0x28": "separate content identity field; not the runtime ECS handle",
+      "0x30": "ECS handle copied from query chunk header during staging 0x191ede0",
+      "0x38": "structured data pointer; not an ECS handle or scalar resource ID",
+      "validation": "Revalidate world, ECS generation/location, Physics scene slot and reverse body association in an owning callback before use."
+    },
+    "scene_owner": {
+      "0x1d0": "native actor pointer array, count +0x1d8, capacity +0x1dc",
+      "0x2d0": "eight-byte handle/free-list entries, count +0x2d8, capacity +0x2dc",
+      "0x2e0": "free-list head used by the reviewed retirement path",
+      "0x2e8": "reverse-association view: owner pointer +0, pair array +8, count +0x10",
+      "0x300": "16-byte association records containing instance pointer and local body index"
+    },
+    "live_handle": {
+      "low_word": "slot index; live table entry must contain that same index",
+      "high_word": "generation compared by endpoint validation; reviewed retirement adds two",
+      "validation": "0x2cf08d0 checks bounds and equality of both words for optional endpoints; leaf actor lookup does not"
+    },
+    "actor_identity": {
+      "offset": "0x10",
+      "encoding": "0x2d83c60 preserves the handle high word and stores (index * 2) | 1 in the low word",
+      "retirement": "0x2d83e20 writes UINT64_MAX before virtual slot zero, then clears the actor pointer table"
+    }
+  },
+  "gaps": [
+    "Full allocation/recycling coverage and wraparound policy are not yet established.",
+    "Read/recheck rejects some races but does not acquire ownership or prove absence of an ABA reuse.",
+    "Reverse association still needs to be connected to a freshly validated ECS entity and a selected disposable prop.",
+    "Live body generation changes, accessor agreement, scheduling exclusion, property restoration and teardown remain unverified."
+  ]
+}

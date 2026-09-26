@@ -115,6 +115,8 @@ RTTI identifies `physics::PhysXCompletionTask`, with vtable `0x4d54230`. Constru
 
 The phase flag is evidence about this sequence, **not a lock** or a universal permission to write. It must not be polled from an unrelated worker as a substitute for owning the correct engine phase. The separate immediate-mode branch does not pass through this same begin/wait sequence.
 
+The [reviewed live capture](engine-validation.md#reviewed-capture-2026-09-26) observes completion intervals nested within waits, including 1,105 strictly classified same-thread cases. Further static tracing shows that both the completion-byte wait and downstream post-processing can execute scheduler work through `0x3271510` and `0x3272ad0`. Neither phase entry is therefore an established exclusive modification point; thread identity and an apparently waiting call are insufficient ownership tests. The capture's reported drops and missing terminal marker leave lifecycle validation incomplete.
+
 ### Immediate-mode solver sequence
 
 When `Physics:Simulate With Immediate Mode` is enabled, the outer simulation implementation calls `0x2cc95a0` with a selection descriptor and timestep. Its main branch prepares several temporary arrays, then invokes the following imported functions. The names are read directly from this executable's PE import table, rather than inferred from virtual slots.
@@ -144,7 +146,7 @@ The now-resolved backend mass setter `0x24e20` converts positive mass to its rec
 
 ## Damping, sleeping, and contact/solver properties
 
-The same constructor-established dynamic-body vtable `0x15dd88` contains additional property setters. Method diagnostics identify their names independently of the slot numbers. The [property map](research/physx-properties-map.json) verifies 26 table entries, transfers, and constants. All addresses in this section are **PhysX DLL RVAs**; offsets are backend layout evidence, not guest API fields.
+The same constructor-established dynamic-body vtable `0x15dd88` contains additional property setters. Method diagnostics identify their names independently of the slot numbers. The [property map](research/physx-properties-map.json) verifies 30 table entries, transfers, and constants. All addresses in this section are **PhysX DLL RVAs**; offsets are backend layout evidence, not guest API fields.
 
 | Property | Vtable slot | Setter RVA | Reviewed behavior |
 | --- | --- | --- | --- |
@@ -167,11 +169,32 @@ Most helper calls receive **actor `+0x50`**, called the core below. Normal linea
 
 That is the same state pointer whose **tag 0** interpretation holds force/velocity accumulators in the earlier trace. Reading `+0x30` without checking the representation can therefore mistake damping for an angular velocity-change term. The alternate path assumes its state invariant rather than providing a safe fallback for an invalid pointer.
 
+The corresponding linear getter is slot `+0x130`, DLL RVA `0x22360`, which passes actor `+0x50` to `0xfe600`. The angular getter is slot `+0x140`, DLL RVA `0x21870`, forwarding to `0xfe4f0`. Both return a float and select the same normal or tag-1 storage described above. A missing or incorrectly tagged alternate state leads to an invalid read, not a normal-storage fallback. These accessor traces independently support the schema-2 observer's storage selection; the observer does not call them, and live accessor agreement remains unverified.
+
 Normal damping changes propagate through `0x10e7d0` when an associated simulation object exists. Sleep threshold, stabilization threshold, maximum contact impulse, and contact slop similarly write core `+0x94`, `+0x98`, `+0x90`, and `+0xa8`, respectively, before the same propagation route. The full downstream effect of `0x10e7d0` is not yet traced.
 
 The solver-iteration setter packs the low byte of one input and the low byte of the next into the low/high bytes of a word. Helper `0xff550` writes core `+0x2e`, updates associated simulation-object `+0x8e` if present, and sets a downstream dirty byte. The semantic order of the two counts and their accepted ranges still require independent confirmation.
 
 The game's binding catalog also exposes body-group awake/frozen/enable/kinematic controls and joint angular/linear velocity, free-spin, maximum-force, and detach candidates. These are group/joint operations, not necessarily per-body property setters. Their full callback argument schemas and engine override behavior remain open. Density, material combine modes, complete CCD flags, contact modification, articulation/joint limits, and character-controller movement properties are not fully mapped by this table.
+
+### Game damping accessors and overrides
+
+The [game damping map](research/game-damping-map.json) connects the backend methods to engine helpers and concrete property producers. Addresses in this subsection are **game executable RVAs**.
+
+| Property | Engine setter | Engine getter | Backend slots |
+| --- | --- | --- | --- |
+| Linear damping | `0x2cfd090` | `0x2cfd0e0` | `+0x128` / `+0x130` |
+| Angular damping | `0x2cfd120` | `0x2cfd170` | `+0x138` / `+0x140` |
+
+Each helper resolves an actor through `0x2d83f70`, which indexes owner `+0x1d0` using only the handle's low word. It provides no bounds or generation check. The helper immediately reads actor `+8` and accepts type 7; therefore even its type test assumes a live nonnull actor. For a valid actor of another type, the setter does nothing and the getter returns zero. Zero cannot distinguish that rejection from actual zero damping. The setters pass the third argument's float to the backend and perform no separate game-cache write within these small helpers.
+
+VM callbacks `0x19ee470` and `0x19ee530` select a setter when a second script argument exists and otherwise return the getter result. Their write branches convert the numeric argument to a float and reject a value less than zero; this comparison alone is not a finite-value validation policy. The callbacks establish existing read/write consumers, not a safe phase for an unrelated mod request.
+
+Before either branch, both callbacks call body validator `0x19f7870`. It resolves the scene through `0x19e1fd0`, bounds the low-word index against owner `+0x2d8`, and compares both words with the entry in owner `+0x2d0`. Failure raises a VM argument error. Scene lookup obtains the current world from the VM environment and checks the global entry keyed by `0x2eb2d62c`. Thus the script route supplies generation validation missing from the small property helpers; these functions still contain no ownership acquisition or scheduler exclusion for a mod callback.
+
+Two reviewed body-population branches apply linear and angular damping from source-record offsets `+0x20` and `+0x24`, through call sites `0x2d83585`/`0x2d83596` and `0x2d83994`/`0x2d839a5`. This shows a path by which population can reapply source values. The full resource schema, triggers for reapplication, and all indirect/gameplay overrides remain unresolved.
+
+A reversible experiment must resolve a selected entity and body afresh in an established owning phase, capture the original through the accessor, apply a bounded finite value, and verify readback. Before restoring, it must revalidate identity and check for intervening changes. An unexpected current value is a conflict to record, not permission to overwrite another producer. Reload invalidation and observable effect still require live evidence; these static references do not enable a runtime setter or Wasm operation.
 
 ## Verification and next investigation
 
@@ -179,6 +202,7 @@ The game's binding catalog also exposes body-group awake/frozen/enable/kinematic
 python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\CONTROLResonant.exe" docs/research/game-dynamics-map.json
 python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\PhysX_64.dll" docs/research/physx-dynamics-map.json
 python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\PhysX_64.dll" docs/research/physx-properties-map.json
+python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\CONTROLResonant.exe" docs/research/game-damping-map.json
 ```
 
 The checks validate encoded references for these exact files. They do not prove callable ABIs, complete semantics, live scheduler safety, or behavior after a scene reload.

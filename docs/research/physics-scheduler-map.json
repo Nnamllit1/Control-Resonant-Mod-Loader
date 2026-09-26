@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "title": "Scheduler execution during physics wait and post-processing",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static call references supporting the observed nested completion intervals; exclusive mutation ownership remains unverified.",
+  "checks": [
+    {"kind": "call_rel32", "rva": "0x2cdbc29", "target": "0x3271510", "label": "completion-byte polling executes scheduler helper"},
+    {"kind": "call_rel32", "rva": "0x3271520", "target": "0x3272a70", "label": "scheduler helper selects work"},
+    {"kind": "call_rel32", "rva": "0x3271536", "target": "0x3272ad0", "label": "scheduler helper runs selected work inline"},
+    {"kind": "call_rel32", "rva": "0x3272b6b", "target": "0x3272ad0", "label": "recursive dependent work branch"},
+    {"kind": "call_rel32", "rva": "0x3272c0a", "target": "0x3272ad0", "label": "queue fallback executes work inline"},
+    {"kind": "call_rel32", "rva": "0x1902216", "target": "0x2ce5330", "label": "normal simulation submits primary work"},
+    {"kind": "call_rel32", "rva": "0x1902223", "target": "0x2ce5360", "label": "normal simulation invokes secondary scene path"},
+    {"kind": "call_rel32", "rva": "0x190222b", "target": "0x2ce5380", "label": "normal simulation waits before post-processing"},
+    {"kind": "jump_rel32", "rva": "0x1902277", "target": "0x2ce5310", "label": "simulation tail enters post-processing"},
+    {"kind": "jump_rel32", "rva": "0x2ce531a", "target": "0x2cdbdb0", "label": "post-processing wrapper forwards to implementation"},
+    {"kind": "call_rel32", "rva": "0x2cdc529", "target": "0x3271510", "label": "post-processing polling also executes scheduler work"}
+  ]
+}
