@@ -14,6 +14,7 @@ FILES = ('xinput1_4.dll', 'crml/crml_runtime.dll', 'crml/wasmtime.dll',
          'crml/licenses/wasmtime.txt')
 RECEIPT = 'crml/install-receipt.json'
 INSPECTOR_FILES = {'crml/entity-inspector.enabled': 'crml/entity-inspector.enabled'}
+OBSERVER_FILES = {'crml/engine-observer.enabled': 'crml/engine-observer.enabled'}
 OPTIONAL_FILES = {'crml/licenses/minhook.txt': 'licenses/minhook/LICENSE.txt'}
 NOCLIP_FILES = {'crml/noclip.enabled': 'examples/noclip/noclip.enabled',
                 'crml/mods/noclip/mod.ini': 'examples/noclip/mod.ini',
@@ -24,10 +25,17 @@ VISIBILITY_FILES = {'crml/visibility.enabled': 'examples/visibility/visibility.e
                     'crml/mods/visibility/visibility.wasm': 'examples/visibility/visibility.wasm'}
 
 
-def sources_for(dist, experimental_noclip=False, entity_inspector=False, experimental_visibility=False):
+def sources_for(dist, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False):
     sources = {name: dist / name for name in FILES}
     sources['crml/licenses/wasmtime.txt'] = dist / 'licenses/wasmtime/LICENSE'
     sources.update({name: dist / source for name, source in OPTIONAL_FILES.items() if (dist / source).is_file()})
+    if engine_observer:
+        if experimental_noclip or entity_inspector or experimental_visibility:
+            raise ValueError('Engine observation must be installed without other experimental modes')
+        features = json.loads((dist / 'crml/build-features.json').read_text(encoding='utf-8-sig'))
+        if features.get('engine_observer') is not True:
+            raise ValueError('Rebuild with -EngineObserver before installing engine observation')
+        sources.update({name: dist / source for name, source in OBSERVER_FILES.items()})
     if experimental_noclip or entity_inspector or experimental_visibility:
         features = json.loads((dist / 'crml/build-features.json').read_text(encoding='utf-8-sig'))
         if features.get('experimental_gameplay') is not True:
@@ -99,7 +107,7 @@ def checked_path(root, relative):
             raise ValueError(f'Linked installation path: {relative}')
     return path
 
-def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False):
+def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False):
     game = game.resolve(strict=True)
     executable = game / 'CONTROLResonant.exe'
     actual = digest(executable)
@@ -110,7 +118,7 @@ def install(game, dist, profiles, apply=False, experimental_noclip=False, entity
         path = checked_path(game, relative)
         if path.exists():
             raise ValueError(f'Refusing existing {relative}; no files overwritten')
-    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility)
+    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer)
     hashes = {name: digest(path) for name, path in sources.items()}
     print('Experimental profile: ' + profile.get('status', 'unverified'))
     if experimental_noclip:
@@ -153,7 +161,7 @@ def read_receipt(game):
     receipt_path = checked_path(game, RECEIPT)
     receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     files = receipt.get('files', {})
-    if receipt.get('schema') != 1 or not set(FILES).issubset(files) or set(files) - set(FILES) - set(OPTIONAL_FILES) - set(NOCLIP_FILES) - set(INSPECTOR_FILES) - set(VISIBILITY_FILES):
+    if receipt.get('schema') != 1 or not set(FILES).issubset(files) or set(files) - set(FILES) - set(OPTIONAL_FILES) - set(NOCLIP_FILES) - set(INSPECTOR_FILES) - set(VISIBILITY_FILES) - set(OBSERVER_FILES):
         raise ValueError('Invalid installation receipt')
     for name, expected in files.items():
         path = checked_path(game, name)
@@ -179,15 +187,20 @@ def uninstall(game, apply=False):
     checked_path(game, RECEIPT).unlink()
     print('Removed owned files. Additional mods, logs, and directories were preserved.')
 
-def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False):
+def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, disable_engine_observer=False):
     game = game.resolve(strict=True)
     receipt = read_receipt(game)
+    if engine_observer and disable_engine_observer:
+        raise ValueError('Cannot enable and disable engine observation together')
     actual = digest(game / 'CONTROLResonant.exe')
     if actual != receipt.get('executable_sha256') or not any(p['sha256'] == actual and p['executable'] == 'CONTROLResonant.exe' for p in profiles):
         raise ValueError('Unknown game fingerprint; update refused')
-    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility)
+    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer)
     hashes = {name: digest(source) for name, source in sources.items()}
     changes = {name: source for name, source in sources.items() if receipt['files'].get(name) != hashes[name]}
+    removals = set(OBSERVER_FILES) & receipt['files'].keys() if disable_engine_observer else set()
+    for name in removals:
+        print('REMOVE ' + str(checked_path(game, name)))
     for name in changes:
         target = checked_path(game, name)
         if name not in receipt['files'] and target.exists():
@@ -197,7 +210,7 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
         print('Preview only. Pass --update --apply with the game closed to update.')
         return
     require_closed(game)
-    if not changes:
+    if not changes and not removals:
         print('Already up to date.')
         return
     token = uuid.uuid4().hex
@@ -213,7 +226,9 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
                 shutil.copyfileobj(inp, out)
             if digest(stage) != hashes[name]:
                 raise ValueError(f'Copy verification failed: {name}')
-        new_receipt = dict(receipt, files={**receipt['files'], **hashes})
+        for name in removals:
+            stages[name] = None
+        new_receipt = dict(receipt, files={name: value for name, value in {**receipt['files'], **hashes}.items() if name not in removals})
         target = checked_path(game, RECEIPT)
         stages[RECEIPT] = target.with_name(target.name + '.' + token + '.new')
         with stages[RECEIPT].open('x', encoding='utf-8') as out:
@@ -224,7 +239,8 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
                 backup = target.with_name(target.name + '.' + token + '.backup')
                 target.rename(backup)
                 backups[name] = backup
-            stage.replace(target)
+            if stage is not None:
+                stage.replace(target)
             published.append(name)
         succeeded = True
     except Exception:
@@ -238,7 +254,8 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
         raise
     finally:
         for stage in stages.values():
-            stage.unlink(missing_ok=True)
+            if stage is not None:
+                stage.unlink(missing_ok=True)
         if succeeded:
             for backup in backups.values():
                 backup.unlink()
@@ -256,14 +273,20 @@ def main():
     parser.add_argument('--experimental-noclip', action='store_true', help='Install the opt-in experimental noclip example and enable its native bridge')
     parser.add_argument('--entity-inspector', action='store_true', help='Enable read-only player inspection; takes precedence over noclip at runtime')
     parser.add_argument('--experimental-visibility', action='store_true', help='Install the Wasm visibility example and enable hold-F7 player mesh hiding')
+    observer_mode = parser.add_mutually_exclusive_group()
+    observer_mode.add_argument('--engine-observer', action='store_true', help='Enable observe-only engine validation; suspends all mods and other gameplay modes')
+    observer_mode.add_argument('--disable-engine-observer', action='store_true', help='With --update, remove the owned observer marker and restore ordinary startup')
     args = parser.parse_args()
+    if args.disable_engine_observer and not args.update:
+        parser.error('--disable-engine-observer requires --update')
     try:
         if args.uninstall:
             uninstall(args.game, args.apply)
         else:
             profiles = json.loads((ROOT / 'compatibility.json').read_text())['profiles']
             action = update if args.update else install
-            action(args.game, args.dist, profiles, args.apply, args.experimental_noclip, args.entity_inspector, args.experimental_visibility)
+            options = {'disable_engine_observer': args.disable_engine_observer} if args.update else {}
+            action(args.game, args.dist, profiles, args.apply, args.experimental_noclip, args.entity_inspector, args.experimental_visibility, args.engine_observer, **options)
     except (OSError, ValueError, KeyError) as error:
         parser.exit(1, f'{error}\n')
 

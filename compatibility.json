@@ -20,6 +20,17 @@
         "shutdown_tested": false
       },
       "gameplay_bridge": false,
+      "engine_observer": {
+        "implemented": true,
+        "live_verified": false,
+        "requires_opt_in": true,
+        "suspends_mods_and_gameplay_features": true,
+        "scope": "selected update phases, player/resource identity snapshots, normal physics completion",
+        "destruction_and_scheduler_safety_verified": false,
+        "capture_schema": 1,
+        "max_capture_mib": 64,
+        "max_capture_minutes": 10
+      },
       "entity_inspector": {
         "implemented": true,
         "live_verified": true,

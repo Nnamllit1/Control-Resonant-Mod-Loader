@@ -13,6 +13,53 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def observer_fixture(self):
+        (self.dist / 'crml/build-features.json').write_text('{"engine_observer": true}')
+        (self.dist / 'crml/engine-observer.enabled').write_text('')
+
+    def test_observer_build_gate_and_exclusive_selection(self):
+        (self.dist / 'crml/build-features.json').write_text('{"experimental_gameplay": true}')
+        with self.assertRaisesRegex(ValueError, 'Rebuild'):
+            installer.sources_for(self.dist, engine_observer=True)
+        self.observer_fixture()
+        with self.assertRaisesRegex(ValueError, 'without other'):
+            installer.sources_for(self.dist, engine_observer=True, experimental_visibility=True)
+        sources=installer.sources_for(self.dist, engine_observer=True)
+        self.assertIn('crml/engine-observer.enabled',sources)
+        self.assertNotIn('crml/noclip.enabled',sources)
+
+    def test_observer_enable_disable_and_uninstall(self):
+        installer.install(self.game,self.dist,self.profiles,True)
+        self.observer_fixture()
+        installer.update(self.game,self.dist,self.profiles,True,engine_observer=True)
+        marker=self.game / 'crml/engine-observer.enabled'
+        self.assertTrue(marker.exists())
+        log=self.game / 'crml/engine-observer-session.jsonl'
+        log.write_text('preserve capture')
+        installer.update(self.game,self.dist,self.profiles,disable_engine_observer=True)
+        self.assertTrue(marker.exists())
+        installer.update(self.game,self.dist,self.profiles,True,disable_engine_observer=True)
+        self.assertFalse(marker.exists())
+        self.assertNotIn('crml/engine-observer.enabled',installer.read_receipt(self.game)['files'])
+        installer.update(self.game,self.dist,self.profiles,True,engine_observer=True)
+        installer.uninstall(self.game,True)
+        self.assertFalse(marker.exists())
+        self.assertEqual(log.read_text(),'preserve capture')
+
+    def test_observer_removal_rolls_back_with_receipt_failure(self):
+        self.observer_fixture()
+        installer.install(self.game,self.dist,self.profiles,True,engine_observer=True)
+        before={p.relative_to(self.game):p.read_bytes() for p in self.game.rglob('*') if p.is_file()}
+        replace=Path.replace
+        def fail_receipt(path,target):
+            if path.name.endswith('.new') and Path(target).name=='install-receipt.json':
+                raise OSError('simulated receipt failure')
+            return replace(path,target)
+        with patch.object(Path,'replace',fail_receipt), self.assertRaisesRegex(OSError,'simulated'):
+            installer.update(self.game,self.dist,self.profiles,True,disable_engine_observer=True)
+        after={p.relative_to(self.game):p.read_bytes() for p in self.game.rglob('*') if p.is_file()}
+        self.assertEqual(before,after)
+
     def test_inspector_requires_build_support(self):
         features=self.dist / 'crml/build-features.json'
         features.write_text('{"experimental_gameplay": false}')
