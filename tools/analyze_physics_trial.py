@@ -17,6 +17,8 @@ def analyze(path):
     latest_search = None
     targets = []
     controls = []
+    lifetime_events = []
+    lifetime_missed = 0
     target_dropped = 0
     terminal = None
     header = False
@@ -72,6 +74,9 @@ def analyze(path):
                 if type(item.get('target_dropped', 0)) is not int or item.get('target_dropped', 0) < 0:
                     raise ValueError('Invalid target drop count')
                 target_dropped = max(target_dropped, item.get('target_dropped', 0))
+                if type(item.get('lifetime_missed', 0)) is not int or item.get('lifetime_missed', 0) < 0:
+                    raise ValueError('Invalid lifetime miss count')
+                lifetime_missed = max(lifetime_missed, item.get('lifetime_missed', 0))
                 for name in ('selection_slots', 'selection_scanned'):
                     if type(item.get(name, 0)) is not int or not 0 <= item.get(name, 0) <= 2**20:
                         raise ValueError('Invalid selection bounds')
@@ -106,8 +111,15 @@ def analyze(path):
             if any(not isinstance(v, str) or not v.isascii() or not v.isdigit() or int(v) >= 2**64 for v in identities):
                 raise ValueError('Invalid identity')
             action, result = item['action'], item['result']
-            if action not in range(6) or (action == 0 and result > 6) or (action == 1 and result >= len(RESULTS)) or (action == 2 and (result & ~0x1ff or (result & 255) > 9)) or (action == 3 and (result >> 4 > 6 or result & 15 > 3)) or (action in (4, 5) and not 1 <= result <= 7):
+            if action not in range(7) or (action == 0 and result > 6) or (action == 1 and result >= len(RESULTS)) or (action == 2 and (result & ~0x1ff or (result & 255) > 9)) or (action == 3 and (result >> 4 > 6 or result & 15 > 3)) or (action in (4, 5) and not 1 <= result <= 7) or (action == 6 and result > 1):
                 raise ValueError('Unknown action or result')
+            if action == 6:
+                if not item['selection']:
+                    raise ValueError('Missing lifetime selection identity')
+                lifetime_events.append({'tick_ms': item['tick_ms'], 'selection': item['selection'],
+                                        'identity': list(identities),
+                                        'reason': 'scene_destroy' if result else 'body_release'})
+                continue
             if action in (4, 5):
                 controls.append({'tick_ms': item['tick_ms'], 'stage': 'input' if action == 4 else 'callback',
                                  'buttons': result, 'selection': item['selection']})
@@ -159,6 +171,7 @@ def analyze(path):
             'latest_search': latest_search,
             'targets': targets, 'target_dropped': target_dropped,
             'controls': controls,
+            'lifetime_events': lifetime_events, 'lifetime_missed': lifetime_missed,
             'gameplay_effect_verified': False}
 
 

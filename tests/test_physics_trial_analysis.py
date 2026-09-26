@@ -31,6 +31,19 @@ class AnalysisTests(unittest.TestCase):
         self.assertFalse(report['selections']['1']['restoration_observed'])
         self.assertTrue(report['selections']['1']['writes'][0]['attempted'])
 
+    def test_lifetime_events_are_not_restoration(self):
+        report = self.read([self.event(1, 0, 0), self.event(2, 6, 0)])
+        self.assertEqual(report['lifetime_events'][0]['reason'], 'body_release')
+        self.assertEqual(report['lifetime_events'][0]['identity'], ['1', '2', '3'])
+        self.assertFalse(report['selections']['1']['restoration_observed'])
+        self.assertEqual(self.read([self.event(1, 6, 1)])['lifetime_events'][0]['reason'], 'scene_destroy')
+        for bad in [self.event(1, 6, 2), {**self.event(1, 6, 0), 'selection': 0}]:
+            with self.assertRaises(ValueError): self.read([bad])
+        stats = dict(type='stats', dropped=0, dispatches=1, context_rejections=0, retirements=0, lifetime_missed=2)
+        self.assertEqual(self.read([stats])['lifetime_missed'], 2)
+        for bad in (-1, True):
+            with self.assertRaises(ValueError): self.read([{**stats, 'lifetime_missed': bad}])
+
     def test_baseline_is_captured_at_application(self):
         report = self.read([self.event(1, 0, 0, .25, .5), self.event(2, 2, 256, .75, 8),
                             self.event(3, 1, 6), self.event(4, 2, 256, 8, .75), self.event(5, 1, 9)])

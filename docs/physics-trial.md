@@ -41,11 +41,15 @@ Completed selection expires after 15 seconds. Stand closest to the prop you inte
 
 The selector excludes the player, entities with a character-controller component, character-attached items (`ItemAttached`), instances with multiple bodies, and alternate damping storage. It rechecks the selected body's identity and proximity after the search before enabling application. Player, controller and attachment exclusions are also checked on subsequent property accesses. Unreadable component metadata prevents access. The panel distinguishes no nearby candidate, nearly equal distances, a changed selection, and a timed-out search.
 
-Gently move the prop before and during the trial to compare how quickly its motion slows. Damping does not change friction or mass, and its effect may be hard to see on an object already at rest. The panel reports when the trial is active and when it finishes. A finished trial can include retirement or a conflicting game change; the log distinguishes these outcomes.
+Give the prop a brief push, then stop touching it and watch its free slide. Repeat during the five-second trial on the same surface with a similar push. With increased linear damping, expect a shorter slide and quicker loss of speed. The trial does not change friction, mass or angular damping, so continued spinning is not a failure. Continuous pushing, an object wedged against geometry, or an object already at rest makes this comparison inconclusive.
+
+The panel reports when the trial is active and when it finishes. To check manual restoration separately, press **F11** about one second after **F10**: the active trial should finish before the five-second timeout, and subsequent pushes should have the original response. Restoration does not recover momentum already lost. A finished trial can also include retirement or a conflicting game change; the log distinguishes these outcomes.
 
 The runtime samples the selected body's linear and angular speed at up to 10 Hz before application, during the trial, and for five seconds after it finishes. Busy or unreadable samples are marked as unavailable. This helps distinguish translation from rotation: the trial changes linear damping only. A comparison under different player contact or collision forces does not isolate damping's effect.
 
 Losing focus, losing the worker heartbeat, or reaching the diagnostic session limit requests restoration. Restoration runs in a subsequent physics callback, so pausing or loading can delay it. A different value written by the game is preserved instead of overwritten. Scene destruction and body release invalidate the corresponding selection; the runtime does not restore into a replacement body. These controls do not save or reload the game.
+
+To inspect lifetime handling across a reload, select a disposable prop with **F9**, run a trial with **F10**, and wait for it to finish. Reload the save at your own pace. After loading, **F10** alone should have no effect; use **F9** to select a fresh prop before starting another trial. The runtime retains a separate read-only identity watch after restoration or cancellation, until that body is released, its scene is destroyed, or another successful selection replaces the watch. This watch neither keeps the body alive nor permits further writes.
 
 ## Logs and reports
 
@@ -64,6 +68,8 @@ python tools/analyze_physics_trial.py "$capture" --output .local/physics-trial-r
 The report separates property restoration from visible gameplay effects. `restoration_observed` requires a successful native restoration write and a restoration outcome. Missing records or an unfinished trial are not proof of successful cleanup. The JSONL write event's `before` and `after` values are the expected old value and requested new value; only a successful status confirms their readback.
 
 `motion_summary` groups valid speed samples by phase; its maxima describe observed movement, not proof of a causal effect. `controls` records button edges and requests consumed by the physics callback (`1`: select, `2`: apply, `4`: restore/cancel). Callback restoration requests also include focus loss and session shutdown. Trial-mode input is polled every 10 ms.
+
+`lifetime_events` records entry into the watched body's release or scene-destruction hook (`action: 6`, result `0` or `1`). Each event retains the original selection, scene token, entity and full body handle, even after the writable selection is cleared. The first matching hook consumes the watch. `lifetime_missed` counts diagnostic lock contention; event-buffer losses remain in `dropped`. A missing event does not prove that the body survived. A retirement event does not by itself prove restoration or completion of destruction, and the older `retirements` counter tracks only the writable selection's watcher.
 
 ## Runtime behavior
 

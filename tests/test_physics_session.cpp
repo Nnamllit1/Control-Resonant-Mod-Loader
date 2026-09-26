@@ -1,6 +1,7 @@
 #include "physics_session.h"
 #include "physics_selection.h"
 #include "physics_target_diagnostics.h"
+#include "physics_lifetime_diagnostics.h"
 #include <iostream>
 #include <stdexcept>
 #include <limits>
@@ -9,6 +10,18 @@
 #include <sstream>
 using namespace crml::physics;
 void require(bool ok,const char* message) { if(!ok) throw std::runtime_error(message); }
+void test_lifetime_diagnostics() {
+    LifetimeDiagnostics watch;LifetimeIdentity out{};
+    require(watch.arm({1,2,3,0x100000004ull}),"arm identity watch");
+    require(!watch.take(9,0x100000004ull,false,out),"different scene cannot retire target");
+    require(!watch.take(2,0x200000004ull,false,out),"reused slot with different generation cannot retire target");
+    require(watch.take(2,0x100000004ull,false,out) && out.selection==1 && out.entity==3,"matching full body identity retires once");
+    require(!watch.take(2,0,true,out) && !out.selection,"no duplicate scene event after body retirement");
+    require(watch.arm({2,2,5,6}) && watch.arm({3,7,8,9}),"new selection replaces diagnostic identity");
+    require(!watch.take(2,6,false,out),"old selection no longer watched");
+    require(watch.take(7,0,true,out) && out.selection==3 && out.body==9,"whole scene invalidates retained identity");
+    require(watch.missed()==0,"uncontended diagnostics do not lose observations");
+}
 void test_target_diagnostics() {
     auto queue=std::make_unique<TargetDiagnostics>();
     TargetDiagnostic d{};d.search=1;d.player=10;d.entity=20;d.body=30;d.body_count=1;d.distance=.8f;
@@ -91,7 +104,7 @@ void test_selection() {
     require(search.begin(scope,100)==SelectionResult::invalid,"nonfinite position rejected");
 }
 int main() {
-    try {test_selection();test_target_diagnostics();} catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
+    try {test_selection();test_target_diagnostics();test_lifetime_diagnostics();} catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
     if(!crml::physics::test_session_prologues()) {std::cerr<<"Physics trial hook relocation failed\n";return 1;}
     std::cout<<"Physics nearest selection, bounds, batched search, cancellation, identity changes and hook relocation passed\n";
 }

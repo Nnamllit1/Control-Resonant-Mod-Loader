@@ -2,6 +2,7 @@
 #include "physics_trial.h"
 #include "physics_selection.h"
 #include "physics_target_diagnostics.h"
+#include "physics_lifetime_diagnostics.h"
 #include "physics_observation.h"
 #include "engine_observer.h"
 #include "overlay.h"
@@ -38,6 +39,7 @@ Buffer events;
 DampingTrial trial;
 SelectionSearch search;
 TargetDiagnostics target_diagnostics;
+LifetimeDiagnostics lifetime_diagnostics;
 uint64_t search_serial{};
 unsigned diagnosed_candidates{};
 std::array<uint64_t,16> diagnosed_entities{};
@@ -182,6 +184,7 @@ void select(const SimulationContext& context,uint64_t now,bool begin) noexcept {
     if(retiring.load() || retirement_serial.load()!=search.scope().retirement) retired=true;
     if(retired.load()) {selected={};ui=7;record(0,5);return;}
     ui=0;record(0,0,fresh.body.linear_damping,fresh.body.angular_damping);
+    lifetime_diagnostics.arm({selected.epoch,owner_token,selected.entity,selected.body});
 }
 void dispatch(void* view,uint16_t id,void* descriptor) {
     dispatch_original(view,id,descriptor);
@@ -240,15 +243,25 @@ void movement(void* view,void* world,void* collision,void* callback,void* scene,
         std::memcpy(player.position,sample.position,12); ReleaseSRWLockExclusive(&state_lock);
     }
 }
+void record_retirement(void* owner,uint64_t body,bool whole_scene) noexcept {
+    LifetimeIdentity identity{};
+    if(!lifetime_diagnostics.take(token(reinterpret_cast<uintptr_t>(owner)),body,whole_scene,identity)) return;
+    Event e{};e.kind=Kind::body;e.edge=6;e.flags=whole_scene?1:0;
+    e.qpc=GetTickCount64();e.thread=GetCurrentThreadId();e.span=identity.selection;
+    e.object=identity.scene;e.entity=identity.entity;e.detail=identity.body;
+    events.push(e);
+}
 void destroy(void* owner) {
     ++retiring; ++retirement_serial;
     if(token(reinterpret_cast<uintptr_t>(owner))==watched_owner.load()) {retired=true;++retirements;}
+    record_retirement(owner,0,true);
     destroy_original(owner);
     ++retirement_serial; --retiring;
 }
 void release(void* owner,uint64_t body) {
     ++retiring; ++retirement_serial;
     if(token(reinterpret_cast<uintptr_t>(owner))==watched_owner.load() && body==watched_body.load()) {retired=true;++retirements;}
+    record_retirement(owner,body,false);
     release_original(owner,body);
     ++retirement_serial; --retiring;
 }
@@ -333,6 +346,7 @@ void Session::poll() {
             <<",\"selection_candidates\":"<<selection_candidates.load()<<",\"nearest_distance\":"<<selection_nearest.load()
             <<",\"second_distance\":"<<selection_second.load()
             <<",\"target_dropped\":"<<target_diagnostics.dropped()
+            <<",\"lifetime_missed\":"<<lifetime_diagnostics.missed()
             <<",\"overlay\":\""<<probe::overlay_diagnostics().status<<"\"}\n";
         const auto line=text.str();
         if(bytes_+line.size()>4*1024*1024-2048) {accepting=false;commands.fetch_or(4);log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";log_.close();}
@@ -362,7 +376,22 @@ bool test_session_prologues() {
     release(reinterpret_cast<void*>(0x1000),watched_body.load());ok=ok && retired.load();
     retired=false;destroy(reinterpret_cast<void*>(0x2000));ok=ok && !retired.load();
     destroy(reinterpret_cast<void*>(0x1000));ok=ok && retired.load() && !retiring.load();
-    watched_owner=0;destroy_original=old_destroy;release_original=old_release;
+    // Cancellation clears the writable selection; lifecycle evidence must
+    // survive it without accessing that state or acquiring its lock.
+    watched_owner=0;selected={};events.open();
+    lifetime_diagnostics.arm({42,token(0x1000),99,0x500000003ull});
+    AcquireSRWLockExclusive(&state_lock);
+    release(reinterpret_cast<void*>(0x1000),0x500000003ull);
+    ReleaseSRWLockExclusive(&state_lock);
+    Event event{};
+    ok=ok && events.drain(&event,1)==1 && event.edge==6 && event.flags==0
+        && event.span==42 && event.entity==99 && event.detail==0x500000003ull;
+    destroy(reinterpret_cast<void*>(0x1000));
+    ok=ok && events.drain(&event,1)==0;
+    lifetime_diagnostics.arm({43,token(0x2000),100,0x600000004ull});
+    destroy(reinterpret_cast<void*>(0x2000));
+    ok=ok && events.drain(&event,1)==1 && event.edge==6 && event.flags==1 && event.span==43;
+    events.close();destroy_original=old_destroy;release_original=old_release;
     return ok;
 }
 #endif
