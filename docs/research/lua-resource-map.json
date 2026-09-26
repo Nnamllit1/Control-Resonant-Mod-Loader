@@ -276,8 +276,8 @@
   "gaps": [
     "Resource ID derivation and manager cache lookup internals.",
     "Loader adapter selection, mount precedence, and cancellation.",
-    "First-byte meaning and payload deserializer into Lua VM.",
-    "Throttled callback body, script-instance creation, scheduler order, and owning threads.",
+    "Envelope-byte meaning, complete bytecode format and compiler compatibility; the loader transition is traced in engine-paths-map.json.",
+    "Complete script-instance lifecycle, scheduler order and owning threads; preload processing and selected callback paths are traced in engine-paths-map.json.",
     "Typed refcount ownership contracts and safe mod-facing operations."
   ]
 }

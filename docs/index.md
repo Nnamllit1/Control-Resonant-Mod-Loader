@@ -13,6 +13,7 @@
 - **Write a mod:** [getting started](developing.md) and [API reference](api.md).
 - **Understand the boundary:** [sandbox limits](sandbox.md) and [architecture](architecture.md).
 - **Help connect the game:** [gameplay and noclip milestone](gameplay.md).
+- **Research the engine:** [subsystem atlas](engine-atlas.md), [system index](engine-system-index.md), and [reviewed operation paths](engine-paths.md).
 
 ## What runs today
 

@@ -23,7 +23,7 @@ Material path: metadata -> dependency IDs -> owned resource references
 World/render:  ECS material ID -> resource / render handle -> RenderQueue -> GPU
 ```
 
-This is a **working model**, not a complete verified execution graph. The Lua preload collection, resource callback paths, and material dependency resolver below were inspected in disassembly. The VM transition, material ECS handoff, render-queue consumer, and final GPU work still have gaps. Scheduling order cannot be inferred from the order of names in the executable.
+This is a **working model**, not a complete verified execution graph. The Lua preload collection, resource callback paths, and material dependency resolver below were inspected in disassembly. The subsequent [reviewed engine paths](engine-paths.md) connect preload processing to the bytecode loader and material stream-in to command submission. The render-queue consumer and final GPU work remain open. Scheduling order cannot be inferred from the order of names in the executable. The [engine atlas](engine-atlas.md) covers the broader subsystem surface and evidence levels.
 
 ## Shared resource infrastructure
 
@@ -62,9 +62,9 @@ The implementation performs these observable steps:
 
 This separates four identities/lifetimes: bundle ID, resource ID, owned resource object, and eventual script instance. An entity's persistent GlobalID and generation-checked runtime entity handle are additional, distinct identities.
 
-The Lua resource reader at `0x712150` uses the file object's virtual operations to obtain its length, reads one byte into resource `+0xb8`, allocates/resizes a compact buffer at `+0xa0`, and reads the remaining bytes into that buffer. The first byte's meaning and the consumer of the buffered representation still need tracing. Loading these bytes is not proof that the VM has instantiated or initialized the script.
+The Lua resource reader at `0x712150` uses the file object's virtual operations to obtain its length, reads one byte into resource `+0xb8`, allocates/resizes a compact buffer at `+0xa0`, and reads the remaining bytes into that buffer. The first byte's meaning remains unknown. The [buffer consumer](engine-paths.md#script-resources-and-the-vm) now connects to a Luau-like bytecode loader through `0x19c3730` and `0x3229280`. Loading these bytes is not proof that the VM has instantiated or initialized an entity's script.
 
-The registered `processThrottledLoading` dispatcher at `0x19bd7b0` is the next concrete target for following preload ownership into the VM. ECS signatures also name `LuaScriptPendingResource`, `FreshlyCreatedLuaScript`, `LuaInitEvents`, and `LuaPendingCallbackInstallations`; these identify additional lifecycle stages without yet proving their complete ordering.
+The registered `processThrottledLoading` dispatcher at `0x19bd7b0` calls `0x19c4d60`, which processes entity loading and the owned resource preload array. The [reviewed path](engine-paths.md#script-resources-and-the-vm) records cache lookup, VM loading, and reference release. ECS signatures also name `LuaScriptPendingResource`, `FreshlyCreatedLuaScript`, `LuaInitEvents`, and `LuaPendingCallbackInstallations`; complete lifecycle ordering and teardown still require verification.
 
 ## Rendering: material data and dependency ownership
 
@@ -82,7 +82,7 @@ The IDs become owned runtime references, with old references released during rep
 
 `rend::TextureResource` has another distinct object layout: reflected size `0x1b8`, instance vtable `0x4ddc780`, and async loading entry at `0x2e8ed20`. One branch builds metadata-driven setup arguments; another creates a `LambdaStreamJob` identified by RTTI as belonging to `TextureResource::requestLoad`, atomically appends it to a queue, and notifies a worker. The branch selector and metadata field semantics still require investigation. Texture loading is therefore not interchangeable with invoking the generic material reader.
 
-ECS metadata separately names `MaterialResourceID`, `MaterialResource`, `MaterialRenderHandle`, `MaterialOverrideTargets`, and `coregame::global::RenderQueue`, with material stream-in, stream-out, and destruction systems. These are leads for connecting world objects to rendering. Material release code also allocates command storage through a global context at `0x5e69000`; identifying its consumer is a specific next step.
+ECS metadata separately names `MaterialResourceID`, `MaterialResource`, `MaterialRenderHandle`, `MaterialOverrideTargets`, and `coregame::global::RenderQueue`, with material stream-in, stream-out, and destruction systems. [Material stream-in and parameter override paths](engine-paths.md#materials-and-renderer-handoff) now connect world processing to command submission through global context `0x5e69000`. Material release also allocates command storage there; identifying the consumer and retirement rules remains a specific next step.
 
 The GPU-facing work remains open: command decoding, shader selection, pipeline-state objects, descriptor binding, visibility, pass scheduling, and resource retirement. None of the recovered load methods is established as a safe draw or material-edit API yet.
 

@@ -72,7 +72,7 @@ These are locations in the fingerprinted executable, not public entry points. Ad
 
 ## Scripting and lifecycle
 
-The executable contains a Lua 5.1.4 identifier, `content::LuaScriptResource` loading metadata, and ECS systems that name script loading, initialization, updates, events, and streaming. The observed symbols give several specific lifecycle investigation targets:
+The executable contains a Lua 5.1.4 identifier, `content::LuaScriptResource` loading metadata, and ECS systems that name script loading, initialization, updates, events, and streaming. The identifier does not establish the serialized format: subsequent [loader tracing](engine-paths.md#script-resources-and-the-vm) reaches a Luau-like bytecode reader. The observed symbols identify several lifecycle stages:
 
 | System group | Named operations |
 | --- | --- |
@@ -86,7 +86,7 @@ This suggests a staged lifecycle with deferred loading and initialization. The a
 
 Candidate bindings include `nl_add_event_handler`, `nl_send_custom_event`, `nl_resource_stream_in`, `nl_resource_stream_out`, and `nl_is_resource_ready`. The scanner currently recognizes one compiler-generated sequence storing a string address followed by a function address. Other registration styles will be missed; names alone do not establish argument types or calling conventions.
 
-`data/lua_scripts/systems.binlua` is a 1,630-byte resource in the baseline, with `content::LuaScriptMetadata`. Its decoded first bytes are `00 06 03 2b`, whereas [Lua 5.1 defines its chunk signature](https://www.lua.org/source/5.1/lua.h.html) as `1b 4c 75 61`. Treat `.binlua` as an engine-specific serialized resource until its reader is traced; a stock Lua bytecode loader has not been shown to accept it.
+`data/lua_scripts/systems.binlua` is a 1,630-byte resource in the baseline, with `content::LuaScriptMetadata`. Its decoded first bytes are `00 06 03 2b`, whereas [Lua 5.1 defines its chunk signature](https://www.lua.org/source/5.1/lua.h.html) as `1b 4c 75 61`. The traced reader separates an envelope byte; the remainder is consistent with the Luau-like loader's bytecode version 6, type version 3, and initial string count. See [the VM path and its limits](engine-paths.md#script-resources-and-the-vm). Exact compiler compatibility and the complete engine resource format remain unverified.
 
 ## UI and gameplay are connected through engine APIs
 
@@ -98,7 +98,9 @@ The existing native bridge also demonstrates entity handles, generation checks, 
 
 ## Next investigation steps
 
-1. Trace `LuaScriptResource::requestLoad` and `blockingLoad` into the `.binlua` deserializer. Identify its field encoding and how it creates a Lua function or script instance.
+The [engine atlas](engine-atlas.md) now indexes every recovered system declaration and the complete candidate-binding catalog. [Reviewed operation paths](engine-paths.md) connect representative script, spawn/remove, physics, material, UI, audio, animation, camera, AI, and save entries to their implementations. The remaining work concerns ownership, scheduling, consumers, and live verification rather than finding names alone.
+
+1. Extend the now-connected resource-to-bytecode-loader path through complete per-entity initialization and teardown; establish callback and VM-reference lifetimes.
 2. Follow `processPendingRegistrations`, script initialization, and `luaFixedUpdate` to establish ownership and lifecycle order. Match at least one named asset to its live instance.
 3. Trace resource mount selection and `nl_resource_stream_in` to determine identity lookup, cache behavior, and whether a supported override mechanism exists.
 4. Trace the compiled UI page reader and Lua UI callbacks to identify a bounded UI extension point.

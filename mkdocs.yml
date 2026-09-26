@@ -60,6 +60,9 @@ nav:
   - Contributing:
       - Architecture: architecture.md
       - Engine research: engine-research.md
+      - Engine atlas: engine-atlas.md
+      - System index: engine-system-index.md
+      - Reviewed engine paths: engine-paths.md
       - Engine internals: engine-internals.md
       - Physics dynamics: physics-dynamics.md
       - Entity inspector: entity-inspector.md

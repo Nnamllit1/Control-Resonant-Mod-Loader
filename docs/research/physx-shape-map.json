@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "title": "Separate query and simulation shape filters",
+  "executable_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
+  "status": "Backend RVAs. Candidate vtable base; constructor ownership and filter bit semantics remain unresolved.",
+  "documentation": "../engine-paths.md",
+  "checks": [
+    {
+      "kind": "pointer64",
+      "rva": "0x163bb8",
+      "target": "0x3bd20",
+      "label": "candidate shape slot +0x68 simulation-filter setter"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x163bc8",
+      "target": "0x3bc30",
+      "label": "candidate shape slot +0x78 query-filter setter"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3bd8f",
+      "target": "0x3b1a0",
+      "label": "simulation filter notifies owner"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3b1f4",
+      "target": "0xff730",
+      "label": "filter change propagates to internal owner"
+    }
+  ]
+}

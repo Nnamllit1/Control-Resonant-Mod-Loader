@@ -245,7 +245,7 @@
   ],
   "gaps": [
     "Resolve names of all three material dependency type descriptors.",
-    "Trace material streamIn system from scheduler registration to implementation and RenderQueue commands.",
+    "Complete material command semantics and retirement; streamIn registration, implementation and command production are traced in engine-paths-map.json.",
     "Trace RenderQueue consumer and material command decoding.",
     "Identify shader/PSO and GPU descriptor binding; no draw-pass semantics established.",
     "Validate load, dependency availability, streaming, and release ordering on owning threads."

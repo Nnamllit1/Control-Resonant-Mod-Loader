@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "title": "Dynamic-body damping, sleep, solver and contact properties",
+  "executable_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
+  "status": "Backend static references; engine property ownership, units and live phase safety remain unverified.",
+  "documentation": "../physics-dynamics.md",
+  "checks": [
+    {
+      "kind": "pointer64",
+      "rva": "0x15deb0",
+      "target": "0x24c30",
+      "label": "linear damping setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15dec0",
+      "target": "0x236e0",
+      "label": "angular damping setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15df50",
+      "target": "0x250d0",
+      "label": "CCD advance coefficient setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15df60",
+      "target": "0x25010",
+      "label": "maximum depenetration velocity setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15df70",
+      "target": "0x24fb0",
+      "label": "maximum contact impulse setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15df80",
+      "target": "0x24120",
+      "label": "contact slop coefficient setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15df98",
+      "target": "0x24870",
+      "label": "kinematic target setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15dfb0",
+      "target": "0x259d0",
+      "label": "sleep threshold setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15dfc0",
+      "target": "0x25cd0",
+      "label": "stabilization threshold setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15e000",
+      "target": "0x25970",
+      "label": "dynamic axis lock flags setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15e018",
+      "target": "0x25a30",
+      "label": "solver iteration counts setter slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15e030",
+      "target": "0x240c0",
+      "label": "contact report threshold setter slot"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x24c83",
+      "target": "0xff3d0",
+      "label": "linear damping"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x23733",
+      "target": "0xfe880",
+      "label": "angular damping"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x25a23",
+      "target": "0xff530",
+      "label": "sleep threshold"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x25d23",
+      "target": "0xff290",
+      "label": "stabilization threshold"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x25003",
+      "target": "0xff4a0",
+      "label": "maximum contact impulse"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x24173",
+      "target": "0xff510",
+      "label": "contact slop coefficient"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x25a94",
+      "target": "0xff550",
+      "label": "solver iteration counts"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xff40c",
+      "target": "0x10e7d0",
+      "label": "linear damping propagation"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xfe8bc",
+      "target": "0x10e7d0",
+      "label": "angular damping propagation"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xff547",
+      "target": "0x10e7d0",
+      "label": "sleep threshold propagation"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xff2a7",
+      "target": "0x10e7d0",
+      "label": "stabilization propagation"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xff4b7",
+      "target": "0x10e7d0",
+      "label": "contact impulse propagation"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xff527",
+      "target": "0x10e7d0",
+      "label": "contact slop propagation"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x15c6f0",
+      "target": "0x80000000",
+      "label": "depenetration storage sign-bit mask"
+    }
+  ]
+}

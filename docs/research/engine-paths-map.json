@@ -1,0 +1,531 @@
+{
+  "schema": 1,
+  "title": "Cross-system engine operation paths",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static evidence. Labels require the accompanying disassembly review; no callable ABI or live scheduling claim.",
+  "documentation": "../engine-paths.md",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x19bd880",
+      "target": "0x19c4d60",
+      "label": "script loading: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c4f38",
+      "target": "0x19c4310",
+      "label": "script loading: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c4ffe",
+      "target": "0x19c2050",
+      "label": "script loading: call 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c502d",
+      "target": "0x31cf8c0",
+      "label": "script loading: call 4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c20ef",
+      "target": "0x19be0a0",
+      "label": "script loading: call 5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c214d",
+      "target": "0x19c3730",
+      "label": "script loading: call 6"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c2191",
+      "target": "0x2c507a0",
+      "label": "script loading: call 7"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c21fd",
+      "target": "0x19bbb90",
+      "label": "script loading: call 8"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c3778",
+      "target": "0x711e90",
+      "label": "script loading: call 9"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c384d",
+      "target": "0x3229280",
+      "label": "script loading: call 10"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c3897",
+      "target": "0x3229d50",
+      "label": "script loading: call 11"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x322929d",
+      "target": "0x2c27b70",
+      "label": "script loading: call 12"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c4423",
+      "target": "0x19aaf20",
+      "label": "script loading: call 13"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c44d3",
+      "target": "0x19c2050",
+      "label": "script loading: call 14"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19c4533",
+      "target": "0x2c4fc90",
+      "label": "script loading: call 15"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19bbe0e",
+      "target": "0x19b4ae0",
+      "label": "script callbacks: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19b4c3b",
+      "target": "0x1a0a6e0",
+      "label": "script callbacks: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a0aada",
+      "target": "0x2c4fc90",
+      "label": "script callbacks: call 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a0ad5c",
+      "target": "0x2c4fc90",
+      "label": "script callbacks: call 4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a16774",
+      "target": "0x2c507a0",
+      "label": "script callbacks: call 5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a1678e",
+      "target": "0x19aaf20",
+      "label": "script callbacks: call 6"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a1680a",
+      "target": "0x19abac0",
+      "label": "script callbacks: call 7"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a156ff",
+      "target": "0x1a0a390",
+      "label": "script callbacks: call 8"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a1571d",
+      "target": "0x2c507a0",
+      "label": "script callbacks: call 9"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a157c6",
+      "target": "0x1a1eec0",
+      "label": "script callbacks: call 10"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a15893",
+      "target": "0x1a1ec90",
+      "label": "script callbacks: call 11"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a15fa9",
+      "target": "0x1a00060",
+      "label": "script callbacks: call 12"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a160a7",
+      "target": "0x2c4fc90",
+      "label": "script callbacks: call 13"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23910e3",
+      "target": "0x188e260",
+      "label": "structural commands: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23821ff",
+      "target": "0x22e7030",
+      "label": "structural commands: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2382539",
+      "target": "0x188e890",
+      "label": "structural commands: call 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188e89e",
+      "target": "0x443a30",
+      "label": "structural commands: call 4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1af20c5",
+      "target": "0x1d4d160",
+      "label": "structural commands: call 5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d4d1e5",
+      "target": "0x1d4d370",
+      "label": "structural commands: call 6"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d4d232",
+      "target": "0x32714a0",
+      "label": "structural commands: call 7"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17df943",
+      "target": "0x1a016f0",
+      "label": "UI models and events: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19da721",
+      "target": "0x1b4ff30",
+      "label": "UI models and events: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3345aac",
+      "target": "0x3f5590",
+      "label": "audio buffering: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3307729",
+      "target": "0x32f53b0",
+      "label": "audio buffering: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1996027",
+      "target": "0x1987860",
+      "label": "material command submission: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1987da7",
+      "target": "0x31cab80",
+      "label": "material command submission: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1987dd2",
+      "target": "0x31cf8c0",
+      "label": "material command submission: call 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1987a82",
+      "target": "0x2fb8340",
+      "label": "material command submission: call 4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1987b61",
+      "target": "0x2fb8340",
+      "label": "material command submission: call 5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1988059",
+      "target": "0x393109d",
+      "label": "material command submission: call 6"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19880ac",
+      "target": "0x393109d",
+      "label": "material command submission: call 7"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1995992",
+      "target": "0x198e550",
+      "label": "material command submission: call 8"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x198e6ed",
+      "target": "0x199aaf0",
+      "label": "material command submission: call 9"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x198e770",
+      "target": "0x199a7c0",
+      "label": "material command submission: call 10"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x198e7ed",
+      "target": "0x199a7c0",
+      "label": "material command submission: call 11"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x198e85a",
+      "target": "0x199aef0",
+      "label": "material command submission: call 12"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18d22c4",
+      "target": "0x18d2d50",
+      "label": "material command submission: call 13"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18d3ec8",
+      "target": "0x3933315",
+      "label": "material command submission: call 14"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19cb607",
+      "target": "0x19e0d80",
+      "label": "camera: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19cb620",
+      "target": "0x1ba97c0",
+      "label": "camera: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19cb632",
+      "target": "0x2c4e800",
+      "label": "camera: call 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1addc1b",
+      "target": "0x1ad9e30",
+      "label": "camera: call 4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ada870",
+      "target": "0x1811fe0",
+      "label": "camera: call 5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1c1e3d2",
+      "target": "0x1c175b0",
+      "label": "animation event production: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1c17668",
+      "target": "0x1c23dc0",
+      "label": "animation event production: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1c17702",
+      "target": "0x1a016f0",
+      "label": "animation event production: call 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1c1776f",
+      "target": "0x4a7870",
+      "label": "animation event production: call 4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1c17832",
+      "target": "0x1a016f0",
+      "label": "animation event production: call 5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1c178ae",
+      "target": "0x4a7870",
+      "label": "animation event production: call 6"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2522c39",
+      "target": "0x2521230",
+      "label": "AI work scheduling: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2521569",
+      "target": "0x3271560",
+      "label": "AI work scheduling: call 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x25215d3",
+      "target": "0x3271140",
+      "label": "AI work scheduling: call 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2521632",
+      "target": "0x3271690",
+      "label": "AI work scheduling: call 4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x252168f",
+      "target": "0x32711a0",
+      "label": "AI work scheduling: call 5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x25216a3",
+      "target": "0x32713d0",
+      "label": "AI work scheduling: call 6"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18c37a8",
+      "target": "0x18c0f90",
+      "label": "save request processing: call 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cff900",
+      "target": "0x2cdd5b0",
+      "label": "shape filter construction: call 1"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1893686",
+      "target": "0x188f780",
+      "label": "spawn dispatcher"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x17e06ab",
+      "target": "0x17df510",
+      "label": "UI event dispatcher"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x18d22d5",
+      "target": "0x18d3e60",
+      "label": "renderer synchronization dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19c0df5",
+      "target": "0x19bd7b0",
+      "label": "script preload registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19b2687",
+      "target": "0x19bbda0",
+      "label": "script fixed update registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1894449",
+      "target": "0x1893610",
+      "label": "spawn requests registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17de729",
+      "target": "0x17e06a0",
+      "label": "UI Lua callbacks registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x331295d",
+      "target": "0x3307570",
+      "label": "audio control flush registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1986561",
+      "target": "0x1995f80",
+      "label": "material stream-in registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1986f40",
+      "target": "0x1995730",
+      "label": "material override registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x18d20ad",
+      "target": "0x18d22c0",
+      "label": "renderer synchronization registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1adef4e",
+      "target": "0x1addab0",
+      "label": "free camera registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1c2110e",
+      "target": "0x1c1e190",
+      "label": "animation Lua events registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x251ca0a",
+      "target": "0x2522b00",
+      "label": "behavior tree registration candidate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x18c0db8",
+      "target": "0x18c3770",
+      "label": "save write requests registration candidate"
+    }
+  ]
+}

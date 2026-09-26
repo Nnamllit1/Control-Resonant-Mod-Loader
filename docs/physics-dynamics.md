@@ -12,6 +12,7 @@ Game RVAs refer to the executable fingerprint in the [game dynamics map](researc
 | Per-body gravity | Setter/getter, disable flag, game reset and queued actions | All overriding systems, recreation and character-controller behavior |
 | Scene gravity | Game setting, vector construction, backend submission, temporary immediate-mode override | Interaction with all local gravity/anomaly systems |
 | Mass and inertia | Concrete backend setters, inverse-value conversion, computed-inertia clamp and cache updates | Full shape mass integration, density derivation and all invalid-input behavior |
+| Damping, sleep and solver properties | Diagnostic-identified setters, dynamic vtable slots, alternate damping storage and propagation | Engine-side ownership, units, overrides and phase-correct modification |
 | Simulation | Normal submission/wait sequence, completion task, substeps, immediate-mode solver calls | Complete scheduler dependency graph, callback exclusion and immediate-mode data layouts |
 
 ## Concrete rigid-body backend
@@ -141,13 +142,45 @@ The result is written to the engine's inertia cache and backend slot +0x110. Cen
 
 The now-resolved backend mass setter `0x24e20` converts positive mass to its reciprocal and passes zero otherwise, then forwards to `0xff320`. The inertia setter `0x24e90` converts each nonzero component to its reciprocal, preserving zero components as zero, before forwarding to `0xff2b0`. Both contain simulation-running rejection paths. This explains why raw backend fields cannot be assumed to store the same quantities as the engine's mass and inertia caches. It does not authorize arbitrary negative or nonfinite inputs.
 
+## Damping, sleeping, and contact/solver properties
+
+The same constructor-established dynamic-body vtable `0x15dd88` contains additional property setters. Method diagnostics identify their names independently of the slot numbers. The [property map](research/physx-properties-map.json) verifies 26 table entries, transfers, and constants. All addresses in this section are **PhysX DLL RVAs**; offsets are backend layout evidence, not guest API fields.
+
+| Property | Vtable slot | Setter RVA | Reviewed behavior |
+| --- | --- | --- | --- |
+| Linear damping | `+0x128` | `0x24c30` | Transfers to `0xff3d0`; normal and tagged alternate storage |
+| Angular damping | `+0x138` | `0x236e0` | Transfers to `0xfe880`; normal and tagged alternate storage |
+| Minimum CCD advance coefficient | `+0x1c8` | `0x250d0` | Writes actor `+0x9c` |
+| Maximum depenetration velocity | `+0x1d8` | `0x25010` | Flips the float sign bit and stores at actor `+0xac` |
+| Maximum contact impulse | `+0x1e8` | `0x24fb0` | Transfers to `0xff4a0`; stores and propagates |
+| Contact slop coefficient | `+0x1f8` | `0x24120` | Transfers to `0xff510`; stores and propagates |
+| Kinematic target | `+0x210` | `0x24870` | Identified entry and phase guard; target processing not fully traced |
+| Sleep threshold | `+0x228` | `0x259d0` | Transfers to `0xff530`; stores and propagates |
+| Stabilization threshold | `+0x238` | `0x25cd0` | Transfers to `0xff290`; stores and propagates |
+| Dynamic lock flags | `+0x278` | `0x25970` | Copies a flag byte to actor `+0xfe`; bit-to-axis mapping unverified |
+| Solver iteration counts | `+0x290` | `0x25a30` | Packs two inputs into a 16-bit value, transfers to `0xff550` |
+| Contact report threshold | `+0x2a8` | `0x240c0` | Applies scalar maximum with zero and stores actor `+0xbc` |
+
+The reviewed setters reject an ordinary simulation-running state before modification. Kinematic-target entry `0x24870` has an additional exception when scene state at `+0x16ac` equals 2; its meaning remains unknown. These checks do not establish a mod scheduling window or comprehensive input validation.
+
+Most helper calls receive **actor `+0x50`**, called the core below. Normal linear/angular damping lives at core `+0x78`/`+0x7c`. If the core has an associated simulation object and core flags `+0x2c` bit 0 is set, the helper instead accesses simulation-object `+0xc0` and requires representation byte `+0x1f` to equal **1**. It writes damping at that state's `+0x30`/`+0x34`.
+
+That is the same state pointer whose **tag 0** interpretation holds force/velocity accumulators in the earlier trace. Reading `+0x30` without checking the representation can therefore mistake damping for an angular velocity-change term. The alternate path assumes its state invariant rather than providing a safe fallback for an invalid pointer.
+
+Normal damping changes propagate through `0x10e7d0` when an associated simulation object exists. Sleep threshold, stabilization threshold, maximum contact impulse, and contact slop similarly write core `+0x94`, `+0x98`, `+0x90`, and `+0xa8`, respectively, before the same propagation route. The full downstream effect of `0x10e7d0` is not yet traced.
+
+The solver-iteration setter packs the low byte of one input and the low byte of the next into the low/high bytes of a word. Helper `0xff550` writes core `+0x2e`, updates associated simulation-object `+0x8e` if present, and sets a downstream dirty byte. The semantic order of the two counts and their accepted ranges still require independent confirmation.
+
+The game's binding catalog also exposes body-group awake/frozen/enable/kinematic controls and joint angular/linear velocity, free-spin, maximum-force, and detach candidates. These are group/joint operations, not necessarily per-body property setters. Their full callback argument schemas and engine override behavior remain open. Density, material combine modes, complete CCD flags, contact modification, articulation/joint limits, and character-controller movement properties are not fully mapped by this table.
+
 ## Verification and next investigation
 
 ```powershell
 python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\CONTROLResonant.exe" docs/research/game-dynamics-map.json
 python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\PhysX_64.dll" docs/research/physx-dynamics-map.json
+python tools/verify_engine_map.py "F:\SteamLibrary\steamapps\common\CONTROL Resonant\PhysX_64.dll" docs/research/physx-properties-map.json
 ```
 
 The checks validate encoded references for these exact files. They do not prove callable ABIs, complete semantics, live scheduler safety, or behavior after a scene reload.
 
-The next research targets are collision filters/shape ownership and immediate-mode constraint data and writeback, followed by the remaining solver and task-manager dependencies. These address which contacts a body participates in and where a future bridge can safely apply changes. The acceleration-retention flag route and all gameplay override producers also remain open. Character-controller movement should remain a separate investigation before returning to noclip or free flight.
+The subsequent [shape-filter trace](engine-paths.md#shape-filters-and-collision-ownership) separates query and simulation storage, identifies the game filter packer, and follows shape creation through attach/release. Filter bit meanings and complete shape ownership remain open, alongside immediate-mode constraint data/writeback and solver/task-manager dependencies. These address which contacts a body participates in and where a future bridge can safely apply changes. The acceleration-retention flag route and all gameplay override producers also remain open. Character-controller movement should remain a separate investigation before returning to noclip or free flight. The [engine atlas](engine-atlas.md) places these properties in the broader engine surface.
