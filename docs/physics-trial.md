@@ -39,15 +39,19 @@ Stay still while the panel shows **Searching nearby props**. Selection searches 
 
 Completed selection expires after 15 seconds. Stand closest to the prop you intend to change. The search compares all eligible props and selects the nearest; if the closest two distances differ by less than 0.1 world units, the panel asks you to move closer to one and retry. Distances use entity origins and the player's position at the start of the search, rather than the camera crosshair or mesh surfaces.
 
-The selector excludes the player, entities with a character-controller component, instances with multiple bodies, and alternate damping storage. It rechecks the selected body's identity and proximity after the search before enabling application. The panel distinguishes no nearby candidate, nearly equal distances, a changed selection, and a timed-out search.
+The selector excludes the player, entities with a character-controller component, character-attached items (`ItemAttached`), instances with multiple bodies, and alternate damping storage. It rechecks the selected body's identity and proximity after the search before enabling application. Player, controller and attachment exclusions are also checked on subsequent property accesses. Unreadable component metadata prevents access. The panel distinguishes no nearby candidate, nearly equal distances, a changed selection, and a timed-out search.
 
 Gently move the prop before and during the trial to compare how quickly its motion slows. Damping does not change friction or mass, and its effect may be hard to see on an object already at rest. The panel reports when the trial is active and when it finishes. A finished trial can include retirement or a conflicting game change; the log distinguishes these outcomes.
+
+The runtime samples the selected body's linear and angular speed at up to 10 Hz before application, during the trial, and for five seconds after it finishes. Busy or unreadable samples are marked as unavailable. This helps distinguish translation from rotation: the trial changes linear damping only. A comparison under different player contact or collision forces does not isolate damping's effect.
 
 Losing focus, losing the worker heartbeat, or reaching the diagnostic session limit requests restoration. Restoration runs in a subsequent physics callback, so pausing or loading can delay it. A different value written by the game is preserved instead of overwritten. Scene destruction and body release invalidate the corresponding selection; the runtime does not restore into a replacement body. These controls do not save or reload the game.
 
 ## Logs and reports
 
 Each session writes `crml/physics-trial-<pid>-<tick>.jsonl`. Logs contain selection identities, native write attempts, readback results, trial outcomes, callback counts, retirement counts and dropped-record counts. Addresses are replaced with session-specific tokens. Logs are capped at 4 MiB; new requests stop after ten minutes or a logging failure, while pending restoration continues through the physics callback.
+
+Each search also records the player and up to 16 distinct nearby entities, including full entity/body identities, positions, local body counts and component hashes. Multiple bodies belonging to one entity share one diagnostic record. Candidate `exclusion` values are `0` (eligible), `1` (player), `2` (character controller), `3` (body-count or local-index restriction), `4` (alternate damping storage), `5` (character-attached item), and `6` (unreadable entity metadata). These read-only records help distinguish nearby props from player-associated entities. They do not establish the attachment's owner by themselves. `target_dropped` reports losses from the separate bounded diagnostic queue.
 
 Generate a report locally:
 
@@ -58,6 +62,8 @@ python tools/analyze_physics_trial.py "$capture" --output .local/physics-trial-r
 ```
 
 The report separates property restoration from visible gameplay effects. `restoration_observed` requires a successful native restoration write and a restoration outcome. Missing records or an unfinished trial are not proof of successful cleanup. The JSONL write event's `before` and `after` values are the expected old value and requested new value; only a successful status confirms their readback.
+
+`motion_summary` groups valid speed samples by phase; its maxima describe observed movement, not proof of a causal effect. `controls` records button edges and requests consumed by the physics callback (`1`: select, `2`: apply, `4`: restore/cancel). Callback restoration requests also include focus loss and session shutdown. Trial-mode input is polled every 10 ms.
 
 ## Runtime behavior
 

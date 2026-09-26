@@ -3,6 +3,7 @@
 #include "visibility.h"
 #include "noclip.h"
 #include "fall_guard.h"
+#include "physics_target_diagnostics.h"
 #include <cmath>
 #include <Windows.h>
 #include <MinHook.h>
@@ -87,6 +88,22 @@ __declspec(noinline) void target(void* a,void* b,void* c,void* d,void* e,void* f
 void detour(void* a,void* b,void* c,void* d,void* e,void* f) { ++intercepted; trampoline(a,b,c,d,e,f); }
 int main() {
     try {
+        {
+            using crml::physics::entity_exclusion;
+            Fixture f(3);const uint64_t entity=(uint64_t{7}<<32)|2;
+            require(entity_exclusion(f.world_pointer,entity,entity)==1,"Physics selection excludes direct player");
+            require(entity_exclusion(f.world_pointer,entity,99)==2,"Physics selection excludes controller");
+            put(f.hashes,4,uint32_t{0x787f4f88});
+            put(f.offsets,4,uint32_t{0}); // Tag presence must not need a guessed payload layout.
+            require(entity_exclusion(f.world_pointer,entity,99)==5,"Attached item excluded by component identity");
+            put(f.hashes,4,uint32_t{0x12345678});
+            require(entity_exclusion(f.world_pointer,entity,99)==0,"Ordinary entity remains eligible");
+            put(f.hashes,4,uint32_t{0x787f4f88});
+            require(entity_exclusion(f.world_pointer,entity,99)==5,"Newly attached item becomes ineligible on recheck");
+            put(f.generations,16,uint32_t{8});
+            require(entity_exclusion(f.world_pointer,entity,99)==6,"Stale entity is not considered unattached");
+            require(entity_exclusion(1,entity,99)==6,"Unreadable entity is not considered unattached");
+        }
         {
             using namespace crml::probe::visibility;
             Lease lease;

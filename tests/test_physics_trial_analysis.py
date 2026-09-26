@@ -74,5 +74,32 @@ class AnalysisTests(unittest.TestCase):
         for bad in [[], self.event(2, 0, 0), self.event(1, 8, 0), self.event(1, 1, 99), self.event(1, 2, 0, float('nan'))]:
             with self.subTest(bad=bad), self.assertRaises(ValueError): self.read([bad])
 
+    def test_target_identity_records(self):
+        target = dict(type='target', search=1, tick_ms=100, thread=2, scene='1', player='10', entity='20', body='30',
+                      role='candidate', body_count=1, exclusion=0, distance=.8, player_position=[0,0,0],
+                      position=[.8,0,0], components_valid=True, components=[0xffffffff]*2048)
+        report = self.read([target, self.event(1, 0, 0)])
+        self.assertEqual(report['targets'][0]['entity'], '20')
+        self.assertEqual(report['targets'][0]['player'], '10')
+        self.assertEqual(report['events'], 1)
+        for exclusion in (5, 6):
+            self.assertEqual(self.read([{**target, 'exclusion': exclusion}])['targets'][0]['exclusion'], exclusion)
+        for field, bad in [('distance', float('nan')), ('position', [0,0]), ('exclusion', 7),
+                           ('components', [1]*2049), ('components_valid', False), ('player', '-1')]:
+            with self.subTest(field=field), self.assertRaises(ValueError): self.read([{**target, field: bad}])
+
+    def test_motion_and_control_records(self):
+        key = self.event(1, 4, 2);key['selection']=0
+        report = self.read([key, self.event(2, 0, 0), self.event(3, 5, 2),
+                            self.event(4, 3, 0, 2, .5), self.event(5, 3, 1, .3, 4),
+                            self.event(6, 3, 0x31, 0, 0), self.event(7, 3, 3, 1, 2)])
+        state=report['selections']['1']
+        self.assertEqual(len(report['controls']), 2)
+        self.assertEqual(state['motion_summary']['active'], dict(samples=1,max_linear_speed=.3,max_angular_speed=4))
+        self.assertEqual(state['writes'], [])
+        self.assertFalse(state['restoration_observed'])
+        for action,result in [(3,4),(3,0x70),(4,0),(5,8)]:
+            with self.subTest(action=action,result=result), self.assertRaises(ValueError): self.read([self.event(1,action,result)])
+
 
 if __name__ == '__main__': unittest.main()

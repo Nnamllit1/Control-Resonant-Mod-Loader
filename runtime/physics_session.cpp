@@ -1,6 +1,7 @@
 #include "physics_session.h"
 #include "physics_trial.h"
 #include "physics_selection.h"
+#include "physics_target_diagnostics.h"
 #include "physics_observation.h"
 #include "engine_observer.h"
 #include "overlay.h"
@@ -36,11 +37,16 @@ SRWLOCK state_lock=SRWLOCK_INIT;
 Buffer events;
 DampingTrial trial;
 SelectionSearch search;
+TargetDiagnostics target_diagnostics;
+uint64_t search_serial{};
+unsigned diagnosed_candidates{};
+std::array<uint64_t,16> diagnosed_entities{};
 std::atomic<uint32_t> selection_slots{},selection_scanned{};
 std::atomic<uint32_t> selection_candidates{};
 std::atomic<float> selection_nearest{-1},selection_second{-1};
 Target selected{};
 uint64_t serial{},world_token{},owner_token{},actor_token{},selected_tick{};
+uint64_t next_motion{},after_until{};
 struct Player { uint64_t world{},entity{},tick{}; float position[3]{}; } player;
 
 uint64_t token(uintptr_t pointer) noexcept { return identity(pointer,salt); }
@@ -53,10 +59,10 @@ void record(unsigned action,unsigned result,float before=0,float after=0) noexce
 }
 bool focused() noexcept { DWORD pid{}; GetWindowThreadProcessId(GetForegroundWindow(),&pid); return pid==GetCurrentProcessId(); }
 bool down(int key) noexcept { return (GetAsyncKeyState(key)&0x8000)!=0; }
-bool position(uintptr_t world,uint64_t entity,float (&out)[3]) noexcept {
+bool position(uintptr_t world,uint64_t entity,float (&out)[3],bool exclude_controller=true) noexcept {
     __try {
         uintptr_t chunk{}; uint32_t row{};
-        if(probe::entity_component(world,entity,0x9b382c56,32,chunk,row)) return false;
+        if(exclude_controller && probe::entity_component(world,entity,0x9b382c56,32,chunk,row)) return false;
         const auto transform=probe::entity_component(world,entity,0x6cfbb2a9,32,chunk,row);
         if(!transform) return false;
         std::memcpy(out,reinterpret_cast<void*>(transform+16),12);
@@ -65,12 +71,33 @@ bool position(uintptr_t world,uint64_t entity,float (&out)[3]) noexcept {
         return probe::entity_component(world,entity,0x6cfbb2a9,32,again,next)==transform && again==chunk && next==row;
     } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return false; }
 }
-bool single_body(const EntityBodySnapshot& candidate) noexcept {
+unsigned local_body_count(const EntityBodySnapshot& candidate) noexcept {
     __try {
         const auto records=*reinterpret_cast<uintptr_t*>(candidate.owner+0xc8);
         const auto instance=*reinterpret_cast<uintptr_t*>(records+uint64_t(candidate.link.scene_slot)*0x70+0x20);
-        return candidate.link.local_index==0 && *reinterpret_cast<uint16_t*>(instance+0xa8)==1;
+        return *reinterpret_cast<uint16_t*>(instance+0xa8);
     } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return false; }
+}
+bool single_body(const EntityBodySnapshot& candidate) noexcept {
+    return candidate.link.local_index==0 && local_body_count(candidate)==1;
+}
+void diagnose(const SimulationContext& context,uint64_t entity,uint64_t body,unsigned count,unsigned exclusion,
+              const float (&at)[3],float distance,bool is_player=false) noexcept {
+    if(!is_player) {
+        for(unsigned i=0;i<diagnosed_candidates;++i) if(diagnosed_entities[i]==entity) return;
+        if(diagnosed_candidates>=diagnosed_entities.size()) return;
+        diagnosed_entities[diagnosed_candidates++]=entity;
+    }
+    TargetDiagnostic d{};d.search=search_serial;d.tick=GetTickCount64();d.thread=GetCurrentThreadId();
+    d.scene=token(context.owner);d.player=player.entity;d.entity=entity;d.body=body;
+    d.body_count=count;d.exclusion=exclusion;d.distance=distance;d.player_sample=is_player;
+    std::memcpy(d.player_position,player.position,sizeof(d.player_position));std::memcpy(d.position,at,sizeof(d.position));
+    uintptr_t chunk{};uint32_t row{};
+    if(probe::entity_component(context.world,entity,0x6cfbb2a9,32,chunk,row)) {
+        probe::Sample sample{};sample.world=context.world;sample.entity=entity;sample.row=row;
+        d.components_valid=probe::inspect_entity(sample,d.snapshot);
+    }
+    target_diagnostics.push(d);
 }
 DampingAccessors accessors() noexcept {
     return {backend_image+0x15dd88,reinterpret_cast<DampingGetter>(backend_image+0x22360),reinterpret_cast<DampingGetter>(backend_image+0x21870)};
@@ -98,6 +125,9 @@ private:
     ReadStatus resolve(const Target& target,EntityBodySnapshot& out) noexcept {
         if(target!=selected || retired.load()) return ReadStatus::retired;
         if(token(context_.world)!=world_token || token(context_.owner)!=owner_token || retiring.load()) return ReadStatus::unavailable;
+        // Recheck player/controller/attachment exclusion on access, not just when
+        // selecting: an entity can acquire components after the search.
+        if(entity_exclusion(context_.world,target.entity,player.entity)) return ReadStatus::unavailable;
         const auto result=read_entity_body(context_.world,target.entity,target.local_index,target.body,accessors().vtable,out);
         if(result!=TargetRead::ok) return ReadStatus::unavailable;
         if(token(out.body.actor)!=actor_token) return ReadStatus::retired;
@@ -106,21 +136,26 @@ private:
     SimulationContext context_;
 };
 void select(const SimulationContext& context,uint64_t now,bool begin) noexcept {
-    if(begin) {selected={};watched_owner=0;retired=true;search.cancel();selection_scanned=0;selection_candidates=0;selection_nearest=-1;selection_second=-1;}
+    if(begin) {selected={};watched_owner=0;retired=true;after_until=next_motion=0;search.cancel();selection_scanned=0;selection_candidates=0;selection_nearest=-1;selection_second=-1;++search_serial;diagnosed_candidates=0;}
     if(player.world!=token(context.world) || !player.tick || now<player.tick || now-player.tick>500) {search.cancel();ui=3;record(0,1);return;}
     SelectionScope scope{token(context.world),token(context.owner),player.entity,retirement_serial.load(),body_slot_count(context.owner)};
     std::memcpy(scope.position,player.position,sizeof(scope.position));
     selection_slots=scope.slots;
     if(begin && search.begin(scope,now)==SelectionResult::invalid) {ui=3;record(0,2);return;}
+    if(begin) diagnose(context,player.entity,0,0,1,player.position,0,true);
     if(retiring.load()) {search.cancel();ui=7;record(0,5);return;}
     const auto result=search.step(scope,now,[&](uint32_t i,SelectionCandidate& candidate) {
         BodySnapshot body{}; BodyEntitySnapshot link{};
-        if(read_body(context.owner,i,accessors().vtable,body)!=BodyRead::ok || body.alternate
-           || read_body_entity(context.world,context.owner,body,link)!=LinkRead::ok || link.entity==player.entity) return false;
-        if(!single_body({context.owner,body,link})) return false;
-        float at[3]{}; if(!position(context.world,link.entity,at)) return false;
+        if(read_body(context.owner,i,accessors().vtable,body)!=BodyRead::ok
+           || read_body_entity(context.world,context.owner,body,link)!=LinkRead::ok) return false;
+        float at[3]{}; if(!position(context.world,link.entity,at,false)) return false;
         float distance{}; for(unsigned a=0;a<3;++a) distance+=(at[a]-search.scope().position[a])*(at[a]-search.scope().position[a]);
         if(!std::isfinite(distance) || distance>4) return false;
+        const auto count=local_body_count({context.owner,body,link});
+        const auto entity_reason=entity_exclusion(context.world,link.entity,player.entity);
+        const unsigned exclusion=entity_reason?entity_reason:count!=1 || link.local_index!=0?3:body.alternate?4:0;
+        diagnose(context,link.entity,body.handle,count,exclusion,at,std::sqrt(distance));
+        if(exclusion) return false;
         candidate={link.entity,body.handle,token(body.actor),distance};return true;
     },[&] {return GetTickCount64()-now>=2;});
     selection_scanned=search.scanned();
@@ -135,6 +170,7 @@ void select(const SimulationContext& context,uint64_t now,bool begin) noexcept {
     float at[3]{};
     if(read_entity_body(context.world,choice.entity,0,choice.body,accessors().vtable,fresh)!=TargetRead::ok
        || token(fresh.body.actor)!=choice.actor || fresh.body.alternate || !single_body(fresh)
+       || entity_exclusion(context.world,choice.entity,player.entity)
        || !position(context.world,choice.entity,at)) {ui=7;record(0,5);return;}
     float distance{};for(unsigned a=0;a<3;++a) distance+=(at[a]-player.position[a])*(at[a]-player.position[a]);
     if(!std::isfinite(distance) || distance>4 || body_slot_count(context.owner)!=scope.slots) {ui=7;record(0,5);return;}
@@ -157,23 +193,39 @@ void dispatch(void* view,uint16_t id,void* descriptor) {
     const auto now=GetTickCount64(); const auto beat=heartbeat.load();
     const bool keep=accepting.load() && focused() && beat && now>=beat && now-beat<=500 && !down(VK_ESCAPE);
     const auto requested=commands.exchange(0);
+    if(requested && (requested!=4 || trial.pending() || selected.epoch)) record(5,requested);
     const auto tick=request_tick.load(); const bool recent=tick && now>=tick && now-tick<=500;
     Native native(context);
     if(trial.pending()) {
         const auto result=trial.poll(native,now,keep && !(requested&4));
         if(result!=TrialResult::active) record(1,unsigned(result));
         ui=result==TrialResult::active?1:trial.pending()?3:2;
-        if(!trial.pending()) {selected={};watched_owner=0;retired=true;}
-    } else if(!keep || (requested&4)) {search.cancel();selected={};watched_owner=0;retired=true;ui=-1;}
+        if(!trial.pending()) after_until=now+5000;
+    } else if(!keep || (requested&4)) {search.cancel();selected={};watched_owner=0;retired=true;after_until=0;ui=-1;}
     else if(recent && (requested&1)) select(context,now,true);
     else if(search.pending()) select(context,now,false);
-    else if(recent && (requested&2) && selected.epoch) {
+    else if(recent && (requested&2) && selected.epoch && ui.load()==0) {
         if(now<selected_tick || now-selected_tick>15000) {selected={};ui=3;}
         else {
             const auto result=trial.apply(native,selected,8.f,now,5000);
             record(1,unsigned(result)); ui=result==TrialResult::applied?1:3;
-            if(!trial.pending()) {selected={};watched_owner=0;retired=true;}
+            if(!trial.pending()) after_until=now+5000;
         }
+    }
+    if(selected.epoch && !retired.load() && now>=next_motion) {
+        next_motion=now+100;
+        EntityBodySnapshot fresh{};MotionSnapshot motion{};
+        auto status=MotionRead::target;
+        if(token(context.world)==world_token && token(context.owner)==owner_token && !retiring.load()
+           && !entity_exclusion(context.world,selected.entity,player.entity)
+           && read_entity_body(context.world,selected.entity,selected.local_index,selected.body,accessors().vtable,fresh)==TargetRead::ok
+           && token(fresh.body.actor)==actor_token) status=read_body_motion(context.owner,fresh.body,accessors().vtable,motion);
+        const unsigned phase=after_until?3:trial.pending()?(ui.load()==1?1:2):0;
+        if(retired.load() || retiring.load()) {status=MotionRead::changed;motion={};}
+        record(3,(unsigned(status)<<4)|phase,motion.linear_speed,motion.angular_speed);
+    }
+    if(!trial.pending() && ((after_until && now>=after_until) || (selected.epoch && now-selected_tick>15000))) {
+        selected={};watched_owner=0;retired=true;after_until=0;
     }
     ReleaseSRWLockExclusive(&state_lock);
 }
@@ -249,7 +301,10 @@ void Session::poll() {
     const auto edges=current&~keys_; keys_=current;
     if(now-started_>=600000 || !log_.is_open() || !log_) accepting=false;
     if(!accepting.load() || !focus) commands.fetch_or(4);
-    else if(edges && probe::overlay_diagnostics().frames) {request_tick=now;commands.fetch_or(edges);}
+    else if(edges && probe::overlay_diagnostics().frames) {
+        Event e{};e.kind=Kind::body;e.edge=4;e.flags=edges;e.qpc=now;e.thread=GetCurrentThreadId();events.push(e);
+        request_tick=now;commands.fetch_or(edges);
+    }
     probe::overlay_update(overlay_,focus,ui.load());
     if(!log_.is_open() || !log_) return;
     std::array<Event,128> batch{};
@@ -264,6 +319,12 @@ void Session::poll() {
         if(bytes_+line.size()>4*1024*1024-2048) {accepting=false;commands.fetch_or(4);log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";log_.close();break;}
         log_<<line;bytes_+=line.size();
     }
+    TargetDiagnostic target{};
+    for(unsigned i=0;i<TargetDiagnostics::capacity && log_.is_open() && log_ && target_diagnostics.pop(target);++i) {
+        std::ostringstream text;write_target_diagnostic(text,target);const auto line=text.str();
+        if(bytes_+line.size()>4*1024*1024-2048) {accepting=false;commands.fetch_or(4);log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";log_.close();break;}
+        log_<<line;bytes_+=line.size();
+    }
     if(log_.is_open() && log_ && now-last_stats_>=1000) {
         std::ostringstream text;
         text<<"{\"type\":\"stats\",\"tick_ms\":"<<now<<",\"dispatches\":"<<dispatches.load()<<",\"context_rejections\":"<<rejected_contexts.load()
@@ -271,6 +332,7 @@ void Session::poll() {
             <<",\"selection_slots\":"<<selection_slots.load()<<",\"selection_scanned\":"<<selection_scanned.load()
             <<",\"selection_candidates\":"<<selection_candidates.load()<<",\"nearest_distance\":"<<selection_nearest.load()
             <<",\"second_distance\":"<<selection_second.load()
+            <<",\"target_dropped\":"<<target_diagnostics.dropped()
             <<",\"overlay\":\""<<probe::overlay_diagnostics().status<<"\"}\n";
         const auto line=text.str();
         if(bytes_+line.size()>4*1024*1024-2048) {accepting=false;commands.fetch_or(4);log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";log_.close();}

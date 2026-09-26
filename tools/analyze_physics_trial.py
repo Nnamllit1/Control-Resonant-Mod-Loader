@@ -15,13 +15,16 @@ def analyze(path):
     dropped = dispatches = rejections = retirements = 0
     selection_slots = selection_scanned = 0
     latest_search = None
+    targets = []
+    controls = []
+    target_dropped = 0
     terminal = None
     header = False
     total = 0
     with path.open('rb') as stream:
-        while line := stream.readline(4097):
+        while line := stream.readline(32769):
             total += len(line)
-            if len(line) > 4096 or total > 4 * 1024 * 1024:
+            if len(line) > 32768 or total > 4 * 1024 * 1024:
                 raise ValueError('Capture exceeds record or file bound')
             item = json.loads(line)
             if not isinstance(item, dict):
@@ -32,6 +35,32 @@ def analyze(path):
                     raise ValueError('Unsupported physics trial header')
                 header = True
                 continue
+            if kind == 'target':
+                for name in ('search', 'tick_ms', 'thread', 'body_count', 'exclusion'):
+                    if type(item.get(name)) is not int or not 0 <= item[name] < 2**64:
+                        raise ValueError('Invalid target integer')
+                if not item['search'] or item['body_count'] > 65535 or item['exclusion'] > 6:
+                    raise ValueError('Invalid target bounds')
+                for name in ('scene', 'player', 'entity', 'body'):
+                    value = item.get(name)
+                    if not isinstance(value, str) or not value.isascii() or not value.isdigit() or int(value) >= 2**64:
+                        raise ValueError('Invalid target identity')
+                if item.get('role') not in ('player', 'candidate') or type(item.get('components_valid')) is not bool:
+                    raise ValueError('Invalid target role')
+                if type(item.get('distance')) not in (int, float) or not 0 <= item['distance'] <= 2:
+                    raise ValueError('Invalid target distance')
+                for name in ('position', 'player_position'):
+                    value = item.get(name)
+                    if not isinstance(value, list) or len(value) != 3 or any(
+                            type(v) not in (int, float) or not -3.4028235e38 <= v <= 3.4028235e38 for v in value):
+                        raise ValueError('Invalid target coordinates')
+                hashes = item.get('components')
+                if not isinstance(hashes, list) or len(hashes) > 2048 or any(type(v) is not int or not 0 <= v < 2**32 for v in hashes):
+                    raise ValueError('Invalid target components')
+                if not item['components_valid'] and hashes:
+                    raise ValueError('Unverified target components')
+                targets.append(item)
+                continue
             if kind == 'stats':
                 for name in ('dropped', 'dispatches', 'context_rejections', 'retirements'):
                     if type(item.get(name)) is not int or item[name] < 0:
@@ -40,6 +69,9 @@ def analyze(path):
                 dispatches = max(dispatches, item['dispatches'])
                 rejections = max(rejections, item['context_rejections'])
                 retirements = max(retirements, item['retirements'])
+                if type(item.get('target_dropped', 0)) is not int or item.get('target_dropped', 0) < 0:
+                    raise ValueError('Invalid target drop count')
+                target_dropped = max(target_dropped, item.get('target_dropped', 0))
                 for name in ('selection_slots', 'selection_scanned'):
                     if type(item.get(name, 0)) is not int or not 0 <= item.get(name, 0) <= 2**20:
                         raise ValueError('Invalid selection bounds')
@@ -74,15 +106,19 @@ def analyze(path):
             if any(not isinstance(v, str) or not v.isascii() or not v.isdigit() or int(v) >= 2**64 for v in identities):
                 raise ValueError('Invalid identity')
             action, result = item['action'], item['result']
-            if action not in (0, 1, 2) or (action == 0 and result > 6) or (action == 1 and result >= len(RESULTS)) or (action == 2 and (result & ~0x1ff or (result & 255) > 9)):
+            if action not in range(6) or (action == 0 and result > 6) or (action == 1 and result >= len(RESULTS)) or (action == 2 and (result & ~0x1ff or (result & 255) > 9)) or (action == 3 and (result >> 4 > 6 or result & 15 > 3)) or (action in (4, 5) and not 1 <= result <= 7):
                 raise ValueError('Unknown action or result')
+            if action in (4, 5):
+                controls.append({'tick_ms': item['tick_ms'], 'stage': 'input' if action == 4 else 'callback',
+                                 'buttons': result, 'selection': item['selection']})
+                continue
             if action == 0 and result:
                 failures[str(result)] = failures.get(str(result), 0) + 1
                 continue
             key = str(item['selection'])
             if not item['selection']:
                 raise ValueError('Missing selection identity')
-            state = selections.setdefault(key, {'identity': list(identities), 'results': [], 'writes': []})
+            state = selections.setdefault(key, {'identity': list(identities), 'results': [], 'writes': [], 'motion': []})
             if state['identity'] != list(identities):
                 raise ValueError('Identity changed within a selection')
             if action == 0:
@@ -90,9 +126,13 @@ def analyze(path):
                 state['original_angular'] = item['after']
             elif action == 1:
                 state['results'].append(RESULTS[result])
-            else:
+            elif action == 2:
                 state['writes'].append({'status': result & 255, 'attempted': bool(result & 256),
                                         'before': item['before'], 'after': item['after']})
+            else:
+                state['motion'].append({'tick_ms': item['tick_ms'], 'status': result >> 4,
+                                        'phase': ('selected', 'active', 'restoring', 'after')[result & 15],
+                                        'linear_speed': item['before'], 'angular_speed': item['after']})
     if not header:
         raise ValueError('Empty capture')
     for state in selections.values():
@@ -105,11 +145,20 @@ def analyze(path):
             'restored' in state['results'] and
             any(w['status'] == 0 and w['before'] == writes[0]['after'] and
                 w['after'] == writes[0]['before'] for w in writes[1:]))
+        state['motion_summary'] = {}
+        for phase in ('selected', 'active', 'restoring', 'after'):
+            samples = [m for m in state['motion'] if m['phase'] == phase and m['status'] == 0]
+            if samples:
+                state['motion_summary'][phase] = {'samples': len(samples),
+                    'max_linear_speed': max(m['linear_speed'] for m in samples),
+                    'max_angular_speed': max(m['angular_speed'] for m in samples)}
     return {'schema': 1, 'events': previous, 'dispatches': dispatches, 'context_rejections': rejections,
             'retirements': retirements, 'dropped': dropped, 'terminal_reason': terminal,
             'selection_failures': failures, 'selections': selections,
             'max_selection_slots': selection_slots, 'max_selection_scanned': selection_scanned,
             'latest_search': latest_search,
+            'targets': targets, 'target_dropped': target_dropped,
+            'controls': controls,
             'gameplay_effect_verified': False}
 
 

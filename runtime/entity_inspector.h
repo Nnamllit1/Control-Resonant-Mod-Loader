@@ -13,7 +13,7 @@ struct EntitySnapshot {
     std::array<ComponentIdentity, 2048> components{};
     Sample player{};
 };
-// Called only on the observed movement thread. Copies identities, never follows
+// Called within an engine callback with a freshly resolved entity. Copies identities, never follows
 // unknown component payloads or retains their addresses for worker-side reads.
 bool inspect_entity(const Sample& sample, EntitySnapshot& result) noexcept;
 void write_entity_snapshot(std::ostream& out, const EntitySnapshot& snapshot,

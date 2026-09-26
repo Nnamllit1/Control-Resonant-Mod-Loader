@@ -127,6 +127,32 @@ uintptr_t world_scene(uintptr_t world) noexcept {
     __try { return scene_inner(world); }
     __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return 0; }
 }
+MotionRead read_body_motion(uintptr_t owner,const BodySnapshot& expected,uintptr_t vtable,MotionSnapshot& out) noexcept {
+    out={};
+    if(!owner || !vtable || !expected.actor) return MotionRead::arguments;
+    __try {
+        BodySnapshot before{},after{};
+        if(snapshot(owner,uint32_t(expected.handle),vtable,before)!=BodyRead::ok || before.handle!=expected.handle
+           || before.actor!=expected.actor || before.actor_identity!=expected.actor_identity) return MotionRead::target;
+        const auto scene=read<uintptr_t>(before.actor+0x18);
+        // Getters 0x22370 / 0x21880 reject reads when scene+0x3e9 is set
+        // (except an engine-specific allowance). Conservatively reject all busy reads.
+        if(!scene || read<uint8_t>(scene+0x3e9)) return MotionRead::phase;
+        float linear[3]{},angular[3]{};
+        for(unsigned i=0;i<3;++i) {
+            linear[i]=read<float>(before.actor+0xa0+i*4);
+            angular[i]=read<float>(before.actor+0xb0+i*4);
+            if(!std::isfinite(linear[i]) || !std::isfinite(angular[i])) return MotionRead::scalar;
+        }
+        if(snapshot(owner,uint32_t(expected.handle),vtable,after)!=BodyRead::ok || before.handle!=after.handle
+           || before.actor!=after.actor || before.actor_identity!=after.actor_identity
+           || before.alternate!=after.alternate || read<uintptr_t>(after.actor+0x18)!=scene
+           || read<uint8_t>(scene+0x3e9)) return MotionRead::changed;
+        const auto l=std::hypot(linear[0],linear[1],linear[2]),a=std::hypot(angular[0],angular[1],angular[2]);
+        if(!std::isfinite(l) || !std::isfinite(a)) return MotionRead::scalar;
+        out={l,a};return MotionRead::ok;
+    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) {return MotionRead::memory;}
+}
 bool read_simulation_context(uintptr_t view,uintptr_t descriptor,uintptr_t dispatcher,SimulationContext& out) noexcept {
     out={};
     if(!view || !descriptor || !dispatcher) return false;

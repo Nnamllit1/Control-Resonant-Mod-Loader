@@ -15,6 +15,12 @@ struct BodySnapshot {
 uint32_t body_slot_count(uintptr_t owner) noexcept;
 BodyRead read_body(uintptr_t owner, uint32_t index, uintptr_t dynamic_vtable,
                    BodySnapshot& result) noexcept;
+enum class MotionRead : uint8_t { ok, arguments, target, phase, scalar, changed, memory };
+struct MotionSnapshot { float linear_speed{}, angular_speed{}; };
+// Read-only magnitudes of the fields used by the exact-build velocity getters.
+// Reject busy scenes and recheck identity; this does not acquire a scene lock.
+MotionRead read_body_motion(uintptr_t owner,const BodySnapshot& expected,uintptr_t dynamic_vtable,
+                            MotionSnapshot& result) noexcept;
 enum class LinkRead : uint8_t { ok, arguments, world, bounds, association, scene,
     instance, entity, changed, memory, count };
 struct BodyEntitySnapshot { uint64_t entity{}; uint32_t scene_slot{}, local_index{}; };

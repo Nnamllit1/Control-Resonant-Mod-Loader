@@ -65,6 +65,23 @@ void test_body_observation() {
     const auto before=actor; expect(BodyRead::ok);
     require(result.handle==handles[1] && result.linear_damping==.25f && result.angular_damping==.5f && !result.alternate,"normal damping snapshot");
     require(actor==before && body_slot_count(owner_at)==2,"read-only body snapshot and bounded count");
+    {
+        std::array<unsigned char,0x400> motion_scene{};
+        put(actor,0x18,reinterpret_cast<uintptr_t>(motion_scene.data()));
+        put(actor,0xa0,3.f);put(actor,0xa4,4.f);put(actor,0xa8,0.f);
+        put(actor,0xb0,0.f);put(actor,0xb4,0.f);put(actor,0xb8,2.f);
+        MotionSnapshot motion{};
+        require(read_body_motion(owner_at,result,vtable,motion)==MotionRead::ok && motion.linear_speed==5 && motion.angular_speed==2,"velocity magnitudes");
+        motion_scene[0x3e9]=1;
+        require(read_body_motion(owner_at,result,vtable,motion)==MotionRead::phase && motion.linear_speed==0,"busy velocity read rejected");
+        motion_scene[0x3e9]=0;put(actor,0xa0,std::numeric_limits<float>::quiet_NaN());
+        require(read_body_motion(owner_at,result,vtable,motion)==MotionRead::scalar,"nonfinite velocity rejected");
+        put(actor,0xa0,3.f);auto stale=result;stale.actor_identity++;
+        require(read_body_motion(owner_at,stale,vtable,motion)==MotionRead::target,"stale motion identity rejected");
+        put(actor,0x18,uintptr_t(1));require(read_body_motion(owner_at,result,vtable,motion)==MotionRead::memory,"unreadable motion scene guarded");
+        put(actor,0x18,uintptr_t(0));require(read_body_motion(owner_at,result,vtable,motion)==MotionRead::phase,"detached motion read rejected");
+        actor=before;
+    }
     DampingReadback values{};
     auto access=[&](AccessRead expected) {
         require(read_damping_accessors(owner_at,result,accessors,values)==expected,"getter comparison result");

@@ -64,7 +64,11 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
                    || probe.active() || observer.active() || physics.active()
 #endif
             ) {
+#ifdef CRML_MOVEMENT_PROBE
+                Sleep(physics.active()?10:100);
+#else
                 Sleep(100);
+#endif
                 const auto now = std::chrono::steady_clock::now();
                 runtime.tick(std::chrono::duration<float>(now - last).count());
                 last = now;

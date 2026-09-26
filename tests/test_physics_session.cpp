@@ -1,11 +1,27 @@
 #include "physics_session.h"
 #include "physics_selection.h"
+#include "physics_target_diagnostics.h"
 #include <iostream>
 #include <stdexcept>
 #include <limits>
 #include <vector>
+#include <memory>
+#include <sstream>
 using namespace crml::physics;
 void require(bool ok,const char* message) { if(!ok) throw std::runtime_error(message); }
+void test_target_diagnostics() {
+    auto queue=std::make_unique<TargetDiagnostics>();
+    TargetDiagnostic d{};d.search=1;d.player=10;d.entity=20;d.body=30;d.body_count=1;d.distance=.8f;
+    d.components_valid=true;d.snapshot.count=2048;
+    for(auto& c:d.snapshot.components) c.hash=UINT32_MAX;
+    std::ostringstream text;write_target_diagnostic(text,d);
+    require(text.str().size()<32768,"maximum component record fits parser bound");
+    require(text.str().find("\"player\":\"10\"")!=std::string::npos && text.str().find("\"entity\":\"20\"")!=std::string::npos,"player and target remain distinct");
+    for(size_t i=0;i<TargetDiagnostics::capacity;++i) {d.search=i+1;require(queue->push(d),"diagnostic queue accepts bounded records");}
+    require(!queue->push(d) && queue->dropped()==1,"diagnostic overflow is counted");
+    for(size_t i=0;i<TargetDiagnostics::capacity;++i) {require(queue->pop(d) && d.search==i+1,"diagnostic FIFO order");}
+    require(!queue->pop(d),"empty diagnostic queue");
+}
 void test_selection() {
     SelectionSearch search;
     SelectionScope scope{1,2,3,4,16609,{0,0,0}};
@@ -75,7 +91,7 @@ void test_selection() {
     require(search.begin(scope,100)==SelectionResult::invalid,"nonfinite position rejected");
 }
 int main() {
-    try {test_selection();} catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
+    try {test_selection();test_target_diagnostics();} catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
     if(!crml::physics::test_session_prologues()) {std::cerr<<"Physics trial hook relocation failed\n";return 1;}
     std::cout<<"Physics nearest selection, bounds, batched search, cancellation, identity changes and hook relocation passed\n";
 }
