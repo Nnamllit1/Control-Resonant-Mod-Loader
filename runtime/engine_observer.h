@@ -42,6 +42,7 @@ struct ResourceSample { bool readable{}; uintptr_t pointer{}; uint64_t id{}; uin
 // Snapshot only: neither retains a resource nor follows it later on the worker.
 ResourceSample read_resource(uintptr_t pointer) noexcept;
 uint64_t identity(uintptr_t pointer, uint64_t salt) noexcept;
+std::string module_fingerprint(const std::filesystem::path& path);
 void write_event(std::ostream& stream, const Event& event);
 #ifdef CRML_OBSERVER_TESTING
 bool test_hook_prologues();

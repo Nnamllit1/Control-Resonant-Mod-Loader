@@ -71,4 +71,5 @@ nav:
       - Player visibility: visibility.md
       - Pack2 format: pack2.md
       - Gameplay and noclip: gameplay.md
-      - Documentation: documentation.md
+  - Physics property trial: physics-trial.md
+  - Documentation: documentation.md

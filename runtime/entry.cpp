@@ -2,6 +2,7 @@
 #ifdef CRML_MOVEMENT_PROBE
 #include "movement_probe.h"
 #include "engine_observer.h"
+#include "physics_session.h"
 #endif
 #include <Windows.h>
 #include <chrono>
@@ -22,6 +23,8 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
             if (!size || size >= 32768) return;
             const auto root = std::filesystem::path(filename).parent_path();
             const bool observe_only=std::filesystem::is_regular_file(root / "engine-observer.enabled");
+            const bool physics_trial=std::filesystem::is_regular_file(root / "physics-trial.enabled");
+            const bool diagnostics=observe_only || physics_trial;
             std::ofstream log(root / "crml.log", std::ios::trunc);
             if (!log) return;
             // Hard session cap prevents guests from growing logs indefinitely.
@@ -29,6 +32,7 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
 #ifdef CRML_MOVEMENT_PROBE
             crml::probe::Recorder probe;
             crml::observer::Recorder observer;
+            crml::physics::Session physics;
 #endif
             crml::Runtime runtime([&](const std::string& text) {
                 if (written >= 4 * 1024 * 1024) return;
@@ -38,23 +42,26 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
                 written += line.size() + 1;
             }
 #ifdef CRML_MOVEMENT_PROBE
-            , observe_only ? nullptr : &probe
+            , diagnostics ? nullptr : &probe
 #endif
             );
             log << "CRML 0.1.0 experimental bootstrap\n";
             if(observe_only) log << "Wasm mods suspended for engine observation\n";
+            else if(physics_trial) log << "Wasm mods suspended for native physics trial\n";
             log.flush();
 #ifdef CRML_MOVEMENT_PROBE
-            log << (observe_only ? observer.start(root) : probe.start(root)) << '\n';
+            if(observe_only && physics_trial) log << "Diagnostic startup refused: conflicting observer and physics trial markers\n";
+            else log << (observe_only ? observer.start(root) : physics_trial ? physics.start(root) : probe.start(root)) << '\n';
             log.flush();
 #else
             if(observe_only) log << "Engine observer refused: this build does not include diagnostics; mods remain suspended\n";
+            else if(physics_trial) log << "Physics trial refused: this build does not include diagnostics; mods remain suspended\n";
 #endif
-            if(!observe_only) runtime.load(root / "mods");
+            if(!diagnostics) runtime.load(root / "mods");
             auto last = std::chrono::steady_clock::now();
             while (runtime.active()
 #ifdef CRML_MOVEMENT_PROBE
-                   || probe.active() || observer.active()
+                   || probe.active() || observer.active() || physics.active()
 #endif
             ) {
                 Sleep(100);
@@ -64,6 +71,7 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
 #ifdef CRML_MOVEMENT_PROBE
                 probe.poll();
                 observer.poll();
+                physics.poll();
 #endif
             }
             runtime.shutdown();

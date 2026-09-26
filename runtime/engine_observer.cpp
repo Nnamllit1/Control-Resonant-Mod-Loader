@@ -266,6 +266,7 @@ std::string fingerprint(const std::filesystem::path& path) {
 }
 }
 
+std::string module_fingerprint(const std::filesystem::path& path) { return fingerprint(path); }
 bool Recorder::line(const std::string& text) {
     if(bytes_+text.size()+1>max_bytes-4096) return false;
     output_<<text<<'\n'; bytes_+=text.size()+1; return bool(output_);
@@ -295,7 +296,8 @@ std::string Recorder::start(const std::filesystem::path& root) {
     LARGE_INTEGER frequency{},stamp{}; QueryPerformanceFrequency(&frequency); QueryPerformanceCounter(&stamp);
     started_=GetTickCount64(); salt=uint64_t(stamp.QuadPart)^(uint64_t(GetCurrentProcessId())<<32);
     const auto filename="engine-observer-"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(started_)+".jsonl";
-    output_.open(root/filename,std::ios::out|std::ios::trunc);
+    // Keep physical bytes equal to the accounting in line(), including newlines.
+    output_.open(root/filename,std::ios::out|std::ios::trunc|std::ios::binary);
     if(!output_) {
         for(const auto& hook:hooks) MH_RemoveHook(reinterpret_cast<void*>(image_base+hook.rva));
         return "Engine observer refused: cannot open diagnostic log";

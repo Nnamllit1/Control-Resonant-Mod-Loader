@@ -48,12 +48,12 @@ struct State {
     std::mutex mutex;
     IDXGISwapChain* swap{}; // Identity only; do not keep the application's swapchain alive.
     ComPtr<ID3D12Device> device;
-    std::array<ComPtr<ID3D12Resource>,5> uploads;
+    std::array<ComPtr<ID3D12Resource>,6> uploads;
     D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint{};
     std::array<Frame,8> buffers;
     std::array<Mark,512> marks{};
     UINT count{};
-    std::array<std::vector<unsigned char>,5> text;
+    std::array<std::vector<unsigned char>,6> text;
     bool failed{};
 };
 State& state() { static auto* value=new State; return *value; }
@@ -151,7 +151,7 @@ void render(IDXGISwapChain* swap, UINT flags) noexcept {
     original_barrier(f.commands.Get(),1,&barrier);
     const int value=status.load();
     D3D12_TEXTURE_COPY_LOCATION source{},destination{};
-    source.pResource=s.uploads[value>=0 && value<=3?value+1:0].Get(); source.Type=D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT; source.PlacedFootprint=s.footprint;
+    source.pResource=s.uploads[value>=0 && value<=4?value+1:0].Get(); source.Type=D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT; source.PlacedFootprint=s.footprint;
     destination.pResource=f.buffer.Get(); destination.Type=D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
     f.commands->CopyTextureRegion(&destination,20,20,0,&source,nullptr);
     std::swap(barrier.Transition.StateBefore,barrier.Transition.StateAfter);
@@ -238,7 +238,7 @@ HRESULT STDMETHODCALLTYPE resize1_hook(IDXGISwapChain3* swap,UINT count,UINT wid
     return original_resize1(swap,count,width,height,format,flags,masks,queues);
 }
 
-bool rasterize(State& s) {
+bool rasterize(State& s,bool physics_trial) {
     // GDI creates the font mask once; only native D3D12 commands touch the game image.
     constexpr int width=510,height=86;
     BITMAPINFO info{}; info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER); info.bmiHeader.biWidth=width;
@@ -255,9 +255,16 @@ bool rasterize(State& s) {
         L"EXPERIMENTAL NOCLIP: ON   [F6] off\nWASD: camera heading   Space/Ctrl: up/down\nShift: faster   Esc: off",
         L"EXPERIMENTAL NOCLIP: OFF   [F6] on\nCamera unavailable: vertical movement only\nSpace/Ctrl: up/down   Shift: faster   Esc: off",
         L"EXPERIMENTAL NOCLIP: ON   [F6] off\nCamera unavailable: vertical movement only\nSpace/Ctrl: up/down   Shift: faster   Esc: off"};
-    for(int state_index=0;state_index<5;++state_index) {
+    constexpr const wchar_t* trial_labels[]{
+        L"PHYSICS TRIAL: [F9] select nearby prop\nStand beside one loose prop (within 2 units)\n[F10] damping for 5 seconds   [F11/Esc] restore",
+        L"PHYSICS TRIAL: PROP SELECTED\n[F10] damping for 5 seconds   [F11/Esc] cancel\nOnly the single nearby prop will be changed",
+        L"PHYSICS TRIAL: DAMPING ACTIVE\nAutomatic restoration after 5 seconds\n[F11/Esc] restore now",
+        L"PHYSICS TRIAL: FINISHED\n[F9] select a prop for another trial\nDetails saved in crml/physics-trial-*.jsonl",
+        L"PHYSICS TRIAL: RESTORING / UNAVAILABLE\n[F11] request restoration   [F9] retry selection\nDetails saved in crml/physics-trial-*.jsonl",
+        L"PHYSICS TRIAL: SEARCHING NEARBY PROPS\nStay still until selection finishes\n[F11/Esc] cancel"};
+    for(int state_index=0;state_index<6;++state_index) {
         PatBlt(dc,0,0,width,height,BLACKNESS);
-        RECT rect{12,9,width-12,height-9}; DrawTextW(dc,labels[state_index],-1,&rect,DT_LEFT|DT_NOPREFIX); GdiFlush();
+        RECT rect{12,9,width-12,height-9}; DrawTextW(dc,physics_trial?trial_labels[state_index]:labels[state_index<5?state_index:0],-1,&rect,DT_LEFT|DT_NOPREFIX); GdiFlush();
         auto* data=static_cast<const unsigned*>(pixels);
         s.text[state_index].resize(width*height);
         for(int y=0;y<height;++y) for(int x=0;x<width;++x)
@@ -268,13 +275,13 @@ bool rasterize(State& s) {
 }
 }
 
-void* overlay_create() noexcept {
+void* overlay_create(bool physics_trial) noexcept {
     try {
         Internal guard;
         auto& s=state();
         if(enabled) return &s;
         diagnostic="hook_initialization_failed";
-        if(!rasterize(s)) return nullptr;
+        if(!rasterize(s,physics_trial)) return nullptr;
         const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return nullptr;
         ComPtr<ID3D12Device> device; ComPtr<IDXGIFactory4> factory; ComPtr<ID3D12CommandQueue> queue;
         ComPtr<ID3D12CommandAllocator> allocator; ComPtr<ID3D12GraphicsCommandList> list;

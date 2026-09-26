@@ -44,6 +44,19 @@ def main():
         assert 'must-not-load' not in log and 'Movement probe' not in log, log
         assert not list(root.glob('engine-observer-*.jsonl'))
         assert not (root / 'movement-probe.jsonl').exists()
+        (root / 'engine-observer.enabled').unlink()
+        (root / 'physics-trial.enabled').write_text('')
+        subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
+                       check=True, timeout=20, capture_output=True)
+        log = (root / 'crml.log').read_text()
+        assert 'Wasm mods suspended for native physics trial' in log, log
+        assert 'Physics trial refused: unsupported executable fingerprint' in log, log
+        assert 'must-not-load' not in log and not list(root.glob('physics-trial-*.jsonl'))
+        (root / 'engine-observer.enabled').write_text('')
+        subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
+                       check=True, timeout=20, capture_output=True)
+        log = (root / 'crml.log').read_text()
+        assert 'conflicting observer and physics trial markers' in log and 'must-not-load' not in log, log
         print('Real-runtime unsupported-host refusal and observe-only startup isolation passed')
     return 0
 

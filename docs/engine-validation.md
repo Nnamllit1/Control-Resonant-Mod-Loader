@@ -89,6 +89,8 @@ No engine pointer is dereferenced by the logging worker. Addresses become sessio
 
 ## Capture format and loss handling
 
+Captures use UTF-8 JSON Lines with LF record terminators. The analyzer also accepts older Windows captures with CRLF terminators and applies the capture-size limit after normalizing those terminators.
+
 Schemas 1 through 4 use JSON Lines with a header, events, periodic statistics, and a terminal record when the worker stops recording. The analyzer accepts all four versions. All 64-bit object/entity/value/detail identities use decimal strings; `span` and clock/sequence counters are integer fields.
 
 | Field | Interpretation |

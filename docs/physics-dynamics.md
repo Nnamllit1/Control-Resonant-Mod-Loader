@@ -199,9 +199,41 @@ Before either branch, both callbacks call body validator `0x19f7870`. It resolve
 
 Two reviewed body-population branches apply linear and angular damping from source-record offsets `+0x20` and `+0x24`, through call sites `0x2d83585`/`0x2d83596` and `0x2d83994`/`0x2d839a5`. This shows a path by which population can reapply source values. The full resource schema, triggers for reapplication, and all indirect/gameplay overrides remain unresolved.
 
-The static references establish property consumers and validation checks. They do not establish a phase for external writes, restoration semantics, or reload invalidation. No runtime setter or Wasm operation is provided by this map.
+The static references establish property consumers and validation checks. They do not establish restoration semantics or reload invalidation. These maps do not provide a public property-write API.
 
 ## Reference verification
+
+### Physics system dispatch
+
+The ECS registration for `coregame::physics_module::simulate` binds a mutable `PhysicsScene` environment through `0x1808290` and installs dispatcher `0x190e4d0` in descriptor slot `+0x140`. The dispatcher reads its three environment pointers from the array at descriptor `+0x58` and tail-calls `0x1901fa0`. That implementation performs simulation submission, completion waiting, and post-processing before returning to the ECS caller.
+
+The common dispatcher call receives a temporary context as its first argument. Scheduler entry `0x1d61d90` constructs this context with the current world pointer in its first field and the scheduler pointer in its second. Partition runner `0x1d41110` carries the same context into queued tasks and the direct dispatch loop. The serial scheduler branch also passes this context. The physics dispatcher itself ignores that first argument while unpacking its environment references. A callback can cross-check the context's world-global `PhysicsScene` against the scene supplied by the descriptor; the context address is valid only within that invocation.
+
+The queued ECS task uses virtual invoke target `0x1d41310`, which enters executor `0x1d416b0`. The executor selects a `0x150`-byte system descriptor and calls its `+0x140` dispatcher. After the call returns, it decrements successor dependency counters and schedules newly ready successors through `0x1d419e0`. The direct dispatch path in `0x1d41f60` follows the same order: call at `0x1d4202b`, dependency decrement at `0x1d4205d`, then successor submission at `0x1d4209b`.
+
+### Shared environment dependencies
+
+System descriptors distinguish read and write access to shared environments:
+
+| Descriptor field | Contents |
+| --- | --- |
+| `+0x38`, `+0x40` | Read-environment hash array and count |
+| `+0x48`, `+0x50` | Write-environment hash array and count |
+| `+0x58` | Resolved environment pointers used by the dispatcher |
+
+Registry function `0x1d375a0` builds an index from each environment hash to the systems that write it. It then passes both access lists to `0x1d387c0`. That collector pairs each reader or writer with the other writers of the same environment. It skips self-pairs and inserts the two system IDs in ascending order into the registry's conflict set at `+0x30`. This path creates read/write and write/write conflicts; it does not create a conflict solely for two readers. Environment conflicts do not pass through the separate component-query overlap predicate.
+
+Task graph builder `0x1d43510` receives an ordered list of system IDs and the registry. It looks up each candidate pair in that conflict set and directs dependencies from earlier to later list positions. A later dependency can be omitted when an already retained successor conflicts with that later system, providing an intervening dependency. Nodes without a later successor point to a terminal node. The builder counts incoming edges in its `+0x20` array and collects initially ready nodes at `+0x30`; its `+0x10` array holds successor lists. System-list partitioning in `0x1d42e20` also separates descriptors carrying flags at `+0x130` or `+0x131`.
+
+Together, these paths explain how declared access to mutable `PhysicsScene` participates in task ordering. A detour that finishes before returning from the simulation dispatcher remains inside that task's dependency interval, including after the original dispatcher completes. This is not a global scene lock: undeclared accesses, unrelated jobs, nested execution and object lifetime still require their own handling. The [scheduler map](research/physics-scheduler-map.json) records static reference anchors for these paths; its checks do not verify the semantic interpretation or authorize arbitrary external writes.
+
+### Scene owner lifetime
+
+`coregame::physics_module::initGlobal` dispatches through `0x190e4c0` to `0x18fde50`. When the `PhysicsScene` pointer is empty, the implementation creates an owned scene through factory `0x1914560`, which allocates `0x350` bytes and calls constructor `0x2ce2980`. It replaces the owned pointer, destroys and frees any previous owner, then publishes the new owner through `PhysicsScene`.
+
+Owner destructor `0x2ce2d00` releases its backend owners and frees its body-handle, actor and association tables. Pointer-owning cleanup routine `0x19114e0` calls this destructor before freeing the owner allocation. Consequently, a stored owner address or body-table index cannot identify a scene incarnation across destruction and reallocation. The [body lifetime map](research/physics-body-lifetime-map.json) anchors creation, cleanup and body-handle references.
+
+### Binary references
 
 ```powershell
 $gameDir = Read-Host 'Path to your CONTROL Resonant installation'

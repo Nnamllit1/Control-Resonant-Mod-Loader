@@ -13,6 +13,32 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def test_physics_trial_switch_and_disable(self):
+        installer.install(self.game,self.dist,self.profiles,True)
+        self.observer_fixture()
+        installer.update(self.game,self.dist,self.profiles,True,engine_observer=True)
+        features=self.dist / 'crml/build-features.json'
+        features.write_text('{"engine_observer": true, "physics_trial": true}')
+        (self.dist / 'crml/physics-trial.enabled').write_text('')
+        with self.assertRaisesRegex(ValueError,'without other'):
+            installer.sources_for(self.dist,engine_observer=True,physics_trial=True)
+        installer.update(self.game,self.dist,self.profiles,True,physics_trial=True)
+        self.assertFalse((self.game/'crml/engine-observer.enabled').exists())
+        self.assertTrue((self.game/'crml/physics-trial.enabled').exists())
+        capture=self.game/'crml/physics-trial-test.jsonl'
+        capture.write_text('preserve')
+        installer.update(self.game,self.dist,self.profiles,True,engine_observer=True)
+        self.assertFalse((self.game/'crml/physics-trial.enabled').exists())
+        installer.update(self.game,self.dist,self.profiles,True,physics_trial=True)
+        installer.update(self.game,self.dist,self.profiles,True,disable_physics_trial=True)
+        self.assertFalse((self.game/'crml/physics-trial.enabled').exists())
+        self.assertEqual(capture.read_text(),'preserve')
+
+    def test_physics_trial_requires_its_build_flag(self):
+        (self.dist/'crml/build-features.json').write_text('{"engine_observer":true}')
+        with self.assertRaisesRegex(ValueError,'Rebuild'):
+            installer.sources_for(self.dist,physics_trial=True)
+
     def observer_fixture(self):
         (self.dist / 'crml/build-features.json').write_text('{"engine_observer": true}')
         (self.dist / 'crml/engine-observer.enabled').write_text('')

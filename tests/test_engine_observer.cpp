@@ -15,6 +15,19 @@ template<class T,size_t N> void put(std::array<unsigned char,N>& bytes,size_t of
     std::memcpy(bytes.data()+offset,&value,sizeof(value));
 }
 unsigned getter_mode{},linear_calls{},angular_calls{};
+unsigned setter_mode{},setter_calls{};
+void fixture_set_linear(uintptr_t actor,float value) {
+    ++setter_calls;
+    if(setter_mode==1) return;
+    const auto sim=*reinterpret_cast<uintptr_t*>(actor+0x50);
+    auto* destination=reinterpret_cast<float*>(actor+0xc8);
+    if(sim && (*reinterpret_cast<uint8_t*>(actor+0x7c)&1))
+        destination=reinterpret_cast<float*>(*reinterpret_cast<uintptr_t*>(sim+0xc0)+0x30);
+    *destination=value;
+    if(setter_mode==2) RaiseException(EXCEPTION_ACCESS_VIOLATION,0,0,nullptr);
+    if(setter_mode==3) *reinterpret_cast<uint64_t*>(actor+0x10)=UINT64_MAX;
+    if(setter_mode==4) destination[1]=17;
+}
 float fixture_damping(uintptr_t actor,size_t offset) {
     const auto sim=*reinterpret_cast<uintptr_t*>(actor+0x50);
     if(sim && (*reinterpret_cast<uint8_t*>(actor+0x7c)&1))
@@ -102,7 +115,8 @@ void test_body_entity() {
     std::array<unsigned char,0x320> owner{};
     std::array<unsigned char,0xe0> records{};
     std::array<unsigned char,0xb0> instance{};
-    std::array<unsigned char,0x20> actor{},associations{};
+    std::array<unsigned char,0x100> actor{};
+    std::array<unsigned char,0x20> associations{};
     std::array<unsigned char,0x120> chunk{};
     std::array<uint64_t,2> handles{UINT64_MAX,(uint64_t(7)<<32)|1},pairs{UINT64_MAX,1};
     std::array<uintptr_t,2> actors{0,reinterpret_cast<uintptr_t>(actor.data())};
@@ -116,6 +130,28 @@ void test_body_entity() {
     put(*world,0x585b0,reinterpret_cast<uintptr_t>(global_hashes.data())); put(*world,0x585b8,3u);
     put(*world,0x585c0,reinterpret_cast<uintptr_t>(global_values.data()));
     put(owner,0x2e8,owner_at);
+    std::array<unsigned char,0x150> descriptor{};
+    std::array<uintptr_t,2> dispatch_view{world_at,0};
+    std::array<uintptr_t,3> environments{reinterpret_cast<uintptr_t>(&payload),0,0};
+    constexpr uintptr_t dispatcher=0x12345000;
+    put(descriptor,0x140,dispatcher); put(descriptor,0x58,reinterpret_cast<uintptr_t>(environments.data()));
+    SimulationContext context{};
+    const auto view_at=reinterpret_cast<uintptr_t>(dispatch_view.data()),descriptor_at=reinterpret_cast<uintptr_t>(descriptor.data());
+    auto context_expect=[&](bool success) {
+        context={1,1};
+        require(read_simulation_context(view_at,descriptor_at,dispatcher,context)==success,"simulation callback context");
+        require(success?(context.world==world_at && context.owner==owner_at):(!context.world && !context.owner),"callback context output");
+    };
+    context_expect(true);
+    put(descriptor,0x140,dispatcher+1); context_expect(false); put(descriptor,0x140,dispatcher);
+    uintptr_t different_owner=owner_at+8;
+    environments[0]=reinterpret_cast<uintptr_t>(&different_owner); context_expect(false);
+    environments[0]=reinterpret_cast<uintptr_t>(&payload);
+    dispatch_view[0]=0; context_expect(false); dispatch_view[0]=world_at;
+    put(owner,0x2e8,uintptr_t(0)); context_expect(false); put(owner,0x2e8,owner_at);
+    environments[0]=1; context_expect(false); environments[0]=reinterpret_cast<uintptr_t>(&payload);
+    require(!read_simulation_context(1,descriptor_at,dispatcher,context) && !context.world,"unreadable callback view");
+    context_expect(true);
     auto setup_table=[&](size_t offset,uintptr_t pointer,uint32_t count) {
         put(owner,offset,pointer); put(owner,offset+8,count); put(owner,offset+12,count);
     };
@@ -128,6 +164,12 @@ void test_body_entity() {
     put(records,0x70+0x50,1u); put(records,0x70+0x60,uint8_t(1));
     put(instance,0x90,reinterpret_cast<uintptr_t>(local_handles.data())); put(instance,0xa8,uint16_t(1));
     put(associations,16,instance_at); put(associations,24,0u); put(actor,0x10,identity);
+    std::array<unsigned char,0x148> target_vtable_bytes{};
+    const auto target_vtable=reinterpret_cast<uintptr_t>(target_vtable_bytes.data());
+    put(target_vtable_bytes,0x128,reinterpret_cast<uintptr_t>(&fixture_set_linear));
+    put(target_vtable_bytes,0x130,reinterpret_cast<uintptr_t>(&fixture_linear));
+    put(target_vtable_bytes,0x140,reinterpret_cast<uintptr_t>(&fixture_angular));
+    put(actor,0,target_vtable); put(actor,8,uint16_t(7)); put(actor,0xc8,.25f); put(actor,0xcc,.5f);
     std::array<uint64_t,3> generations{0,0,11},locations{0,0,1};
     std::array<uint64_t,2> meta{0,2};
     uint32_t hash=0x6ebfd07c,offset=0x100;
@@ -162,6 +204,91 @@ void test_body_entity() {
     expect(LinkRead::ok);
     require(!world_scene(0) && !world_scene(1),"invalid world is guarded");
     require(read_body_entity(0,owner_at,body,out)==LinkRead::arguments,"missing world rejected");
+
+    EntityBodySnapshot target{};
+    auto target_expect=[&](TargetRead reason,uint64_t expected) {
+        target.owner=1; target.body.actor=1; target.link.entity=1;
+        require(read_entity_body(world_at,entity,0,expected,target_vtable,target)==reason,"selected entity resolution");
+        if(reason!=TargetRead::ok)
+            require(!target.owner && !target.body.actor && !target.body.handle && !target.link.entity,"failed target clears all output");
+    };
+    target_expect(TargetRead::ok,UINT64_MAX);
+    require(target.owner==owner_at && target.body.handle==body.handle && target.link.entity==entity
+        && target.link.local_index==0,"forward lookup discovers the selected entity's body");
+    target_expect(TargetRead::ok,body.handle);
+    require(*world==before && records==records_before && chunk==chunk_before,"forward lookup is read-only");
+    target_expect(TargetRead::identity,body.handle+(uint64_t(2)<<32));
+    // Replace the actor generation consistently everywhere: discovery may see it,
+    // but a retained selection must not silently bind to the replacement.
+    handles[1]+=uint64_t(2)<<32; local_handles[0]=handles[1];
+    put(actor,0x10,identity+(uint64_t(2)<<32));
+    target_expect(TargetRead::identity,body.handle);
+    target_expect(TargetRead::ok,UINT64_MAX);
+    require(target.body.handle==handles[1],"discovery sees new generation without authorizing old selection");
+    handles[1]=body.handle; local_handles[0]=body.handle; put(actor,0x10,identity);
+    generations[2]=12; target_expect(TargetRead::entity,body.handle); generations[2]=11;
+    put(records,0xa0,entity+(uint64_t(1)<<32)); target_expect(TargetRead::scene,body.handle); put(records,0xa0,entity);
+    put(chunk,0x108,2u); target_expect(TargetRead::bounds,body.handle); put(chunk,0x108,1u);
+    put(instance,0xa8,uint16_t(0)); target_expect(TargetRead::instance,body.handle); put(instance,0xa8,uint16_t(1));
+    pairs[1]=UINT64_MAX; target_expect(TargetRead::association,body.handle); pairs[1]=1;
+    actors[1]=0; target_expect(TargetRead::body,body.handle); actors[1]=body.actor;
+    local_handles[0]=UINT64_MAX; target_expect(TargetRead::identity,UINT64_MAX); local_handles[0]=body.handle;
+    put(instance,0x90,uintptr_t(1)); target_expect(TargetRead::memory,body.handle);
+    put(instance,0x90,reinterpret_cast<uintptr_t>(local_handles.data()));
+    require(read_entity_body(world_at,entity,1,body.handle,target_vtable,target)==TargetRead::instance,"local body bounds");
+    require(read_entity_body(world_at,entity,65536,body.handle,target_vtable,target)==TargetRead::arguments,"unrepresentable local index");
+    require(read_entity_body(0,entity,0,body.handle,target_vtable,target)==TargetRead::arguments,"target needs callback world");
+    require(read_entity_body(world_at,UINT64_MAX,0,body.handle,target_vtable,target)==TargetRead::arguments,"invalid entity sentinel");
+    payload=0; target_expect(TargetRead::world,body.handle); payload=owner_at;
+    target_expect(TargetRead::ok,body.handle);
+
+    std::array<unsigned char,0x400> native_scene{};
+    put(actor,0x18,reinterpret_cast<uintptr_t>(native_scene.data()));
+    const DampingAccessors accessors{target_vtable,&fixture_linear,&fixture_angular};
+    const SimulationContext simulation{world_at,owner_at};
+    auto write=[&](float old_value,float new_value,WriteStatus status,bool attempted) {
+        const auto calls=setter_calls;
+        const auto result=write_linear_damping(simulation,target,accessors,&fixture_set_linear,old_value,new_value);
+        require(result.status==status && result.attempted==attempted,"guarded native damping write outcome");
+        require(setter_calls==calls+unsigned(attempted),"setter call accounted for exactly");
+    };
+    write(.25f,8,WriteStatus::ok,true);
+    target_expect(TargetRead::ok,body.handle);
+    require(target.body.linear_damping==8,"native setter changes selected body's value");
+    write(8,.25f,WriteStatus::ok,true);
+    target_expect(TargetRead::ok,body.handle);
+    put(native_scene,0x3ea,uint8_t(1)); write(.25f,8,WriteStatus::scene_busy,false); put(native_scene,0x3ea,uint8_t(0));
+    put(actor,0x18,uintptr_t(0)); write(.25f,8,WriteStatus::scene_busy,false);
+    put(actor,0x18,reinterpret_cast<uintptr_t>(native_scene.data()));
+    put(target_vtable_bytes,0x128,uintptr_t(1)); write(.25f,8,WriteStatus::slot,false);
+    put(target_vtable_bytes,0x128,reinterpret_cast<uintptr_t>(&fixture_set_linear));
+    write(.5f,8,WriteStatus::changed,false);
+    write(.25f,std::numeric_limits<float>::infinity(),WriteStatus::arguments,false);
+    getter_mode=1; write(.25f,8,WriteStatus::getter,false); getter_mode=0;
+    setter_mode=1; write(.25f,8,WriteStatus::readback,true); setter_mode=0;
+    setter_mode=2; write(.25f,8,WriteStatus::memory,true); setter_mode=0;
+    target_expect(TargetRead::ok,body.handle);
+    require(target.body.linear_damping==8,"exception after write must remain uncertain");
+    write(8,.25f,WriteStatus::ok,true); target_expect(TargetRead::ok,body.handle);
+    setter_mode=3; write(.25f,8,WriteStatus::readback,true); setter_mode=0;
+    put(actor,0x10,identity); put(actor,0xc8,.25f);
+    setter_mode=4; write(.25f,8,WriteStatus::readback,true); setter_mode=0;
+    put(actor,0xc8,.25f); put(actor,0xcc,.5f);
+    handles[1]+=uint64_t(2)<<32; local_handles[0]=handles[1]; put(actor,0x10,identity+(uint64_t(2)<<32));
+    write(.25f,8,WriteStatus::target,false);
+    handles[1]=body.handle; local_handles[0]=body.handle; put(actor,0x10,identity);
+    const auto calls=setter_calls;
+    auto wrong_context=simulation; wrong_context.owner+=8;
+    require(write_linear_damping(wrong_context,target,accessors,&fixture_set_linear,.25f,8).status==WriteStatus::context
+        && calls==setter_calls,"different scene never receives selected body's write");
+    std::array<unsigned char,0x100> sim{};
+    std::array<unsigned char,0x40> alternate{};
+    put(actor,0x50,reinterpret_cast<uintptr_t>(sim.data())); put(actor,0x7c,uint8_t(1));
+    put(sim,0xc0,reinterpret_cast<uintptr_t>(alternate.data()));
+    put(alternate,0x1f,uint8_t(1)); put(alternate,0x30,.25f); put(alternate,0x34,.5f);
+    target_expect(TargetRead::ok,body.handle);
+    write(.25f,8,WriteStatus::ok,true);
+    target_expect(TargetRead::ok,body.handle); write(8,.25f,WriteStatus::ok,true);
 }
 int main() {
     try {

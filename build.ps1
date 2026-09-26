@@ -28,8 +28,9 @@ Copy-Item -LiteralPath "$PSScriptRoot\examples\hello\mod.ini" -Destination "$PSS
 & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\hello\hello.wat" "$PSScriptRoot\dist\crml\mods\hello\hello.wasm"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Write-Host "Build ready in $PSScriptRoot\dist"
-@{ experimental_gameplay = [bool]$MovementProbe; engine_observer = [bool]$MovementProbe } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
+@{ experimental_gameplay = [bool]$MovementProbe; engine_observer = [bool]$MovementProbe; physics_trial = [bool]$MovementProbe } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
 if ($MovementProbe) {
+    [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\physics-trial.enabled", '')
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\engine-observer.enabled", '')
     & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\visibility\visibility.wat" "$PSScriptRoot\dist\examples\visibility\visibility.wasm"
     if ($LASTEXITCODE) { exit $LASTEXITCODE }

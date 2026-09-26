@@ -105,11 +105,15 @@ def identifier(row, key):
 def records(stream):
     total = 0
     while True:
-        line = stream.readline(MAX_LINE + 1)
+        line = stream.readline(MAX_LINE + 2)
         if not line:
             return
-        total += len(line)
-        require(total <= MAX_BYTES and len(line) <= MAX_LINE, 'Capture exceeds size bounds')
+        # Older Windows recorders counted LF bytes before text-mode CRLF expansion.
+        # Normalize only record terminators, preserving the same logical size bound.
+        # The physical input is consequently bounded by twice MAX_BYTES at most.
+        size = len(line) - int(line.endswith(b'\r\n'))
+        total += size
+        require(total <= MAX_BYTES and size <= MAX_LINE, 'Capture exceeds size bounds')
         if not line.endswith(b'\n'):
             # A process exit can interrupt the final write. Preserve prior complete records.
             yield {'type': 'truncated_tail'}

@@ -12,6 +12,17 @@
       ],
       "status": "experimental",
       "gameplay_bridge": false,
+      "physics_trial": {
+        "implemented": true,
+        "status": "experimental",
+        "requires_opt_in": true,
+        "suspends_wasm_mods": true,
+        "scope": "one explicitly selected nearby prop, temporary linear damping and conditional restoration",
+        "duration_ms": 5000,
+        "linear_damping": 8,
+        "capture_schema": 1,
+        "documentation": "docs/physics-trial.md"
+      },
       "engine_observer": {
         "implemented": true,
         "requires_opt_in": true,

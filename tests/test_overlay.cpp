@@ -124,14 +124,17 @@ struct Fixture {
     }
     ~Fixture() { if(window)DestroyWindow(window); }
 };
-int main() {
+int main(int argc,char**) {
     try {
         Fixture f;
         f.draw(); // Graphics already initialized before the loader starts.
-        auto overlay=crml::probe::overlay_create(); require(overlay!=nullptr,"Graphics hook initialization failed");
+        auto overlay=crml::probe::overlay_create(argc>1); require(overlay!=nullptr,"Graphics hook initialization failed");
         crml::probe::overlay_update(overlay,true,0);
         UINT index{};
         for(int i=0;i<5;++i) index=f.draw(); f.verify(index,true);
+        if(argc>1) for(int state=-1;state<=4;++state) {
+            crml::probe::overlay_update(overlay,true,state); index=f.draw(); f.verify(index,true);
+        }
         crml::probe::overlay_update(overlay,true,1,false); index=f.draw(); f.verify(index,true);
         crml::probe::overlay_update(overlay,true,0);
         const auto before=crml::probe::overlay_diagnostics().frames;

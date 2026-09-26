@@ -15,6 +15,7 @@ FILES = ('xinput1_4.dll', 'crml/crml_runtime.dll', 'crml/wasmtime.dll',
 RECEIPT = 'crml/install-receipt.json'
 INSPECTOR_FILES = {'crml/entity-inspector.enabled': 'crml/entity-inspector.enabled'}
 OBSERVER_FILES = {'crml/engine-observer.enabled': 'crml/engine-observer.enabled'}
+PHYSICS_FILES = {'crml/physics-trial.enabled': 'crml/physics-trial.enabled'}
 OPTIONAL_FILES = {'crml/licenses/minhook.txt': 'licenses/minhook/LICENSE.txt'}
 NOCLIP_FILES = {'crml/noclip.enabled': 'examples/noclip/noclip.enabled',
                 'crml/mods/noclip/mod.ini': 'examples/noclip/mod.ini',
@@ -25,10 +26,17 @@ VISIBILITY_FILES = {'crml/visibility.enabled': 'examples/visibility/visibility.e
                     'crml/mods/visibility/visibility.wasm': 'examples/visibility/visibility.wasm'}
 
 
-def sources_for(dist, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False):
+def sources_for(dist, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, physics_trial=False):
     sources = {name: dist / name for name in FILES}
     sources['crml/licenses/wasmtime.txt'] = dist / 'licenses/wasmtime/LICENSE'
     sources.update({name: dist / source for name, source in OPTIONAL_FILES.items() if (dist / source).is_file()})
+    if physics_trial:
+        if engine_observer or experimental_noclip or entity_inspector or experimental_visibility:
+            raise ValueError('Physics trial must be installed without other experimental modes')
+        features = json.loads((dist / 'crml/build-features.json').read_text(encoding='utf-8-sig'))
+        if features.get('physics_trial') is not True:
+            raise ValueError('Rebuild with -EngineObserver before installing the physics trial')
+        sources.update({name: dist / source for name, source in PHYSICS_FILES.items()})
     if engine_observer:
         if experimental_noclip or entity_inspector or experimental_visibility:
             raise ValueError('Engine observation must be installed without other experimental modes')
@@ -107,7 +115,7 @@ def checked_path(root, relative):
             raise ValueError(f'Linked installation path: {relative}')
     return path
 
-def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False):
+def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, physics_trial=False):
     game = game.resolve(strict=True)
     executable = game / 'CONTROLResonant.exe'
     actual = digest(executable)
@@ -118,7 +126,7 @@ def install(game, dist, profiles, apply=False, experimental_noclip=False, entity
         path = checked_path(game, relative)
         if path.exists():
             raise ValueError(f'Refusing existing {relative}; no files overwritten')
-    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer)
+    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer, physics_trial)
     hashes = {name: digest(path) for name, path in sources.items()}
     print('Experimental profile: ' + profile.get('status', 'unverified'))
     if experimental_noclip:
@@ -161,7 +169,7 @@ def read_receipt(game):
     receipt_path = checked_path(game, RECEIPT)
     receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     files = receipt.get('files', {})
-    if receipt.get('schema') != 1 or not set(FILES).issubset(files) or set(files) - set(FILES) - set(OPTIONAL_FILES) - set(NOCLIP_FILES) - set(INSPECTOR_FILES) - set(VISIBILITY_FILES) - set(OBSERVER_FILES):
+    if receipt.get('schema') != 1 or not set(FILES).issubset(files) or set(files) - set(FILES) - set(OPTIONAL_FILES) - set(NOCLIP_FILES) - set(INSPECTOR_FILES) - set(VISIBILITY_FILES) - set(OBSERVER_FILES) - set(PHYSICS_FILES):
         raise ValueError('Invalid installation receipt')
     for name, expected in files.items():
         path = checked_path(game, name)
@@ -187,7 +195,7 @@ def uninstall(game, apply=False):
     checked_path(game, RECEIPT).unlink()
     print('Removed owned files. Additional mods, logs, and directories were preserved.')
 
-def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, disable_engine_observer=False):
+def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, disable_engine_observer=False, physics_trial=False, disable_physics_trial=False):
     game = game.resolve(strict=True)
     receipt = read_receipt(game)
     if engine_observer and disable_engine_observer:
@@ -195,10 +203,21 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
     actual = digest(game / 'CONTROLResonant.exe')
     if actual != receipt.get('executable_sha256') or not any(p['sha256'] == actual and p['executable'] == 'CONTROLResonant.exe' for p in profiles):
         raise ValueError('Unknown game fingerprint; update refused')
-    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer)
+    if physics_trial and disable_physics_trial:
+        raise ValueError('Cannot enable and disable physics trial together')
+    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer, physics_trial)
     hashes = {name: digest(source) for name, source in sources.items()}
     changes = {name: source for name, source in sources.items() if receipt['files'].get(name) != hashes[name]}
     removals = set(OBSERVER_FILES) & receipt['files'].keys() if disable_engine_observer else set()
+    if physics_trial:
+        removals |= set(OBSERVER_FILES) & receipt['files'].keys()
+        unowned = checked_path(game, 'crml/engine-observer.enabled')
+        if unowned.exists() and 'crml/engine-observer.enabled' not in receipt['files']:
+            raise ValueError('Remove the unowned engine observer marker before enabling physics trial')
+    if engine_observer or disable_physics_trial:
+        removals |= set(PHYSICS_FILES) & receipt['files'].keys()
+    if engine_observer and checked_path(game, 'crml/physics-trial.enabled').exists() and 'crml/physics-trial.enabled' not in receipt['files']:
+        raise ValueError('Remove the unowned physics trial marker before enabling engine observer')
     for name in removals:
         print('REMOVE ' + str(checked_path(game, name)))
     for name in changes:
@@ -276,16 +295,21 @@ def main():
     observer_mode = parser.add_mutually_exclusive_group()
     observer_mode.add_argument('--engine-observer', action='store_true', help='Enable observe-only engine validation; suspends all mods and other gameplay modes')
     observer_mode.add_argument('--disable-engine-observer', action='store_true', help='With --update, remove the owned observer marker and restore ordinary startup')
+    observer_mode.add_argument('--physics-trial', action='store_true', help='Enable the native reversible damping trial; suspends Wasm mods')
+    observer_mode.add_argument('--disable-physics-trial', action='store_true', help='With --update, remove the owned physics trial marker')
     args = parser.parse_args()
     if args.disable_engine_observer and not args.update:
         parser.error('--disable-engine-observer requires --update')
+    if args.disable_physics_trial and not args.update:
+        parser.error('--disable-physics-trial requires --update')
     try:
         if args.uninstall:
             uninstall(args.game, args.apply)
         else:
             profiles = json.loads((ROOT / 'compatibility.json').read_text())['profiles']
             action = update if args.update else install
-            options = {'disable_engine_observer': args.disable_engine_observer} if args.update else {}
+            options = {'disable_engine_observer': args.disable_engine_observer, 'disable_physics_trial': args.disable_physics_trial} if args.update else {}
+            options['physics_trial'] = args.physics_trial
             action(args.game, args.dist, profiles, args.apply, args.experimental_noclip, args.entity_inspector, args.experimental_visibility, args.engine_observer, **options)
     except (OSError, ValueError, KeyError) as error:
         parser.exit(1, f'{error}\n')

@@ -127,11 +127,75 @@ uintptr_t world_scene(uintptr_t world) noexcept {
     __try { return scene_inner(world); }
     __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return 0; }
 }
+bool read_simulation_context(uintptr_t view,uintptr_t descriptor,uintptr_t dispatcher,SimulationContext& out) noexcept {
+    out={};
+    if(!view || !descriptor || !dispatcher) return false;
+    __try {
+        if(read<uintptr_t>(descriptor+0x140)!=dispatcher) return false;
+        const auto world=read<uintptr_t>(view);
+        const auto environments=read<uintptr_t>(descriptor+0x58);
+        if(!world || !environments) return false;
+        const auto environment=read<uintptr_t>(environments);
+        if(!environment) return false;
+        const auto owner=read<uintptr_t>(environment);
+        if(!owner || scene_inner(world)!=owner || read<uintptr_t>(owner+0x2e8)!=owner) return false;
+        if(read<uintptr_t>(view)!=world || read<uintptr_t>(descriptor+0x58)!=environments
+           || read<uintptr_t>(environments)!=environment || read<uintptr_t>(environment)!=owner
+           || read<uintptr_t>(descriptor+0x140)!=dispatcher) return false;
+        out={world,owner}; return true;
+    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return false; }
+}
 LinkRead read_body_entity(uintptr_t world,uintptr_t owner,const BodySnapshot& body,BodyEntitySnapshot& out) noexcept {
     out={}; BodyEntitySnapshot copy{}; LinkRead result{};
     __try { result=entity_inner(world,owner,body,copy); }
     __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return LinkRead::memory; }
     if(result==LinkRead::ok) out=copy;
+    return result;
+}
+namespace {
+TargetRead target_inner(uintptr_t world,uint64_t entity,uint32_t local,uint64_t expected,
+                        uintptr_t vtable,EntityBodySnapshot& out) noexcept {
+    if(!world || !entity || entity==UINT64_MAX || !vtable || local>=65536) return TargetRead::arguments;
+    const auto owner=scene_inner(world);
+    if(!owner) return TargetRead::world;
+    uintptr_t chunk{}; uint32_t row{};
+    const auto physics=probe::entity_component(world,entity,0x6ebfd07c,16,chunk,row);
+    if(!physics) return TargetRead::entity;
+    const auto slot=read<uint32_t>(physics+8);
+    uintptr_t records{}; uint32_t count{};
+    if(!table(owner,0xc8,records,count) || slot>=count) return TargetRead::bounds;
+    const auto record=records+uint64_t(slot)*0x70;
+    const auto instance=read<uintptr_t>(record+0x20);
+    if(!instance || !read<uint8_t>(record+0x60) || read<uint32_t>(record+0x50)!=slot
+       || read<uint64_t>(record+0x30)!=entity) return TargetRead::scene;
+    const auto handles=read<uintptr_t>(instance+0x90);
+    const auto handle_count=read<uint16_t>(instance+0xa8);
+    if(!handles || local>=handle_count) return TargetRead::instance;
+    const auto handle=read<uint64_t>(handles+uint64_t(local)*8);
+    if(handle==UINT64_MAX || (expected!=UINT64_MAX && handle!=expected)) return TargetRead::identity;
+    BodySnapshot body{};
+    if(snapshot(owner,uint32_t(handle),vtable,body)!=BodyRead::ok) return TargetRead::body;
+    if(body.handle!=handle) return TargetRead::identity;
+    BodyEntitySnapshot link{};
+    if(entity_inner(world,owner,body,link)!=LinkRead::ok || link.entity!=entity
+       || link.scene_slot!=slot || link.local_index!=local) return TargetRead::association;
+    uintptr_t chunk_after{}; uint32_t row_after{};
+    if(scene_inner(world)!=owner || read<uintptr_t>(owner+0xc8)!=records || read<uint32_t>(owner+0xd0)!=count
+       || probe::entity_component(world,entity,0x6ebfd07c,16,chunk_after,row_after)!=physics
+       || chunk_after!=chunk || row_after!=row || read<uint32_t>(physics+8)!=slot
+       || read<uintptr_t>(record+0x20)!=instance || read<uint64_t>(record+0x30)!=entity
+       || read<uint32_t>(record+0x50)!=slot || !read<uint8_t>(record+0x60)
+       || read<uintptr_t>(instance+0x90)!=handles || read<uint16_t>(instance+0xa8)!=handle_count
+       || read<uint64_t>(handles+uint64_t(local)*8)!=handle) return TargetRead::changed;
+    out={owner,body,link}; return TargetRead::ok;
+}
+}
+TargetRead read_entity_body(uintptr_t world,uint64_t entity,uint32_t local,uint64_t expected,
+                           uintptr_t vtable,EntityBodySnapshot& out) noexcept {
+    out={}; EntityBodySnapshot copy{}; TargetRead result{};
+    __try { result=target_inner(world,entity,local,expected,vtable,copy); }
+    __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return TargetRead::memory; }
+    if(result==TargetRead::ok) out=copy;
     return result;
 }
 namespace {
@@ -162,6 +226,52 @@ AccessRead read_damping_accessors(uintptr_t owner,const BodySnapshot& expected,c
     __try { result=access_inner(owner,expected,accessors,copy); }
     __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return AccessRead::memory; }
     if(result==AccessRead::ok || result==AccessRead::mismatch) out=copy;
+    return result;
+}
+namespace {
+WriteStatus write_inner(const SimulationContext& context,const EntityBodySnapshot& selected,
+                        const DampingAccessors& accessors,DampingSetter setter,
+                        float expected,float value,bool& attempted) noexcept {
+    if(!context.world || !context.owner || !selected.body.actor || !accessors.vtable || !setter
+       || !std::isfinite(expected) || expected<0 || !std::isfinite(value) || value<0) return WriteStatus::arguments;
+    if(selected.owner!=context.owner || scene_inner(context.world)!=context.owner) return WriteStatus::context;
+    EntityBodySnapshot fresh{};
+    if(target_inner(context.world,selected.link.entity,selected.link.local_index,
+                    selected.body.handle,accessors.vtable,fresh)!=TargetRead::ok) return WriteStatus::target;
+    if(fresh.owner!=context.owner || fresh.link.scene_slot!=selected.link.scene_slot
+       || !same_body(selected.body,fresh.body) || fresh.body.linear_damping!=expected) return WriteStatus::changed;
+    if(read<uintptr_t>(accessors.vtable+0x128)!=reinterpret_cast<uintptr_t>(setter)) return WriteStatus::slot;
+    DampingReadback before{};
+    if(access_inner(context.owner,fresh.body,accessors,before)!=AccessRead::ok) return WriteStatus::getter;
+    const auto scene=read<uintptr_t>(fresh.body.actor+0x18);
+    // Native setter 0x24c30 checks the same busy byte. Require an attached scene
+    // as well, because detached objects are outside this experiment's scope.
+    if(!scene || read<uint8_t>(scene+0x3ea)) return WriteStatus::scene_busy;
+    EntityBodySnapshot immediate{};
+    if(target_inner(context.world,selected.link.entity,selected.link.local_index,
+                    selected.body.handle,accessors.vtable,immediate)!=TargetRead::ok
+       || immediate.owner!=context.owner || !same_body(fresh.body,immediate.body)
+       || read<uintptr_t>(immediate.body.actor+0x18)!=scene
+       || read<uint8_t>(scene+0x3ea)) return WriteStatus::changed;
+    attempted=true;
+    setter(immediate.body.actor,value);
+    EntityBodySnapshot after{};
+    if(target_inner(context.world,selected.link.entity,selected.link.local_index,
+                    selected.body.handle,accessors.vtable,after)!=TargetRead::ok
+       || after.owner!=context.owner || after.body.actor!=immediate.body.actor
+       || after.body.actor_identity!=immediate.body.actor_identity) return WriteStatus::readback;
+    DampingReadback values{};
+    if(access_inner(context.owner,after.body,accessors,values)!=AccessRead::ok
+       || values.linear!=value || values.angular!=before.angular) return WriteStatus::readback;
+    return WriteStatus::ok;
+}
+}
+DampingWrite write_linear_damping(const SimulationContext& context,const EntityBodySnapshot& selected,
+                                  const DampingAccessors& accessors,DampingSetter setter,
+                                  float expected,float value) noexcept {
+    DampingWrite result{};
+    __try { result.status=write_inner(context,selected,accessors,setter,expected,value,result.attempted); }
+    __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { result.status=WriteStatus::memory; }
     return result;
 }
 }

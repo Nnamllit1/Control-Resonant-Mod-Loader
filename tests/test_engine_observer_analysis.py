@@ -5,9 +5,10 @@ import struct
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from analyze_engine_observer import analyze, physics_windows, PHASES, MAX_LINE
+from analyze_engine_observer import analyze, physics_windows, records, PHASES, MAX_LINE
 
 
 def fixture():
@@ -35,6 +36,26 @@ def stream(rows):
 
 
 class CaptureTests(unittest.TestCase):
+    def test_windows_record_terminators_preserve_capture_bounds(self):
+        data = stream(fixture()).getvalue()
+        with patch('analyze_engine_observer.MAX_BYTES', len(data)):
+            self.assertEqual(analyze(io.BytesIO(data)),
+                             analyze(io.BytesIO(data.replace(b'\n', b'\r\n'))))
+            for terminator in (b'\n', b'\r\n'):
+                oversized = data.replace(b'\n', terminator) + b'{}' + terminator
+                with self.assertRaises(ValueError):
+                    list(records(io.BytesIO(oversized)))
+        # Only one CR in an actual CRLF terminator is discounted, not payload CRs.
+        with patch('analyze_engine_observer.MAX_BYTES', 3):
+            self.assertEqual(list(records(io.BytesIO(b'{}\r\n'))), [{}])
+            with self.assertRaises(ValueError):
+                list(records(io.BytesIO(b'{}\r\r\n')))
+        for terminator in (b'\n', b'\r\n'):
+            at_limit = b'{}' + b' ' * (MAX_LINE - 3) + terminator
+            self.assertEqual(list(records(io.BytesIO(at_limit))), [{}])
+            with self.assertRaises(ValueError):
+                list(records(io.BytesIO(b' ' + at_limit)))
+
     def body_fixture(self):
         rows = fixture()
         rows[0]['schema'] = 2

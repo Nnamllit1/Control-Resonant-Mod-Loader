@@ -4,6 +4,11 @@
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
   "status": "Static body-handle, reverse-association and retirement references.",
   "checks": [
+    {"kind": "jump_rel32", "rva": "0x190e4cb", "target": "0x18fde50", "label": "PhysicsScene initialization dispatcher enters owned scene binding"},
+    {"kind": "call_rel32", "rva": "0x18fde77", "target": "0x1914560", "label": "unbound PhysicsScene creates an owned scene"},
+    {"kind": "call_rel32", "rva": "0x1914580", "target": "0x2ce2980", "label": "scene factory invokes constructor"},
+    {"kind": "call_rel32", "rva": "0x18fde94", "target": "0x2ce2d00", "label": "owned scene replacement destroys previous owner before freeing it"},
+    {"kind": "call_rel32", "rva": "0x1911513", "target": "0x2ce2d00", "label": "owned scene cleanup invokes owner destructor"},
     {"kind": "call_rel32", "rva": "0x191f64c", "target": "0x2ce2ff0", "label": "staging publishes descriptor containing ECS handle at +0x30"},
     {"kind": "call_rel32", "rva": "0x19d68f6", "target": "0x2cf07a0", "label": "VM body consumer resolves reverse association from world scene owner"},
     {"kind": "u32", "rva": "0x2cf0901", "target": "0x2d8", "label": "endpoint validation reads handle-table count"},
