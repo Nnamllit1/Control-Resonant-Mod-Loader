@@ -1,0 +1,456 @@
+{
+  "schema": 1,
+  "title": "Forces, gravity, inertia conditioning and simulation phases",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static references only; no runtime modifications or live phase validation.",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfcb1d",
+      "target": "0x2d83f70",
+      "label": "velocity-change body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfcbad",
+      "target": "0x2d83f70",
+      "label": "angular-velocity-change body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfcc3d",
+      "target": "0x2d83f70",
+      "label": "force body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfcd5d",
+      "target": "0x2d83f70",
+      "label": "impulse body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfd1ba",
+      "target": "0x2d83f70",
+      "label": "gravity setter body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfd204",
+      "target": "0x2d83f70",
+      "label": "gravity getter body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19ee63a",
+      "target": "0x2cfcc30",
+      "label": "native callback to force helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19ee6aa",
+      "target": "0x2cfcd50",
+      "label": "native callback to impulse helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2429f2f",
+      "target": "0x2cfcd50",
+      "label": "pending action applies impulse"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2429f3b",
+      "target": "0x2cfd1b0",
+      "label": "pending action sets gravity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2434696",
+      "target": "0x2422d60",
+      "label": "gravity-reset dispatcher implementation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2422e49",
+      "target": "0x2cfd1b0",
+      "label": "gravity-reset loop reenables body gravity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1902127",
+      "target": "0x2ce5210",
+      "label": "simulation applies scene configuration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ce52d0",
+      "target": "0x2cdc6c0",
+      "label": "configuration submits gravity vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1902216",
+      "target": "0x2ce5330",
+      "label": "normal simulation begin"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1902223",
+      "target": "0x2ce5360",
+      "label": "normal simulation secondary path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x190222b",
+      "target": "0x2ce5380",
+      "label": "normal simulation wait"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ce5393",
+      "target": "0x2cdbaf0",
+      "label": "wait enters substep processing"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cdbb00",
+      "target": "0x2cdbbf0",
+      "label": "wait first substep"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cdbb6b",
+      "target": "0x2cdbbf0",
+      "label": "wait subsequent substeps"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19021f8",
+      "target": "0x2cc95a0",
+      "label": "alternate immediate-mode path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfe143",
+      "target": "0x3918fd0",
+      "label": "selected shapes to mass-properties helper"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x190e4df",
+      "target": "0x1901fa0",
+      "label": "simulate dispatcher implementation"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1902277",
+      "target": "0x2ce5310",
+      "label": "simulation final processing"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x2ce5346",
+      "target": "0x2cdba00",
+      "label": "begin to backend submit"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x2ce5367",
+      "target": "0x2cd5b40",
+      "label": "secondary scene path"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x2ce531a",
+      "target": "0x2cdbdb0",
+      "label": "post-simulation processing"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x18fb0fb",
+      "target": "0x190e4d0",
+      "label": "simulate registration dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x243ba98",
+      "target": "0x2434430",
+      "label": "gravity reset registration dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x40f49",
+      "target": "0x47eee80",
+      "label": "gravity scale setting label"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x41319",
+      "target": "0x47eeee8",
+      "label": "immediate mode setting label"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2c70e9",
+      "target": "0x4d53928",
+      "label": "substeps setting label"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cfcb67",
+      "target": "0x2",
+      "label": "velocity-change mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cfcda7",
+      "target": "0x1",
+      "label": "impulse mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cfd1da",
+      "target": "0x2",
+      "label": "disable-gravity flag"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3ad140c",
+      "target": "0x40a00000",
+      "label": "inertia clamp factor float 5"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cdc6f2",
+      "target": "0x2a8",
+      "label": "scene gravity virtual slot"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cfe449",
+      "target": "0x110",
+      "label": "computed inertia virtual slot"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cfe4b0",
+      "target": "0xe8",
+      "label": "computed center of mass virtual slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4d54228",
+      "target": "0x558cea8",
+      "label": "completion task RTTI locator pointer"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x558ceb4",
+      "target": "0x5b8e8c0",
+      "label": "completion task RTTI type descriptor"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4d54238",
+      "target": "0x2cdb200",
+      "label": "completion task result processing virtual entry"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2cdb38f",
+      "target": "0x4d54230",
+      "label": "constructor embeds completion task vtable"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cdb399",
+      "target": "0x148",
+      "label": "embedded completion task member displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cdba4c",
+      "target": "0x148",
+      "label": "simulation completion task argument displacement"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cdb229",
+      "target": "0x2cd6b00",
+      "label": "completion task pre-result helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cdb279",
+      "target": "0x2cd62e0",
+      "label": "completion task split result processing helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cdb2ba",
+      "target": "0x2cd6b10",
+      "label": "completion task first post-result helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cdb2c2",
+      "target": "0x2cd6b20",
+      "label": "completion task final post-result helper"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cdb2c8",
+      "target": "0x1",
+      "label": "completion signal value before atomic exchange"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cc97ac",
+      "target": "0x2ccb5e0",
+      "label": "immediate solver body construction"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cc9804",
+      "target": "0x2cca280",
+      "label": "immediate constraint construction"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cc9920",
+      "target": "0x2ccae20",
+      "label": "immediate downstream processing"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cc9861",
+      "target": "0xdaf79b",
+      "label": "PxSolveConstraintsTGS call IAT displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2cc9880",
+      "target": "0xdaf764",
+      "label": "PxIntegrateSolverBodiesTGS call IAT displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2ccaaad",
+      "target": "0xdae55f",
+      "label": "PxCreateContactConstraintsTGS call IAT displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2ccad9b",
+      "target": "0xdae269",
+      "label": "PxCreateJointConstraintsWithShadersTGS call IAT displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2ccb931",
+      "target": "0xdad6e3",
+      "label": "PxConstructStaticSolverBodyTGS call IAT displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2ccbd59",
+      "target": "0xdad2c3",
+      "label": "PxConstructSolverBodiesTGS call IAT displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2ccbe0e",
+      "target": "0xdad206",
+      "label": "PxConstructStaticSolverBodyTGS call IAT displacement"
+    }
+  ],
+  "gaps": [
+    "Complete force consumer scheduling, solver paths and acceleration-retention flag route.",
+    "Immediate-mode constraint data, writeback and complete scheduler dependency graph.",
+    "All gameplay gravity overrides and character-controller gravity.",
+    "Shape mass integration and density-to-mass derivation."
+  ],
+  "backend_imports": [
+    {
+      "iat_rva": "0x3a78f70",
+      "module": "PhysXFoundation_64.dll",
+      "symbol": "?PxDiagonalize@physx@@YA?AV?$PxVec3T@M@1@AEBV?$PxMat33T@M@1@AEAV?$PxQuatT@M@1@@Z",
+      "validation": "Manually resolved PE import table; not an individual verifier check."
+    },
+    {
+      "iat_rva": "0x3a79000",
+      "call_rva": "0x2cc985f",
+      "module": "PhysX_64.dll",
+      "symbol": "PxSolveConstraintsTGS",
+      "validation": "Call displacement checked; PE import name manually resolved."
+    },
+    {
+      "iat_rva": "0x3a78fe8",
+      "call_rva": "0x2cc987e",
+      "module": "PhysX_64.dll",
+      "symbol": "PxIntegrateSolverBodiesTGS",
+      "validation": "Call displacement checked; PE import name manually resolved."
+    },
+    {
+      "iat_rva": "0x3a79010",
+      "call_rva": "0x2ccaaab",
+      "module": "PhysX_64.dll",
+      "symbol": "PxCreateContactConstraintsTGS",
+      "validation": "Call displacement checked; PE import name manually resolved."
+    },
+    {
+      "iat_rva": "0x3a79008",
+      "call_rva": "0x2ccad99",
+      "module": "PhysX_64.dll",
+      "symbol": "PxCreateJointConstraintsWithShadersTGS",
+      "validation": "Call displacement checked; PE import name manually resolved."
+    },
+    {
+      "iat_rva": "0x3a79018",
+      "call_rva": "0x2ccb92f",
+      "module": "PhysX_64.dll",
+      "symbol": "PxConstructStaticSolverBodyTGS",
+      "validation": "Call displacement checked; PE import name manually resolved."
+    },
+    {
+      "iat_rva": "0x3a79020",
+      "call_rva": "0x2ccbd57",
+      "module": "PhysX_64.dll",
+      "symbol": "PxConstructSolverBodiesTGS",
+      "validation": "Call displacement checked; PE import name manually resolved."
+    },
+    {
+      "iat_rva": "0x3a79018",
+      "call_rva": "0x2ccbe0c",
+      "module": "PhysX_64.dll",
+      "symbol": "PxConstructStaticSolverBodyTGS",
+      "validation": "Call displacement checked; PE import name manually resolved."
+    }
+  ],
+  "layouts": {
+    "scene_owner": {
+      "0x260": "timestep set before normal simulation",
+      "0x264": "normal simulation phase flag; not a synchronization primitive",
+      "0x26c": "scene gravity vector x",
+      "0x270": "scene gravity vector y",
+      "0x274": "scene gravity vector z"
+    },
+    "pending_impulse_action": {
+      "stride": "0x50",
+      "0x0": "body handle",
+      "0x8": "enable boolean for tag 1",
+      "0x10": "impulse vector for default action branch",
+      "0x40": "signed action tag; complete producer-side enum unresolved"
+    },
+    "completion_task": {
+      "vtable": "0x4d54230",
+      "type_descriptor": "0x5b8e8c0",
+      "owner_offset": "0x148",
+      "0x28": "completion byte, wrapper+0x170",
+      "result_processing": "0x2cdb200",
+      "atomic_signal_instruction": "0x2cdb2cc",
+      "validation": "RTTI, vtable and constructor references checked; task flow and signal instruction manually reviewed."
+    }
+  }
+}

@@ -1,0 +1,263 @@
+{
+  "schema": 1,
+  "title": "Dynamic body setters, force accumulators, consumption and conditional reset",
+  "module": "PhysX_64.dll",
+  "executable_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
+  "status": "Static backend mapping; no method invoked by mod runtime.",
+  "checks": [
+    {
+      "kind": "pointer64",
+      "rva": "0x15ddb8",
+      "target": "0xed00",
+      "label": "scene lookup"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15ddd8",
+      "target": "0x23380",
+      "label": "actor flag setter"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15dde8",
+      "target": "0x217d0",
+      "label": "actor flags getter"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15de80",
+      "target": "0x24e20",
+      "label": "mass setter"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15de88",
+      "target": "0x22400",
+      "label": "mass getter"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15de98",
+      "target": "0x24e90",
+      "label": "inertia setter"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15df10",
+      "target": "0x20c10",
+      "label": "addForce"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15df18",
+      "target": "0x20f50",
+      "label": "addTorque"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15df48",
+      "target": "0x22570",
+      "label": "body flags getter"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x15e008",
+      "target": "0x24c90",
+      "label": "linear velocity setter"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x209e8",
+      "target": "0x15dd88",
+      "label": "dynamic constructor installs final vtable"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20984",
+      "target": "0x30007",
+      "label": "constructor type word and flags"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20cdc",
+      "target": "0x20d20",
+      "label": "force mode dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20d02",
+      "target": "0x25e70",
+      "label": "force activation bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20d71",
+      "target": "0xfe4c0",
+      "label": "mode 2 velocity accumulator"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20d84",
+      "target": "0xfe570",
+      "label": "mode 1 inverse-mass lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20e4f",
+      "target": "0xfe4c0",
+      "label": "mode 1 scaled velocity accumulator"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20e62",
+      "target": "0xfe570",
+      "label": "mode 0 inverse-mass lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x24f3d",
+      "target": "0xff2b0",
+      "label": "inertia inverse values forwarded"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x24e8a",
+      "target": "0xff320",
+      "label": "mass inverse value forwarded"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20f2d",
+      "target": "0xfe4b0",
+      "label": "modes 0 and 3 acceleration accumulator"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xfe4b3",
+      "target": "0x11d350",
+      "label": "acceleration add wrapper"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xfe4c3",
+      "target": "0x11d410",
+      "label": "velocity change add wrapper"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xfe4d3",
+      "target": "0x11d4d0",
+      "label": "explicit acceleration clear wrapper"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0xfe4e3",
+      "target": "0x11d530",
+      "label": "explicit velocity change clear wrapper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x11d36d",
+      "target": "0x11dc70",
+      "label": "acceleration add dirty bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x11d389",
+      "target": "0x11e060",
+      "label": "acceleration state initialization"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x11d42d",
+      "target": "0x11dc70",
+      "label": "velocity change add dirty bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x11d449",
+      "target": "0x11e060",
+      "label": "velocity change state initialization"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x11d4ee",
+      "target": "0x11dc70",
+      "label": "acceleration clear dirty bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x11d54e",
+      "target": "0x11dc70",
+      "label": "velocity change clear dirty bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x118a92",
+      "target": "0x11e630",
+      "label": "batched force consumer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x11a739",
+      "target": "0x11e630",
+      "label": "conditional force consumer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x11bb8e",
+      "target": "0x11e630",
+      "label": "output force consumer"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x11e643",
+      "target": "0xc8",
+      "label": "consumer dirty field displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x11e6b4",
+      "target": "0xc0",
+      "label": "consumer state pointer displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x15cdc0",
+      "target": "0x3f800000",
+      "label": "consumer reciprocal timestep numerator float 1"
+    }
+  ],
+  "vtable": "0x15dd88",
+  "external_symbol_glossary": [
+    "https://nvidiagameworks.github.io/PhysX/4.0/documentation/PhysXAPI/files/structPxForceMode.html",
+    "https://nvidia-omniverse.github.io/PhysX/physx/5.1.3/_build/physx/latest/program_listing_file_include_PxActor.h.html"
+  ],
+  "gaps": [
+    "Complete solver scheduling, output-consumer branches and public acceleration-retention flag route",
+    "Complete flag setter body and GPU-path behavior",
+    "Live object identity and engine scheduling"
+  ],
+  "layouts": {
+    "internal_simulation_object": {
+      "access": "dereference actor+0x50; not a stable handle",
+      "0xc0": "pointer to pooled union state",
+      "0xc8": "dirty byte; mask 2 acceleration, mask 4 velocity change"
+    },
+    "union_state_accumulator_representation": {
+      "condition": "tag byte +0x1f equals zero; not the saved-property representation",
+      "size": "0x40",
+      "0x0": "linear acceleration xyz",
+      "0x10": "angular acceleration xyz",
+      "0x20": "linear velocity change xyz",
+      "0x30": "angular velocity change xyz"
+    },
+    "consumer": {
+      "rva": "0x11e630",
+      "reviewed_range": "0x11e630-0x11e9df",
+      "formula": "delta = velocity_change + timestep * acceleration",
+      "reset": "conditional; internal retention bit preserves acceleration only",
+      "validation": "Calls and selected operands checked; formulas and branch semantics manually reviewed."
+    }
+  }
+}
