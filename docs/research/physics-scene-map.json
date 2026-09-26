@@ -1,0 +1,267 @@
+{
+  "schema": 1,
+  "title": "Physics component, scene handle and lifetime staging",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static trace; no scene helper has been called by the mod runtime. Native backend object classes and filter semantics remain unresolved.",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x18fee6f",
+      "target": "0x191ede0",
+      "label": "stream-in to instance staging"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191f64c",
+      "target": "0x2ce2ff0",
+      "label": "allocate scene slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191fa30",
+      "target": "0x2ce32b0",
+      "label": "resolve scene slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191fa58",
+      "target": "0x2d68180",
+      "label": "prepare physics descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191fae5",
+      "target": "0x2d81a60",
+      "label": "populate scene entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191fb10",
+      "target": "0x2d812c0",
+      "label": "bind scene entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191f823",
+      "target": "0x1909210",
+      "label": "queue Physics component"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191f693",
+      "target": "0x31cf890",
+      "label": "resource ownership reacquisition"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x4368fb",
+      "target": "0x31cf8c0",
+      "label": "Physics component resource release"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191be9a",
+      "target": "0x2ce32b0",
+      "label": "deactivation resolves slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x191beb1",
+      "target": "0x2d819b0",
+      "label": "deactivation helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d819fb",
+      "target": "0x2cfea80",
+      "label": "deactivation array helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d81a29",
+      "target": "0x2d83ac0",
+      "label": "deactivation per-object helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1901dbd",
+      "target": "0x2d816c0",
+      "label": "state application to batch activation (previous cleanup label corrected)"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d81d61",
+      "target": "0x2cfaca0",
+      "label": "scene population backend helper"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x43875d",
+      "target": "0x10",
+      "label": "Physics component registered size"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x190923c",
+      "target": "0x6ebfd07c",
+      "label": "Physics component command hash"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfeafa",
+      "target": "0x2d83f70",
+      "label": "batch deactivation resolves backend handle"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d83aea",
+      "target": "0x2cd55c0",
+      "label": "read associated pending pointer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d83b84",
+      "target": "0x2cd55e0",
+      "label": "clear queued associated pointer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d8142f",
+      "target": "0x2d689f0",
+      "label": "binding endpoint index mapping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d814e1",
+      "target": "0x2cf1030",
+      "label": "binding endpoint associations"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d81784",
+      "target": "0x2cfe730",
+      "label": "activate unattached backend objects"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfe7a9",
+      "target": "0x2d83f70",
+      "label": "activation resolves backend object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfe7cc",
+      "target": "0x2ccc3b0",
+      "label": "activation destination key"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfe7d7",
+      "target": "0x2ce57c0",
+      "label": "activation destination resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d8185d",
+      "target": "0x2cfc840",
+      "label": "activation reapplies first cached vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d81884",
+      "target": "0x2cfc930",
+      "label": "activation reapplies second cached vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2198f64",
+      "target": "0x3d65c0",
+      "label": "install batch callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2199042",
+      "target": "0x219adc0",
+      "label": "batch callback implementation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x219ae19",
+      "target": "0x2ccc470",
+      "label": "batch consumer queries handle flags"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4a493b0",
+      "target": "0x2199020",
+      "label": "batch callback invoke slot"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2198f41",
+      "target": "0x4a493a0",
+      "label": "initializer selects batch callback vtable"
+    }
+  ],
+  "layouts": {
+    "Physics": {
+      "hash": "0x6ebfd07c",
+      "size": 16,
+      "alignment": 8,
+      "fields": {
+        "0x0": "owned resource reference",
+        "0x8": "32-bit scene slot index",
+        "0xc": "state byte tested and cleared by deactivation; full meaning unresolved"
+      }
+    },
+    "scene_slot": {
+      "stride": "0x70",
+      "table_pointer_offset": "0xc8",
+      "fields": {
+        "0x40": "moved allocation pointer",
+        "0x48": "associated 32-bit length",
+        "0x4c": "associated 32-bit capacity",
+        "0x50": "slot index",
+        "0x58": "active-state flag: cleared by 0x2d819b0, set by batch activation 0x2d816c0",
+        "0x60": "occupied/initialized marker"
+      }
+    },
+    "backend_tables": {
+      "base": "first argument to 0x2cfea80 and 0x2d83ac0",
+      "fields": {
+        "0x1d0": "pointer table indexed by low 32 bits of eight-byte object handle",
+        "0x1f0": "separate associated pointer table; queued then cleared during deactivation"
+      },
+      "validation": "leaf accessors do not check bounds or upper handle bits"
+    },
+    "pending_associated_pointers": {
+      "base": "second argument to 0x2d83ac0",
+      "fields": {
+        "0x20": "pointer array",
+        "0x28": "32-bit count",
+        "0x2c": "32-bit capacity"
+      },
+      "consumer": "Installed initCoreGamePhysics callback 0x219adc0 clears count +0x28 without processing or destroying elements; caller frees backing array. Final pointee ownership unresolved."
+    },
+    "instance_backend_handles": {
+      "base": "scene record +0x20 pointer",
+      "fields": {
+        "0x90": "array of eight-byte handles, not backend pointers",
+        "0xa8": "16-bit handle count",
+        "0xe0": "separate binding index array",
+        "0xfa": "16-bit binding index count"
+      }
+    }
+  },
+  "gaps": [
+    "Prove physics backend object classes and exact actor/shape API mappings.",
+    "Trace slot recycling, generation policy and scheduler exclusion before retaining handles.",
+    "Identify per-body filter, gravity, mass and constraint layouts.",
+    "Validate read-only observations against a live scene before adding physics writes.",
+    "Resolve backend object virtual slot +0x30 and returned owner slot +0xf8; verify live callback identity and final associated-pointer ownership."
+  ],
+  "corrections": [
+    "0x2d816c0 is batch activation, not cleanup: skips active records and sets +0x58 after submission.",
+    "Associated-pointer batch is not a proven deferred destruction queue; installed callback clears its count without destroying elements."
+  ]
+}

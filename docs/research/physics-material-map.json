@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "title": "Physics material loading and creation-time friction overrides",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static trace only; no live material writes or settings changes.",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x3d48a5",
+      "target": "0x3255410",
+      "label": "read static friction"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3d48d2",
+      "target": "0x3255410",
+      "label": "read restitution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3d48ff",
+      "target": "0x3255410",
+      "label": "read dynamic friction"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3d49e2",
+      "target": "0x2ce8600",
+      "label": "get material registry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3d4a23",
+      "target": "0x2ce8720",
+      "label": "populate material registry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ce884c",
+      "target": "0x318edf0",
+      "label": "copy material record string"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ce8a69",
+      "target": "0x2ce8ea0",
+      "label": "register material hash lookup"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2c74f9",
+      "target": "0x4d5cd00",
+      "label": "dynamic friction restart setting label"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2c75f9",
+      "target": "0x4d5ccc0",
+      "label": "static friction restart setting label"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cff88c",
+      "target": "0x2ce8bd0",
+      "label": "shape construction material lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cff92b",
+      "target": "0x2d83f70",
+      "label": "shape attachment resolves body"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d0d9bd",
+      "target": "0x2ce8bd0",
+      "label": "material array resolves byte ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ce861b",
+      "target": "0x2ce8e50",
+      "label": "registry allocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ce86dd",
+      "target": "0x3d6ea0",
+      "label": "teardown destroys record array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ce8693",
+      "target": "0x3202210",
+      "label": "teardown frees backend pointer array"
+    }
+  ],
+  "layouts": {
+    "material_record": {
+      "stride": "0xa0",
+      "fields": {
+        "0x88": "case-folded FNV-1a name hash",
+        "0x90": "static friction float",
+        "0x94": "restitution float",
+        "0x98": "dynamic friction float",
+        "0x9c": "transparent byte",
+        "0x9d": "pierce byte",
+        "0x9e": "audio_transparent byte",
+        "0x8c": "material ID byte returned by name lookup"
+      }
+    },
+    "registry": {
+      "global_pointer_rva": "0x5d20280",
+      "fields": {
+        "0x0": "material record array",
+        "0x8": "record count",
+        "0x50": "backend material pointer array",
+        "0x58": "backend material pointer count",
+        "0x10": "ID-to-record-index array (signed 32-bit entries)",
+        "0x18": "ID mapping count"
+      }
+    }
+  },
+  "gaps": [
+    "Identify concrete backend material type and setter methods.",
+    "Trace shape-to-material attachment, sharing and reference release.",
+    "Resolve safe live update ordering and cache synchronization.",
+    "Trace character ground friction separately before claiming a global ice effect."
+  ]
+}

@@ -163,3 +163,108 @@ RTTI identifies `physics::CollisionPackageResource`, instance vtable `0x4d6db50`
 The reader validates metadata through its type key. When metadata+0x3b is nonzero, it retains a copy of incoming bytes in a compact buffer: pointer at resource+0xa0, length at +0xa8, capacity at +0xac. It then calls decoder `0x2d442c0` and publishes completion through `0x31cee00`, the same completion helper previously traced for Lua and material resources. Thus the +0x3b branch controls byte retention in this reader, although its original field name and all consumers are not established.
 
 The decoder creates another copy aligned to 0x80 bytes, owned at resource+0xb0 and initially referenced by +0xb8. It processes a structured stream and populates additional resource data. The complete binary schema and native actor bindings remain unresolved; these fields are not exposed as a modification API.
+
+### ECS physics handles and scene staging
+
+A further trace establishes the 16-byte `coregame::component::Physics` representation, hash `6ebfd07c`: an owned resource reference at +0, a 32-bit scene slot at +8, and a state byte at +0xc. Registration `0x438730` specifies size 16/alignment 8. The stream-in path increments the resource reference and stages this payload through the component command helper `0x1909210`. Cleanup `0x4368c0` releases the reference and clears +0; this component cleanup alone is not scene removal.
+
+Instance staging `0x191ede0` calls `0x2ce2ff0`, which takes an index from a free list, marks an occupancy bit, and stores a 0x70-byte scene record. The record array pointer is at scene-owner+0xc8. Resolver `0x2ce32b0` returns that array plus index times 0x70; it performs no bounds or generation check. The index must therefore not be treated like the generation-bearing ECS entity handle or retained as a stable mod handle.
+
+The record owns a moved allocation at +0x40 with associated length/capacity at +0x48/+0x4c; the source fields are cleared. It stores its slot index at +0x50 and an initialized marker at +0x60. Staging then prepares a descriptor through `0x2d68180`, calls population helper `0x2d81a60`, and calls binding helper `0x2d812c0`. The concrete backend object classes and argument semantics below these helpers remain unresolved.
+
+Deactivation helper `0x191be70` resolves the component's slot and, when component+0xc is set, calls `0x2d819b0` then clears that byte. The latter checks scene-record+0x58, processes an object array through `0x2cfea80` and per-object helper `0x2d83ac0`, then clears record+0x58. State application at `0x19019a0` calls `0x2d816c0` to activate inactive entries. This routine submits backend objects and sets record+0x58 to one; it is not a cleanup routine. Deactivation and activation are distinct lifecycle stages; zeroing a component pointer or toggling a cached byte cannot replace them.
+
+```mermaid
+flowchart LR
+    Resource[Collision package resource] --> Stage[Instance staging]
+    Stage --> Slot[Scene slot: 0x70-byte record]
+    Stage --> Component[Physics component: resource reference + slot]
+    Slot --> Population[Descriptor and scene population]
+    Population --> Binding[Scene binding]
+    Component --> Deactivate[Deactivation]
+    Deactivate --> Inactive[Inactive scene entry]
+    Inactive --> Activate[Batch activation]
+    Activate --> Binding
+    Deactivate --> Notifications[Batch notifications]
+```
+
+The [physics scene map](research/physics-scene-map.json) contains reproducible executable checks. It does not establish callable APIs. Physics modifications still require resolving slot recycling, update ordering, and the specific property being changed.
+
+### Backend handles and deactivation notifications
+
+The array at the scene record's +0x20 object, offset +0x90 with a 16-bit count at +0xa8, contains **eight-byte handles**, not directly callable object pointers. Deactivation passes each handle to resolver `0x2d83f70`. That resolver uses only the low 32 bits to index the pointer table at backend-owner+0x1d0, with no local bounds or generation check. The upper bits' meaning and the checks performed by callers remain unresolved.
+
+Batch helper `0x2cfea80` resolves those handles and calls virtual slot +0x30 on each resulting object. It groups objects by the non-null pointer returned from that call. For each group it invokes virtual slot +0xf8 on the returned owner, passing the object-pointer array, its count, and the inverse of the incoming boolean. This establishes an owner-grouped backend operation in the deactivation path. Identifying these virtual methods as specific middleware APIs still requires tracing the concrete vtables.
+
+Deactivation also handles a separate pointer table at backend-owner+0x1f0. Helper `0x2d83ac0` reads it through `0x2cd55c0`, appends a non-null pointer to a pending array in its second argument (+0x20 pointer, +0x28 count, +0x2c capacity), then clears the table entry through `0x2cd55e0`. It does not directly destroy that pointer. The installed callback described below clears this notification list without destroying its elements; final pointee ownership is still unresolved.
+
+The binding path has another index space. Helper `0x2d812c0` allocates indices from backend-owner+0xd8 and writes them to the instance array at +0xe0, using the 16-bit count at +0xfa. It reads pairs of 16-bit indices at +0x7c/+0x7e from 0x230-byte source records, maps them through `0x2d689f0`, and selects endpoint handles from instance+0x90. Helper `0x2cf1030` stores two optional eight-byte endpoints in 24-byte records at owner+0x138 and updates reverse associations. This resembles a relationship/constraint binding path, but the precise constraint types are not yet established. Its indices must not be confused with scene slots or backend object handles.
+
+
+### State application and the batch callback
+
+The batch activation routine `0x2d816c0` collects handles only from entries whose +0x58 flag is zero. Helper `0x2cfe730` resolves each handle, checks backend object virtual slot +0x30, and skips objects already attached to an owner. For unattached objects it resolves a destination through `0x2ccc3b0`, `0x2ce57c0`, and virtual slot +0x10. It groups object pointers by destination and invokes destination virtual slot +0xe8. This complements deactivation's owner slot +0xf8. The precise middleware method names are not established by these call sites alone.
+
+Activation then reapplies two cached vector channels through `0x2cfc840` and `0x2cfc930` when nonzero, processes binding state, and sets scene-record+0x58 to one. Those vector helpers update engine-side caches before dispatching to backend virtual slots +0x280/+0x288; they require object type word +8 to equal 7 and test bit 0 of the value returned through virtual slot +0x1c0. Their exact property names and units remain unverified. Writing only the backend object would bypass the cache updates visible here.
+
+RTTI identifies the batch callback as a lambda installed by `rigidbodyfactory::initCoreGamePhysics`, accepting an ECS world view and `physics::Batch&`. Initialization `0x2198eb0` constructs the callback with vtable `0x4a493a0` and transfers it into `PhysicsBatchProcessing`. Invoke slot +0x10 is `0x2199020`, which calls implementation `0x219adc0`. State application invokes the configured callback at `0x1901df5` before releasing the batch arrays.
+
+This implementation iterates the first list (pointer +0, count +8), tests bit 0x20 returned by `0x2ccc470`, and appends selected handles with an additional byte to 12-byte factory records. It then clears all three counts at batch+8, +0x18 and +0x28. It does **not** iterate or destroy the associated pointers in the third list at +0x20. The caller subsequently frees that list's backing allocation, not its pointees. Thus this path establishes batch notification consumption, not deferred destruction. A replacement callback could behave differently; live callback identity and final associated-pointer ownership remain to verify.
+
+### Physics materials and friction
+
+Loader `0x3d4650` references `physics_materials.json` and reads named `static_friction`, `restitution`, and `dynamic_friction` values. It also reads `transparent`, `pierce`, and `audio_transparent` booleans. It passes an array of 0xa0-byte records to registry population `0x2ce8720`, obtaining the registry through accessor `0x2ce8600` (global pointer RVA `0x5d20280`). This identifies a physics-material path distinct from rendering materials and character movement friction.
+
+The population routine copies these records and uses the following offsets within each record:
+
+| Offset | Observed field |
+| --- | --- |
+| +0x88 | Case-folded FNV-1a name hash produced by the loader |
+| +0x90 | Static friction float |
+| +0x94 | Restitution float |
+| +0x98 | Dynamic friction float |
+| +0x9c / +0x9d / +0x9e | Transparent / pierce / audio-transparent bytes |
+
+Registry+0 holds the record array, with count at +8. A separate array at registry+0x50 stores returned backend material pointers, with count at +0x58. Population passes static friction, dynamic friction, and restitution in that order to backend virtual slot +0x180, reached through `*(*(base+0x5d202e8)+0x20)`. The returned pointer is stored at the matching material index. Concrete backend type, shape attachment, reference ownership and release still require tracing.
+
+Two registered settings are explicitly labeled “Globally disable static friction (requires restart)” and “Globally disable dynamic friction (requires restart)”. Population tests their value bytes at RVAs `0x5d202e0` and `0x5d202c0`, respectively, substituting zero into backend creation arguments. The copied engine records retain their original values. This establishes creation-time overrides; it does not establish that toggling these bytes updates existing materials. The registry population routine must not be treated as a live-update API: its replacement and backend-pointer lifetime behavior remain unverified.
+
+The executable also contains separate `groundFriction`, `groundFrictionMul`, and character collision friction settings. Their presence alone does not connect them to this registry. A global “ice” effect may require both contact-material changes and character movement changes; that remains a research hypothesis, not tested behavior. The [physics material map](research/physics-material-map.json) records the verified references for this trace.
+
+
+### Material sharing, lookup and registry teardown
+
+Material lookup `0x2ce8bd0` takes a numeric ID, uses registry+0x10 as an ID-to-record-index table, then reads the backend pointer from registry+0x50. An ID outside the mapping-table count (+0x18) returns the separate fallback pointer at backend-global+0x38. Unlike record lookup `0x2ce8c10`, this backend-pointer lookup does not reject a negative mapped index or check it against the record count. These helpers have different preconditions; they are not interchangeable safe public accessors.
+
+Shape-construction path `0x2cff810` reads a material ID from its input+0x28 and calls that lookup. It passes the returned pointer as a one-element material array to backend virtual slot +0x100, with geometry and flags. It then resolves a body handle through `0x2d83f70`, passes the created shape to body virtual slot +0xb8, and invokes shape slot zero to release its temporary reference. This is static evidence that repeated use of a material ID passes the same registry pointer into shape creation; backend reference-count changes and concrete implementation identities remain to trace. Another path at `0x2d0d800` builds a material-pointer array by resolving byte-sized material IDs, so the single-material case is not the only representation.
+
+Registry teardown `0x2ce8640` invokes slot zero on every backend pointer in registry+0x50, frees the array and lookup storage, destroys the record array, frees the registry, and clears global `0x5d20280`. The fallback pointer comes from a different owner and is not part of this loop. Calling registry population again is not a verified replacement operation: the traced population routine clears pointer counts and overwrites entries without the release loop observed in teardown.
+
+A separate inspection of the shipped `PhysX_64.dll` found generated metadata for `DynamicFriction` and `StaticFriction`. Static-friction metadata references wrappers at DLL RVAs `0xa9c0` and `0xa910`, which forward to virtual slots +0x48 and +0x40. This identifies a property-access pair; getter/setter direction and concrete material implementations remain unresolved. These DLL RVAs are **not executable RVAs** and require the separate fingerprint in [the backend material map](research/physx-material-map.json). No wrapper or material operation has been called by the mod runtime.
+
+### Rigid-body mass, inertia and movement properties
+
+Generated metadata in the shipped physics DLL connects named rigid-body properties to access wrappers. The generated value-copy path corroborates read direction by copying returned scalars and vectors into a snapshot. The table lists **virtual-table byte offsets**, not object fields or callable addresses. The DLL fingerprint and wrapper RVAs are recorded in the [backend rigid-body map](research/physx-rigid-body-map.json).
+
+| Property | Read slot | Write slot | Game-side connection |
+| --- | --- | --- | --- |
+| Center-of-mass local pose | +0xf0 | +0xe8 | `0x2cfe500` updates cached translation and submits a pose |
+| Mass | +0x100 | +0xf8 | `0x2cfdf80` updates cached mass then the backend |
+| Mass-space inertia tensor | +0x118 | +0x110 | `0x2cfdfd0` updates cached three-component inertia then the backend |
+| Linear damping | +0x130 | +0x128 | `0x2cfd090` resolves the body and writes the scalar |
+| Angular damping | +0x140 | +0x138 | `0x2cfd120` resolves the body and writes the scalar |
+| Maximum linear velocity | +0x160 | +0x158 | Backend access identified; game update path unresolved |
+| Maximum angular velocity | +0x170 | +0x168 | Backend access identified; game update path unresolved |
+| Rigid-body flags | +0x1c0 | +0x1b8 | Read by game velocity helpers; individual flag semantics not established here |
+| Linear velocity | +0x148 | +0x280 | `0x2cfc840` updates engine and instance caches before backend submission |
+| Angular velocity | +0x150 | +0x288 | `0x2cfc930` updates engine and instance caches before backend submission |
+
+The mass helper indexes a four-byte cache through owner+0; inertia uses a 12-byte cache through owner+0x10; center-of-mass translation uses a 12-byte cache through owner+0x40. Each then resolves the backend handle and only dispatches the property write when object type word +8 equals 7. Cache updates precede that type check. These details rule out treating a backend-only write as equivalent to the engine helper. Handle validity, scheduling and concrete backend validation remain unverified.
+
+Property application around `0x2d834ab` branches on a descriptor byte at +0x10. One branch reads an explicit inertia vector at +0x14 and center-of-mass translation at +4. The alternative calls `0x2cfe040`; its full computation is not yet mapped. Both converge on mass application from descriptor+0. A subsequent branch applies linear and angular damping from descriptor+0x20/+0x24. These offsets are relative to the local descriptor selected by this path, **not** an ECS component or backend body. Density-to-mass derivation and units are not established by this trace.
+
+The earlier unnamed cached vector channels are now connected to linear and angular velocity through the DLL's named metadata. Both game helpers check body flags before backend submission, and both pass a boolean value of one. The precise boolean semantics and how simulation consumes updates still require implementation tracing.
+
+Additional metadata identifies inverse mass, inverse inertia, sleep threshold, stabilization threshold, wake counter and scene gravity. Scene gravity metadata references a write wrapper at DLL RVA `0xc200` forwarding to slot +0x2a8. This does not establish per-body gravity controls or game-specific overrides. Forces and impulses are operations rather than entries in this property table and remain to trace separately.
+
+The [game rigid-body map](research/game-rigid-body-map.json) verifies the game helper connections. No runtime writes or API additions are part of this research. The next investigation is force/impulse accumulation and gravity overrides, followed by the alternate inertia-computation branch and the simulation phase in which these operations are applied.

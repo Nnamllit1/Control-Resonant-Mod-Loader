@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "title": "Shipped PhysX material property metadata",
+  "executable_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
+  "module": "PhysX_64.dll",
+  "status": "Static metadata only. Getter/setter direction, concrete implementations and live update ordering unresolved.",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x608d",
+      "target": "0x159990",
+      "label": "dynamic friction metadata name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x60ae",
+      "target": "0x1599a0",
+      "label": "static friction metadata name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6098",
+      "target": "0xa9c0",
+      "label": "static friction access wrapper A"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x60a3",
+      "target": "0xa910",
+      "label": "static friction access wrapper B"
+    }
+  ]
+}

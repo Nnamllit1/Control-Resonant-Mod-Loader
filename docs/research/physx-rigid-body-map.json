@@ -1,0 +1,293 @@
+{
+  "schema": 1,
+  "title": "Rigid-body property metadata and access wrappers",
+  "module": "PhysX_64.dll",
+  "executable_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
+  "status": "Static property mapping; not a verified callable ABI or live modification API.",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6dde",
+      "target": "0x159c10",
+      "label": "CMassLocalPose name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6df6",
+      "target": "0xb370",
+      "label": "CMassLocalPose read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e04",
+      "target": "0xb220",
+      "label": "CMassLocalPose write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e12",
+      "target": "0x159c20",
+      "label": "Mass name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e20",
+      "target": "0xad10",
+      "label": "Mass read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e2e",
+      "target": "0xb200",
+      "label": "Mass write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e58",
+      "target": "0x159c30",
+      "label": "MassSpaceInertiaTensor name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e66",
+      "target": "0xb3e0",
+      "label": "MassSpaceInertiaTensor read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e74",
+      "target": "0xacc0",
+      "label": "MassSpaceInertiaTensor write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e9e",
+      "target": "0x159c68",
+      "label": "LinearDamping name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6eac",
+      "target": "0xad20",
+      "label": "LinearDamping read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6eba",
+      "target": "0xbe90",
+      "label": "LinearDamping write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6ec8",
+      "target": "0x159c78",
+      "label": "AngularDamping name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6ed6",
+      "target": "0xab20",
+      "label": "AngularDamping read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6ee4",
+      "target": "0xbae0",
+      "label": "AngularDamping write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6ef2",
+      "target": "0x159c88",
+      "label": "MaxLinearVelocity name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6f00",
+      "target": "0xab30",
+      "label": "MaxLinearVelocity read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6f0e",
+      "target": "0xc1b0",
+      "label": "MaxLinearVelocity write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6f1c",
+      "target": "0x159ca0",
+      "label": "MaxAngularVelocity name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6f2a",
+      "target": "0xaaf0",
+      "label": "MaxAngularVelocity read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6f38",
+      "target": "0xc190",
+      "label": "MaxAngularVelocity write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6f7e",
+      "target": "0x159ce8",
+      "label": "RigidBodyFlags name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6f8c",
+      "target": "0xb460",
+      "label": "RigidBodyFlags read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6f9a",
+      "target": "0xc1d0",
+      "label": "RigidBodyFlags write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x732c",
+      "target": "0x159dc8",
+      "label": "LinearVelocity name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x733a",
+      "target": "0xadc0",
+      "label": "LinearVelocity read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x7348",
+      "target": "0xc210",
+      "label": "LinearVelocity write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x7356",
+      "target": "0x159dd8",
+      "label": "AngularVelocity name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x7364",
+      "target": "0xad60",
+      "label": "AngularVelocity read wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x7372",
+      "target": "0xc1f0",
+      "label": "AngularVelocity write wrapper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e3c",
+      "target": "0x159c28",
+      "label": "InvMass metadata name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x6e82",
+      "target": "0x159c48",
+      "label": "MassSpaceInvInertiaTensor metadata name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x7284",
+      "target": "0x159d78",
+      "label": "SleepThreshold metadata name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x72ae",
+      "target": "0x159d88",
+      "label": "StabilizationThreshold metadata name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x72d8",
+      "target": "0x159da0",
+      "label": "WakeCounter metadata name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x8404",
+      "target": "0x15a460",
+      "label": "Gravity (scene) metadata name"
+    }
+  ],
+  "properties": {
+    "CMassLocalPose": {
+      "read_wrapper": "0xb370",
+      "read_virtual_slot": "0xf0",
+      "write_wrapper": "0xb220",
+      "write_virtual_slot": "0xe8"
+    },
+    "Mass": {
+      "read_wrapper": "0xad10",
+      "read_virtual_slot": "0x100",
+      "write_wrapper": "0xb200",
+      "write_virtual_slot": "0xf8"
+    },
+    "MassSpaceInertiaTensor": {
+      "read_wrapper": "0xb3e0",
+      "read_virtual_slot": "0x118",
+      "write_wrapper": "0xacc0",
+      "write_virtual_slot": "0x110"
+    },
+    "LinearDamping": {
+      "read_wrapper": "0xad20",
+      "read_virtual_slot": "0x130",
+      "write_wrapper": "0xbe90",
+      "write_virtual_slot": "0x128"
+    },
+    "AngularDamping": {
+      "read_wrapper": "0xab20",
+      "read_virtual_slot": "0x140",
+      "write_wrapper": "0xbae0",
+      "write_virtual_slot": "0x138"
+    },
+    "MaxLinearVelocity": {
+      "read_wrapper": "0xab30",
+      "read_virtual_slot": "0x160",
+      "write_wrapper": "0xc1b0",
+      "write_virtual_slot": "0x158"
+    },
+    "MaxAngularVelocity": {
+      "read_wrapper": "0xaaf0",
+      "read_virtual_slot": "0x170",
+      "write_wrapper": "0xc190",
+      "write_virtual_slot": "0x168"
+    },
+    "RigidBodyFlags": {
+      "read_wrapper": "0xb460",
+      "read_virtual_slot": "0x1c0",
+      "write_wrapper": "0xc1d0",
+      "write_virtual_slot": "0x1b8"
+    },
+    "LinearVelocity": {
+      "read_wrapper": "0xadc0",
+      "read_virtual_slot": "0x148",
+      "write_wrapper": "0xc210",
+      "write_virtual_slot": "0x280"
+    },
+    "AngularVelocity": {
+      "read_wrapper": "0xad60",
+      "read_virtual_slot": "0x150",
+      "write_wrapper": "0xc1f0",
+      "write_virtual_slot": "0x288"
+    }
+  },
+  "gaps": [
+    "Concrete backend implementations and validation/update behavior.",
+    "Scene gravity versus per-actor flags and game gravity overrides.",
+    "Force and impulse modes and game-side accumulation.",
+    "Density-to-mass computation and recreation behavior."
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "title": "Game rigid-body property application",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static game-side helper trace; no helpers called by mod runtime.",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfdf9a",
+      "target": "0x2d83f70",
+      "label": "mass body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfdff6",
+      "target": "0x2d83f70",
+      "label": "inertia body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfe526",
+      "target": "0x2d83f70",
+      "label": "center-of-mass body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfd09e",
+      "target": "0x2d83f70",
+      "label": "linear damping body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2cfd12e",
+      "target": "0x2d83f70",
+      "label": "angular damping body resolution"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d834d1",
+      "target": "0x2cfdfd0",
+      "label": "apply explicit inertia"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d834f5",
+      "target": "0x2cfe500",
+      "label": "apply center of mass"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d83543",
+      "target": "0x2cfe040",
+      "label": "alternate inertia computation path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d83553",
+      "target": "0x2cfdf80",
+      "label": "apply mass"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d83585",
+      "target": "0x2cfd090",
+      "label": "apply linear damping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2d83596",
+      "target": "0x2cfd120",
+      "label": "apply angular damping"
+    }
+  ]
+}
