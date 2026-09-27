@@ -19,7 +19,7 @@ struct Result {
     double value{};
     bool number{},restored{},passed{};
 };
-struct Report { DWORD thread{}; bool passed{}; std::array<Result,4> steps{}; } report;
+struct Report { DWORD thread{}; bool passed{}; std::array<Result,5> steps{}; } report;
 
 template<class T> T read(uintptr_t address) noexcept {
     T value;std::memcpy(&value,reinterpret_cast<const void*>(address),sizeof(value));return value;
@@ -60,24 +60,35 @@ bool same_frame(const Frame& a,const Frame& b,bool top) noexcept {
         a.environment==b.environment && a.base==b.base && a.ci==b.ci && (!top ||
         (a.top==b.top && a.size==b.size && !std::memcmp(a.values.data(),b.values.data(),a.size)));
 }
-struct Work { const unsigned char* bytes;size_t size;const char* label;Result* result; };
+bool valid_owner(Owner owner) noexcept {
+    __try {
+        const uint32_t index=static_cast<uint32_t>(owner.entity),generation=static_cast<uint32_t>(owner.entity>>32);
+        if(!owner.world || !owner.entity || index==UINT32_MAX || index>=read<uint64_t>(owner.world+0x58510)) return false;
+        const auto slots=read<uintptr_t>(owner.world+0x584e8);
+        return slots && read<uint32_t>(slots+uintptr_t(index)*8)==generation;
+    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) {
+        return false;
+    }
+}
+struct Work { const unsigned char* bytes;size_t size;const char* label;Result* result;uint64_t owner{}; };
 void execute(void* vm,void* user) {
     auto& w=*static_cast<Work*>(user);auto& result=*w.result;
     result.load=api.load(vm,w.label,reinterpret_cast<const char*>(w.bytes),w.size,0);
     if(result.load) return;
-    result.call=api.call(vm,0,1,0);
+    if(w.owner) api.push_entity(vm,w.owner,1);
+    result.call=api.call(vm,w.owner?1:0,1,0);
     if(result.call) return;
     const auto top=read<uintptr_t>(reinterpret_cast<uintptr_t>(vm)+8);
     result.number=read<uint32_t>(top-24+0x10)==3;
     if(result.number) result.value=read<double>(top-24);
 }
-void run(void* vm,const Frame& initial) {
+void run(void* vm,const Frame& initial,Owner owner) {
     report={};report.thread=GetCurrentThreadId();report.passed=true;
-    const unsigned char* chunks[]{bytecode::arithmetic,bytecode::error,bytecode::arithmetic,bytecode::bindings};
-    const size_t sizes[]{sizeof(bytecode::arithmetic),sizeof(bytecode::error),sizeof(bytecode::arithmetic),sizeof(bytecode::bindings)};
-    const char* labels[]{"=crml_probe_arithmetic","=crml_probe_error","=crml_probe_recovery","=crml_probe_bindings"};
+    const unsigned char* chunks[]{bytecode::arithmetic,bytecode::error,bytecode::arithmetic,bytecode::bindings,bytecode::events};
+    const size_t sizes[]{sizeof(bytecode::arithmetic),sizeof(bytecode::error),sizeof(bytecode::arithmetic),sizeof(bytecode::bindings),sizeof(bytecode::events)};
+    const char* labels[]{"=crml_probe_arithmetic","=crml_probe_error","=crml_probe_recovery","=crml_probe_bindings","=crml_probe_events"};
     for(size_t i=0;i<report.steps.size();++i) {
-        auto& result=report.steps[i];Work work{chunks[i],sizes[i],labels[i],&result};
+        auto& result=report.steps[i];Work work{chunks[i],sizes[i],labels[i],&result,i==4?owner.entity:0};
         // Engine error barrier includes loading/allocation, not just execution.
         // Its saved top is an offset, so stack growth cannot stale a raw pointer.
         result.protect=api.protect(vm,&execute,&work,initial.top,0);
@@ -88,7 +99,7 @@ void run(void* vm,const Frame& initial) {
             result.restored=capture(vm,after) && same_frame(initial,after,true);
         }
         const bool expected=i==1 ? result.call==2 : result.call==0 && result.number && std::isfinite(result.value) &&
-            (i==3 ? result.value>=0 && result.value<=127 && std::floor(result.value)==result.value : result.value==42);
+            (i==3 ? result.value>=0 && result.value<=127 && std::floor(result.value)==result.value : result.value==(i==4?127:42));
         result.passed=result.protect==0 && result.load==0 && expected && result.restored;
         if(!result.passed) {report.passed=false;break;}
     }
@@ -105,26 +116,41 @@ bool start(uintptr_t image,Call original) noexcept {
     for(size_t i=0;i<3;++i) if(std::memcmp(reinterpret_cast<void*>(image+rvas[i]),signatures[i],12)) return false;
     constexpr unsigned char site[]{0xe8,0xb1,0x51,0x24,0x01,0x85,0xc0};
     if(std::memcmp(reinterpret_cast<void*>(image+0x1a0aada),site,sizeof(site))) return false;
+    constexpr unsigned char push[]{0x48,0x8b,0x41,0x08,0x48,0x89,0x10,0x44,0x89,0x40,0x08};
+    if(std::memcmp(reinterpret_cast<void*>(image+0x2c4ec50),push,sizeof(push))) return false;
     api={reinterpret_cast<decltype(api.load)>(image+rvas[0]),reinterpret_cast<decltype(api.protect)>(image+rvas[1]),
-         reinterpret_cast<decltype(api.settop)>(image+rvas[2]),original};
+         reinterpret_cast<decltype(api.settop)>(image+rvas[2]),original,reinterpret_cast<decltype(api.push_entity)>(image+0x2c4ec50)};
     image_base=image;enabled.store(true,std::memory_order_release);return true;
 #else
     (void)image;(void)original;return false;
 #endif
 }
-void after_call(void* vm,uintptr_t caller,int nargs,int results,int error,int status) {
+Owner before_call(void* vm,uintptr_t caller,int nargs,int results,int error) noexcept {
+    if(!enabled.load(std::memory_order_acquire) || state.load()!=0 ||
+       caller!=image_base+0x1a0aadf || nargs!=1 || results!=0 || error!=1) return {};
+    Frame frame;
+    if(!capture(vm,frame) || frame.size<72) return {};
+    // Copy only the value of the non-GC entity argument while it is still rooted
+    // on the incoming call's stack. Do not retain the closure or its environment.
+    uint32_t tag{},kind{};uint64_t entity{};
+    const auto* argument=frame.values.data()+frame.size-24;
+    std::memcpy(&entity,argument,8);std::memcpy(&kind,argument+8,4);std::memcpy(&tag,argument+16,4);
+    Owner owner{frame.world,entity};
+    return tag==2 && kind==1 && valid_owner(owner)?owner:Owner{};
+}
+void after_call(void* vm,uintptr_t caller,int nargs,int results,int error,int status,Owner owner) {
     if(!enabled.load(std::memory_order_acquire) || state.load()!=0 || status ||
        caller!=image_base+0x1a0aadf || nargs!=1 || results!=0 || error!=1) return;
     Frame frame;
-    if(!capture(vm,frame) || frame.size>62*24) {++rejected;return;}
+    if(!capture(vm,frame) || frame.size>62*24 || frame.world!=owner.world || !valid_owner(owner)) {++rejected;return;}
     unsigned expected=0;
     if(!state.compare_exchange_strong(expected,1)) return;
-    run(vm,frame);
+    run(vm,frame,owner);
     state.store(2,std::memory_order_release);
 }
 void write(std::ostream& out) {
     const auto s=state.load(std::memory_order_acquire);
-    out<<"{\"type\":\"lua_probe\",\"enabled\":"<<(enabled.load()?"true":"false")
+    out<<"{\"type\":\"lua_probe\",\"schema\":2,\"enabled\":"<<(enabled.load()?"true":"false")
        <<",\"state\":"<<s<<",\"rejected\":"<<rejected.load();
     if(s==2) {
         out<<",\"thread\":"<<report.thread<<",\"passed\":"<<(report.passed?"true":"false")<<",\"steps\":[";

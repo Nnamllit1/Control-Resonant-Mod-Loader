@@ -66,8 +66,9 @@ bool omit(void* state,int nargs,int results,int error,fall::Player player) noexc
 __declspec(noinline) int protected_call(void* vm,int nargs,int results,int error) {
     const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
     if(ready.load(std::memory_order_acquire) && omit(vm,nargs,results,error,active_callback())) return 0;
+    const auto owner=lua::before_call(vm,caller,nargs,results,error);
     const auto status=original(vm,nargs,results,error);
-    lua::after_call(vm,caller,nargs,results,error,status);
+    lua::after_call(vm,caller,nargs,results,error,status,owner);
     return status;
 }
 }

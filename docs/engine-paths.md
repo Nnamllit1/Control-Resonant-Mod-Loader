@@ -41,9 +41,9 @@ The loader performs these observable checks:
 
 This ordering and the version-error diagnostics correspond closely to [Luau's upstream bytecode loader](https://github.com/luau-lang/luau/blob/master/VM/src/lvmload.cpp). **Luau-derived or compatible loader** is the supported inference; an exact upstream revision, unchanged opcode set, and compatibility with a current stock compiler are not established. The supported numeric ranges above come from this executable, not today's upstream constants.
 
-The sampled `systems.binlua` header `00 06 03 2b` is consistent with envelope `00`, bytecode version `06`, type version `03`, and string count `0x2b`. The envelope byte's meaning remains unknown. The old Lua 5.1.4 identifier alone does not identify the serialized format. No game script body is reproduced here, and no replacement bytecode has been executed.
+The sampled `systems.binlua` header `00 06 03 2b` is consistent with envelope `00`, bytecode version `06`, type version `03`, and string count `0x2b`. The envelope byte's meaning remains unknown. The old Lua 5.1.4 identifier alone does not identify the serialized format. No game script body is reproduced here. Separate [engine Lua integration tests](engine-lua.md) cover execution of self-authored bytecode without replacing game assets.
 
-Per-entity helper `0x19c4310` constructs tables using names `__index`, `_ENV`, and `self`, calls the resource/cache helper, and manages VM references. Complete initialization ordering, failure cleanup, and stream-out teardown remain open. The engine VM is separate from the Wasm host API and is not a guest sandbox.
+Per-entity helper `0x19c4310` constructs tables using names `__index`, `_ENV`, and `self`, calls the resource/cache helper, and manages VM references. The [environment and callback contracts](engine-lua.md#script-environments-and-callback-ownership) describe this setup and active-owner resolution. Failure cleanup and stream-out teardown remain separate questions. The engine VM is separate from the Wasm host API and is not a guest sandbox.
 
 ## Script callbacks and event timing
 

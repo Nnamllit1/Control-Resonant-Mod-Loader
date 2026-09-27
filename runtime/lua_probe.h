@@ -11,10 +11,13 @@ struct Api {
     int(*protect)(void*,Body,void*,ptrdiff_t,ptrdiff_t){};
     void(*settop)(void*,int){};
     Call call{};
+    void(*push_entity)(void*,uint64_t,int){};
 };
+struct Owner { uintptr_t world{};uint64_t entity{}; };
 // Only the fingerprint-gated boundary hook may provide this engine-thread call.
 bool start(uintptr_t image,Call original) noexcept;
-void after_call(void* vm,uintptr_t caller,int nargs,int results,int error,int status);
+Owner before_call(void* vm,uintptr_t caller,int nargs,int results,int error) noexcept;
+void after_call(void* vm,uintptr_t caller,int nargs,int results,int error,int status,Owner owner={});
 void write(std::ostream& out);
 void stop() noexcept;
 #ifdef CRML_LUA_PROBE_TESTING
