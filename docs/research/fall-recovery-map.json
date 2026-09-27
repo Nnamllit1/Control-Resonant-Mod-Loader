@@ -3,6 +3,10 @@
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
   "scope": "Player fall recovery activation, return-transition submission and camera fade production. Static references do not establish which path produced a particular live reset.",
   "checks": [
+    {"kind":"call_rel32","rva":"0x1a058d8","target":"0x2c4fc90","label":"Timed script callback dispatch enters protected call"},
+    {"kind":"call_rel32","rva":"0x2c4fd4b","target":"0x2c434f0","label":"Protected call enters guarded VM execution with function stack offset"},
+    {"kind":"call_rel32","rva":"0x1a13aee","target":"0x1813ab0","label":"nl_copy_world_transform binding calls entity transform wrapper"},
+    {"kind":"call_rel32","rva":"0x1813bb2","target":"0x1811fe0","label":"World-transform copy wrapper calls world writer"},
     {"kind":"call_rel32","rva":"0x25a7516","target":"0x25a55c0","label":"Player inactive update invokes safe-history and height-check helper"},
     {"kind":"call_rel32","rva":"0x25a7607","target":"0x25a55c0","label":"Separate inactive caller shares height-check helper"},
     {"kind":"call_rel32","rva":"0x25a840b","target":"0x25ad320","label":"Trigger update resolves target entity view"},
@@ -19,7 +23,13 @@
     {"kind":"call_rel32","rva":"0x25a8766","target":"0x23a9760","label":"Inactive camera mode reset request"},
     {"kind":"jump_rel32","rva":"0x25a673c","target":"0x22960c0","label":"Recovery active state propagates logic-mode bit 0x100000"},
     {"kind":"call_rel32","rva":"0x25b153e","target":"0x25a6f50","label":"Teleported system dispatches safe-position handling"},
-    {"kind":"call_rel32","rva":"0x25a71ad","target":"0x25a5980","label":"Teleport safe-position update checks containing region"}
+    {"kind":"call_rel32","rva":"0x25a71ad","target":"0x25a5980","label":"Teleport safe-position update checks containing region"},
+    {"kind":"call_rel32","rva":"0x1a11ada","target":"0x1813be0","label":"nl_teleport forwards transform before setting Teleported component"},
+    {"kind":"call_rel32","rva":"0x1813ce2","target":"0x1811d60","label":"Entity transform wrapper invokes transform writer"},
+    {"kind":"call_rel32","rva":"0x1811db8","target":"0x18122b0","label":"Transform writer delegates absent-local-transform branch"},
+    {"kind":"call_rel32","rva":"0x1811fab","target":"0x1820cf0","label":"First transform writer notifies after writing world transform"},
+    {"kind":"call_rel32","rva":"0x1812063","target":"0x1820cf0","label":"Second transform writer notifies after writing world transform"},
+    {"kind":"call_rel32","rva":"0x1812333","target":"0x1820cf0","label":"Third transform writer notifies after writing world transform"}
   ],
   "components": {
     "FallRespawnData": {"hash":"0x6507c6a9","stride":"0xf0","safe_position":"0x20","safe_valid":"0x40","effect_delay":"0xb0","transition_delay":"0xb4","source_entity":"0xd0","elapsed":"0xe0","inactive_exclusion":"0xe4","flags":"0xe5"},
@@ -32,6 +42,7 @@
   "limitations": [
     "The final transition executor and renderer consumer are not mapped here.",
     "FallRespawnData+0xe4 ownership and all other recovery producers remain incomplete.",
-    "No recovery suppression or gameplay exemption is established by these references."
+    "No recovery suppression or gameplay exemption is established by these references.",
+    "The three transform writer hooks do not cover every possible direct component write or structural replacement."
   ]
 }

@@ -16,4 +16,4 @@ clang --target=wasm32 -O2 -nostdlib -Isdk/include examples/movement/movement.c -
 
 The host exposes fixed button input, two floats describing horizontal camera right, and a world-velocity request. It checks ownership, player identity, request bounds and expiry before applying the controller override. Zero velocity holds position; disabling the request releases control. The example switches off when a request fails, and the runtime releases ownership even if guest shutdown cannot run.
 
-This example does not suppress boundary recovery or move the camera independently. See [installation, controls and limitations](../../docs/movement.md).
+The native movement service includes a limited boundary guard while the flight lease is active. Pending recovery and other transition producers can still cancel movement. The example does not move the camera independently. See [installation, controls and limitations](../../docs/movement.md).

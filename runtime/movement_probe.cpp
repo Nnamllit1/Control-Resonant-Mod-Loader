@@ -7,6 +7,7 @@
 #include "input_filter.h"
 #include "fall_guard.h"
 #include "fall_observer.h"
+#include "boundary_guard.h"
 #include <Windows.h>
 #include <bcrypt.h>
 #include <MinHook.h>
@@ -215,12 +216,13 @@ std::string Recorder::start(const std::filesystem::path& root) {
     motion_=motion_requested && input::start(&input_active);
     gameplay_ = motion_ || (noclip_requested && fall::start(image_base,&active_player) && input::start(&input_active));
     gameplay_enabled.store(gameplay_);
-    bool fall_observer=false;
+    bool fall_observer=false,boundary_guard=false;
     if(motion_) {
         fall_output_.open(root / "fall-recovery.jsonl",std::ios::trunc);
         fall_observer=fall_output_.is_open() && fall_trace::start(image_base,&observed_player);
+        boundary_guard=fall_observer && boundary::start(image_base,&active_player);
         if(fall_output_) {
-            fall_output_<<"{\"schema\":1,\"mode\":\"observe-only\",\"active\":"<<(fall_observer?"true":"false")
+            fall_output_<<"{\"schema\":4,\"mode\":\""<<(boundary_guard?"flight-boundary-guard":"observe-only")<<"\",\"active\":"<<(fall_observer?"true":"false")
                         <<",\"sha256\":\"2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0\"}\n";
             fall_output_.flush();
         }
@@ -229,9 +231,9 @@ std::string Recorder::start(const std::filesystem::path& root) {
     if (gameplay_) overlay_ = overlay_create(false,false,motion_);
     output_ << "{\"schema\":7,\"mode\":\"" << (motion_?"wasm-movement":visibility_ ? "experimental-visibility" : gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
     output_.flush();
-    if(motion_requested) return motion_ ? (fall_observer ?
-        "Wasm movement service armed; fall/reset overrides disabled; read-only recovery trace active" :
-        "Wasm movement service armed; fall/reset overrides disabled; recovery trace unavailable") :
+    if(motion_requested) return motion_ ? (boundary_guard ?
+        "Wasm movement service armed; scoped boundary guard and recovery trace active" :
+        "Wasm movement service armed; boundary guard unavailable; engine recovery remains enabled") :
         "Wasm movement refused: input hook unavailable; observer remains read-only";
     if(noclip_requested && !gameplay_) return "Experimental noclip refused: input or fall-recovery hook unavailable; movement probe remains read-only";
     if(visibility_requested) return visibility_?"Experimental player visibility armed; requests controlled by player.visibility Wasm mods":"Visibility hook refused; observer remains active";
@@ -257,7 +259,7 @@ void Recorder::poll() {
     }
     if (!output_.is_open() || ++polls_ % (motion_?100:10)) return;
     if(fall_output_.is_open()) {
-        fall_trace::write(fall_output_);fall_output_.flush();
+        fall_trace::write(fall_output_);boundary::write(fall_output_);fall_output_.flush();
         if(!fall_output_) {fall_trace::stop();fall_output_.close();}
     }
     Sample sample{};
@@ -423,6 +425,7 @@ void Recorder::release(uint64_t owner) noexcept {
 }
 
 Recorder::~Recorder() {
+    boundary::stop();
     fall_trace::stop();
     if(fall_output_.is_open()) {fall_trace::write(fall_output_);fall_output_.flush();}
     visibility::stop();

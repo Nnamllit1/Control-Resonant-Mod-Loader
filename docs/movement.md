@@ -7,7 +7,7 @@ description: Build a Wasm movement mod with explicit velocity requests, camera h
 
 The `movement` example owns its toggle, controls, speed and camera-relative calculation in Wasm. The native service accepts a bounded world-space velocity and applies noncolliding character movement on the controller callback. This is an experimental alternative to the legacy `noclip_poll` helper.
 
-This mode suppresses the normal WASD, Space, Ctrl and Shift keyboard actions while the lease is active. It does not install the legacy fall/reset overrides or change camera position. Out-of-bounds recovery can still run, and a teleport cancels movement. A [read-only recovery trace](fall-recovery.md) records activation and fade state when its hooks are available. Camera collision can still change the view when traversing geometry. It is not a finished free-camera or boundary-free flight feature.
+This mode suppresses the normal WASD, Space, Ctrl and Shift keyboard actions while the lease is active. Its experimental [boundary guard](fall-recovery.md#flight-boundary-guard) prevents two scripted boundary handlers and the native height check from starting new recovery during flight. Already scheduled recovery and other transition producers remain active; a teleport still cancels movement. Camera collision can still change the view when traversing geometry. This mode does not provide free-camera control.
 
 ## Installation
 
@@ -35,7 +35,7 @@ Start in an open area with solid ground beneath the player. The panel should sho
 | Shift | Increase speed from 5 to 15 world units per second |
 | Esc, focus loss | Cancel movement and return control to the game |
 
-Try short movements in open space, rotate the camera, and repeat all four horizontal directions. Diagonal travel should not be faster. Release the movement keys while active: the character should hold position. Toggle off above safe ground and confirm normal walking and jumping return. For a collision check, cross a nearby low obstacle and return; keep the initial check inside the level, since boundary recovery is deliberately still active.
+Try short movements in open space, rotate the camera, and repeat all four horizontal directions. Diagonal travel should not be faster. Release the movement keys while active: the character should hold position. For a collision check, cross a nearby low obstacle and return. With the boundary guard active, crossing a covered boundary during flight should not start its fog or scripted return. Return above safe ground before toggling off, then confirm normal walking and jumping resume. Turning flight off outside the level can allow normal recovery or falling.
 
 When camera heading is unavailable, this example requests only vertical motion. When a teleport, player/world replacement, stale sample or missed heartbeat cancels the lease, the example turns itself off; press F6 again after normal gameplay resumes. A camera snapshot describes observed orientation, not exclusive ownership of the game's camera.
 
@@ -49,6 +49,6 @@ See the [API contract](api.md#experimental-movement-requests) for result semanti
 
 ## Diagnostics and removal
 
-`crml.log` identifies the service and loaded mod. `movement-probe.jsonl` uses diagnostic schema 7 with mode `wasm-movement`. `motion_requests` counts accepted set/release requests; `motion_velocity` records the sampled requested world velocity while active. `overrides` counts controller-call substitutions. `last_override` compares the requested position with the controller's result, and `last_stop` records cancellation. Input counters indicate filtering, not by themselves proof that every gameplay action was suppressed. The fall/reset override counters should remain zero in this mode.
+`crml.log` identifies the service, loaded mod and whether the boundary guard started. If its checks fail, movement remains available with normal engine recovery. `movement-probe.jsonl` uses diagnostic schema 7 with mode `wasm-movement`. `motion_requests` counts accepted set/release requests; `motion_velocity` records the sampled requested world velocity while active. `overrides` counts controller-call substitutions. `last_override` compares the requested position with the controller's result, and `last_stop` records cancellation. Input counters indicate filtering, not by themselves proof that every gameplay action was suppressed. The legacy fall/reset counters remain zero; the scoped guard has separate counters in `fall-recovery.jsonl`.
 
 The capture samples once per second for up to ten minutes and is replaced on the next launch. To remove this mode, close the game and run `python tools/install.py "$gameDir" --update --disable-movement-wasm --apply`. Ordinary startup then follows any remaining feature markers. To switch directly back to the bounded physics example, use `--physics-wasm` instead.

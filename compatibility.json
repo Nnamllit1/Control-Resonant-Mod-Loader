@@ -20,10 +20,16 @@
         "scope": "guest-selected world velocity for the controlled character, read-only camera heading",
         "max_speed": 20,
         "lease_ms": 500,
-        "fall_reset_overrides": false,
+        "fall_reset_overrides": true,
+        "boundary_guard": {
+          "status": "experimental",
+          "scope": "new out_of_bounds_area entry callbacks and native player height checks during an active movement lease",
+          "preserves_pending_recovery": true,
+          "blocks_all_teleports": false
+        },
         "recovery_trace": {
-          "mode": "read-only",
-          "capture_schema": 1,
+          "mode": "flight-boundary-guard",
+          "capture_schema": 4,
           "max_events": 2048,
           "documentation": "docs/fall-recovery.md"
         },

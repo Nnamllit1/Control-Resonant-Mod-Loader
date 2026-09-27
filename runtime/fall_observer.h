@@ -4,7 +4,7 @@
 #include <iosfwd>
 
 namespace crml::probe::fall_trace {
-enum class Stage : unsigned { controller, inactive, trigger, recovery, camera, count };
+enum class Stage : unsigned { controller, inactive, trigger, recovery, camera, transform_local, transform_world, transform_alternate, script_copy, count };
 struct State {
     uint64_t entity{}, source{};
     uint8_t blocked{}, flags{}, safe_valid{}, camera_active{}, fade_latched{}, teleported{};
@@ -27,6 +27,9 @@ namespace testing {
 void configure(fall::Active,void*,void*,void*,void*) noexcept;
 void invoke(Stage,const std::array<void*,8>&);
 void hold_lock(bool) noexcept;
+void transforms(void*,void*,void*) noexcept;
+void script_binding(void*) noexcept;
+int invoke_script(void*);
 }
 #endif
 }

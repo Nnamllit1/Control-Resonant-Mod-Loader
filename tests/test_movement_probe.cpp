@@ -4,6 +4,8 @@
 #include "noclip.h"
 #include "fall_guard.h"
 #include "fall_observer.h"
+#include "script_origin.h"
+#include "boundary_guard.h"
 #include "physics_target_diagnostics.h"
 #include <cmath>
 #include <Windows.h>
@@ -90,6 +92,48 @@ void trace_two(void* a,void* b) {
     if(trace_fixture) trace_fixture->chunk[0x400+trace_fixture->row*240+0xe5]=1;
 }
 void trace_eight(void* a,void* b,void* c,void* d,void* e,void* f,void* g,void* h) {++trace_calls;trace_arguments={a,b,c,d,e,f,g,h};}
+void trace_three(void* view,void* query,void* requested) {
+    ++trace_calls;trace_arguments={view,query,requested};
+    const auto v=static_cast<const uintptr_t*>(view);
+    std::memcpy(reinterpret_cast<void*>(v[2]+v[4]*32),requested,32);
+}
+struct ScriptFixture {
+    std::vector<unsigned char> vm=std::vector<unsigned char>(0x80);
+    std::vector<unsigned char> calls=std::vector<unsigned char>(0x28*6);
+    std::vector<unsigned char> values=std::vector<unsigned char>(0x18*6);
+    std::vector<unsigned char> closures=std::vector<unsigned char>(0x30*6);
+    std::vector<unsigned char> proto=std::vector<unsigned char>(0xb0);
+    std::vector<unsigned char> source=std::vector<unsigned char>(160);
+    std::vector<unsigned char> name=std::vector<unsigned char>(100);
+    static void string(std::vector<unsigned char>& out,const char* text) {
+        std::fill(out.begin(),out.end(),static_cast<unsigned char>(0));out[0]=5;put(out,0x14,static_cast<uint32_t>(std::strlen(text)));
+        std::memcpy(out.data()+0x18,text,std::strlen(text));
+    }
+    ScriptFixture() {
+        put(vm,0x20,address(calls)+0x28);put(vm,0x40,address(calls));
+        for(unsigned i=0;i<6;++i) {
+            put(calls,i*0x28+8,address(values)+i*0x18);
+            put(values,i*0x18,address(closures)+i*0x30);put(values,i*0x18+0x10,uint32_t{7});
+            closures[i*0x30]=7;put(closures,i*0x30+0x18,address(proto));
+        }
+        closures[0x30+3]=1; // Top frame is the native binding.
+        string(source,"@private\\scripts/boundary.binlua");string(name,"on_boundary");
+        put(proto,0x58,address(source));put(proto,0x60,address(name));put(proto,0xa4,uint32_t{105});put(proto,0xa8,uint32_t{7});
+    }
+};
+bool script_throws{};
+std::array<int,3> protected_arguments{};
+int protected_original(void* vm,int nargs,int results,int error) {
+    ++trace_calls;trace_arguments={vm};protected_arguments={nargs,results,error};
+    if(script_throws) throw std::runtime_error("Protected call error");
+    return 42;
+}
+int trace_script(void* vm) {
+    ++trace_calls;trace_arguments={vm};
+    if(script_throws) throw std::runtime_error("Synthetic binding error");
+    if(trace_fixture) put(trace_fixture->chunk,0x100+trace_fixture->row*32+16,70.f);
+    return 17;
+}
 Six trampoline{};
 volatile uintptr_t forwarded{};
 unsigned intercepted{};
@@ -100,6 +144,27 @@ __declspec(noinline) void target(void* a,void* b,void* c,void* d,void* e,void* f
 void detour(void* a,void* b,void* c,void* d,void* e,void* f) { ++intercepted; trampoline(a,b,c,d,e,f); }
 int main() {
     try {
+        {
+            using namespace crml::probe::script_origin;
+            ScriptFixture f;const auto vm=f.vm,calls=f.calls,proto=f.proto;
+            auto s=capture(f.vm.data());
+            require(s.valid && s.count==1 && !s.truncated,"Lua caller frame missing or C frame included");
+            require(std::string(s.frames[0].source.data())=="boundary.binlua" && std::string(s.frames[0].function.data())=="on_boundary" && s.frames[0].defined_line==105 && s.frames[0].prototype==7,"Lua frame identity or path sanitization failed");
+            require(vm==f.vm && calls==f.calls && proto==f.proto,"Lua observation wrote state");
+            put(f.vm,0x20,address(f.calls)+1);require(!capture(f.vm.data()).valid,"Misaligned Lua frame accepted");
+            put(f.vm,0x20,address(f.calls)-0x28);require(!capture(f.vm.data()).valid,"Reversed Lua frame bounds accepted");
+            put(f.vm,0x20,address(f.calls)+1025*0x28);require(!capture(f.vm.data()).valid,"Unbounded Lua frame scan accepted");
+            put(f.vm,0x20,address(f.calls)+5*0x28);s=capture(f.vm.data());
+            require(s.valid && s.count==4 && s.truncated,"Lua output frame limit not enforced");
+            put(f.vm,0x20,address(f.calls));put(f.proto,0x58,uintptr_t{});put(f.proto,0x60,uintptr_t{});
+            s=capture(f.vm.data());require(s.valid && !s.frames[0].source[0] && s.frames[0].prototype==7,"Stripped Lua labels lose prototype identity");
+            put(f.proto,0x58,address(f.source));put(f.proto,0x60,address(f.name));
+            ScriptFixture::string(f.source,"inline code: secret");ScriptFixture::string(f.name,"quote\"\n");
+            s=capture(f.vm.data());require(s.valid && !s.frames[0].source[0] && !s.frames[0].function[0],"Unsafe Lua text exposed in JSON");
+            put(f.source,0x14,uint32_t{5000});s=capture(f.vm.data());require(s.valid && !s.frames[0].source[0],"Unbounded Lua string read");
+            put(f.proto,0x58,uintptr_t{1});require(!capture(f.vm.data()).valid,"Unreadable Lua string accepted");
+            require(!capture(reinterpret_cast<void*>(1)).valid && !capture(nullptr).valid,"Unreadable Lua VM accepted");
+        }
         {
             using namespace crml::probe::fall_trace;
             Fixture f(3);trace_fixture=&f;auto p=trace_player();
@@ -141,9 +206,111 @@ int main() {
             testing::hold_lock(true);controller(p);testing::hold_lock(false);
             std::ostringstream overflow;write(overflow);
             require(overflow.str().find("\"dropped\":14")!=std::string::npos,"Recovery overflow/lock contention not counted");
+            std::array<unsigned char,16> inactive_fade{};inactive_fade.fill(0xcd);inactive_fade[12]=0;
+            require(snapshot(p,state,inactive_fade.data()) && !state.fade_present && !state.fade_level,"Empty fade request exposed uninitialized payload");
+            inactive_fade[12]=1;uint32_t level=255;float duration=0.5f;
+            std::memcpy(inactive_fade.data(),&level,4);std::memcpy(inactive_fade.data()+4,&duration,4);
+            require(snapshot(p,state,inactive_fade.data()) && state.fade_present && state.fade_level==255 && state.fade_duration==.5f,"Valid fade request lost");
+            testing::transforms(reinterpret_cast<void*>(&trace_three),reinterpret_cast<void*>(&trace_three),reinterpret_cast<void*>(&trace_three));
+            std::array<uintptr_t,5> transform_view{0,0,address(f.chunk)+0x100,address(f.chunk),f.row};
+            std::array<float,8> requested{0,0,0,1,40,2.5f,-3,0};
+            args={transform_view.data(),&f.world_pointer,requested.data()};
+            for(const auto stage:{Stage::transform_local,Stage::transform_world,Stage::transform_alternate}) {
+                requested[4]+=30;
+                testing::invoke(stage,args);
+                require(trace_arguments[0]==args[0] && trace_arguments[1]==args[1] && trace_arguments[2]==args[2],"Transform arguments changed");
+                require(snapshot(p,state) && state.position[0]==requested[4],"Transform original result changed");
+            }
+            std::ostringstream relocations;write(relocations);
+            for(const auto* name:{"transform_1811d60","transform_1811fe0","transform_18122b0"})
+                require(relocations.str().find(name)!=std::string::npos,"Transform callback missing");
+            require(relocations.str().find("\"requested_position\":[130,2.5,-3]")!=std::string::npos,"Transform request missing");
+            requested[4]+=.1f;testing::invoke(Stage::transform_world,args);
+            uintptr_t other_world=1;args[1]=&other_world;requested[4]+=30;testing::invoke(Stage::transform_world,args);
+            std::ostringstream filtered;write(filtered);
+            require(filtered.str().find("\"type\":\"transition\"")==std::string::npos,"Small move or wrong world polluted relocation trace");
             stop();trace_fixture=nullptr;
             testing::invoke(Stage::recovery,args);
-            require(trace_calls==5,"Stopped observer swallowed original call");
+            require(trace_calls==10,"Stopped observer swallowed original call");
+        }
+        {
+            using namespace crml::probe::fall_trace;
+            Fixture f(3);ScriptFixture lua;trace_fixture=&f;
+            testing::configure(&trace_player,reinterpret_cast<void*>(&trace_four),reinterpret_cast<void*>(&trace_two),reinterpret_cast<void*>(&trace_eight),reinterpret_cast<void*>(&trace_four));
+            testing::script_binding(reinterpret_cast<void*>(&trace_script));
+            require(testing::invoke_script(lua.vm.data())==17 && trace_arguments[0]==lua.vm.data(),"Lua binding argument/return forwarding failed");
+            std::ostringstream log;write(log);
+            require(log.str().find("\"stage\":\"script_copy_world_transform\"")!=std::string::npos && log.str().find("\"source\":\"boundary.binlua\"")!=std::string::npos && log.str().find("\"position\":[70,")!=std::string::npos,"Lua relocation not attributed");
+            script_throws=true;bool caught{};
+            try {testing::invoke_script(lua.vm.data());} catch(const std::runtime_error&) {caught=true;}
+            require(caught,"Original binding error swallowed");script_throws=false;
+            ScriptFixture::string(lua.name,"second_caller");put(f.chunk,0x100+f.row*32+16,0.f);
+            testing::invoke_script(lua.vm.data());std::ostringstream next;write(next);
+            require(next.str().find("second_caller")!=std::string::npos && next.str().find("on_boundary")==std::string::npos,"Stale script attribution after binding error");
+            testing::invoke_script(lua.vm.data());std::ostringstream unchanged;write(unchanged);
+            require(unchanged.str().find("\"type\":\"transition\"")==std::string::npos,"Unchanged Lua call flooded trace");
+            stop();require(testing::invoke_script(reinterpret_cast<void*>(1))==17,"Stopped Lua hook did not forward");trace_fixture=nullptr;
+        }
+        {
+            namespace guard=crml::probe::boundary;
+            Fixture f(3);ScriptFixture lua;trace_fixture=&f;
+            auto setup=[&](bool invalid_area=false) {
+                ScriptFixture::string(lua.source,"heron/generic/out_of_bounds_area.lua");
+                ScriptFixture::string(lua.name,invalid_area?"on_invalid_area_enter":"on_exit_oob");
+                put(lua.proto,0xa4,uint32_t{invalid_area?105u:77u});put(lua.proto,0xa8,uint32_t{invalid_area?7u:5u});
+                put(lua.proto,0x88,uint32_t{invalid_area?34u:90u});lua.closures[0x30+3]=0;
+                put(lua.vm,8,address(lua.values)+4*0x18);put(lua.vm,0x10,address(lua.values));
+                put(lua.vm,0x28,address(lua.values)+lua.values.size());put(lua.vm,0x30,address(lua.values));
+                put(lua.vm,0x78,reinterpret_cast<uintptr_t>(&f.world_pointer));
+            };
+            guard::testing::configure(&trace_player,reinterpret_cast<void*>(&protected_original));
+            for(bool invalid_area:{false,true}) {
+                setup(invalid_area);const auto stack=lua.values,frames=lua.calls,closures=lua.closures;
+                auto expected=lua.vm;put(expected,8,address(lua.values)+0x18);
+                const auto calls=trace_calls;
+                require(guard::testing::invoke(lua.vm.data(),2,0,1)==0 && calls==trace_calls,"Boundary handler was not omitted");
+                require(lua.vm==expected && lua.values==stack && lua.calls==frames && lua.closures==closures,"Boundary omission changed more than stack top");
+            }
+            auto expect_passthrough=[&](int nargs=2,int results=0,int error=1) {
+                const auto before=lua.vm,calls=lua.calls,values=lua.values;const auto count=trace_calls;
+                require(guard::testing::invoke(lua.vm.data(),nargs,results,error)==42 && trace_calls==count+1 && trace_arguments[0]==lua.vm.data() && protected_arguments==std::array<int,3>{nargs,results,error},"Unmatched protected call argument/result changed");
+                require(lua.vm==before && lua.calls==calls && lua.values==values,"Forwarded VM was modified");
+            };
+            setup();ScriptFixture::string(lua.source,"another_script.lua");expect_passthrough();
+            setup();ScriptFixture::string(lua.name,"on_enter_oob");expect_passthrough();
+            setup();put(lua.proto,0xa4,uint32_t{175});put(lua.proto,0xa8,uint32_t{12});put(lua.proto,0x88,uint32_t{89});ScriptFixture::string(lua.name,"");expect_passthrough();
+            setup();put(lua.proto,0x88,uint32_t{91});expect_passthrough();
+            setup();put(lua.proto,0x60,uintptr_t{});expect_passthrough();
+            setup();lua.closures[0x30+3]=1;expect_passthrough();
+            setup();expect_passthrough(2,1,1);expect_passthrough(2,-1,1);expect_passthrough(2,0,0);expect_passthrough(2,0,-1);expect_passthrough(-1);expect_passthrough(9);
+            setup();uintptr_t other_world=1;put(lua.vm,0x78,reinterpret_cast<uintptr_t>(&other_world));expect_passthrough();
+            setup();lua.vm[3]=1;expect_passthrough();lua.vm[3]=0;
+            setup();put(lua.vm,8,address(lua.values)+1);expect_passthrough();
+            setup();put(lua.vm,0x28,address(lua.values));expect_passthrough();
+            setup();put(lua.vm,8,address(lua.values)+3*0x18);expect_passthrough(); // No separate error handler.
+            setup();put(lua.values,0x10,uint32_t{0});expect_passthrough();put(lua.values,0x10,uint32_t{7});
+            setup();trace_fixture=nullptr;expect_passthrough();trace_fixture=&f;
+            setup();put(f.generations,16,uint32_t{8});expect_passthrough();put(f.generations,16,uint32_t{7});
+            setup();f.chunk[0x400+f.row*240+0xe5]=1;expect_passthrough();f.chunk[0x400+f.row*240+0xe5]=0;
+            setup();put(lua.proto,0x58,uintptr_t{1});expect_passthrough();
+            std::array<uintptr_t,11> inactive{};inactive[6]=address(f.chunk)+0x400;inactive[9]=address(f.chunk);inactive[10]=f.row;
+            const auto unchanged=f.chunk;
+            require(guard::skip_height(inactive.data()) && f.chunk==unchanged,"Height guard changed player state or missed player");
+            inactive[10]=0;require(!guard::skip_height(inactive.data()),"Foreign height check suppressed");inactive[10]=f.row;
+            f.chunk[0x400+f.row*240+0xe5]=1;require(!guard::skip_height(inactive.data()),"In-progress recovery suppressed");f.chunk[0x400+f.row*240+0xe5]=0;
+            crml::probe::fall_trace::testing::configure(&trace_player,reinterpret_cast<void*>(&trace_four),reinterpret_cast<void*>(&trace_two),reinterpret_cast<void*>(&trace_eight),reinterpret_cast<void*>(&trace_four));
+            const auto original_calls=trace_calls;
+            crml::probe::fall_trace::testing::invoke(crml::probe::fall_trace::Stage::inactive,{inactive.data(),&f,&lua,&inactive});
+            require(trace_calls==original_calls && f.chunk==unchanged,"Observer did not apply the height guard without writes");
+            f.chunk[0x400+f.row*240+0xe5]=1;
+            crml::probe::fall_trace::testing::invoke(crml::probe::fall_trace::Stage::inactive,{inactive.data(),&f,&lua,&inactive});
+            require(trace_calls==original_calls+1 && trace_arguments[0]==inactive.data() && trace_arguments[3]==&inactive,"Pending recovery original not forwarded");
+            f.chunk[0x400+f.row*240+0xe5]=0;crml::probe::fall_trace::stop();
+            std::ostringstream report;guard::write(report);
+            require(report.str().find("\"script_exits_skipped\":1")!=std::string::npos && report.str().find("\"invalid_area_entries_skipped\":1")!=std::string::npos && report.str().find("\"height_checks_skipped\":2")!=std::string::npos,"Boundary diagnostics lost");
+            guard::stop();setup();expect_passthrough();require(!guard::skip_height(inactive.data()),"Stopped guard still suppresses height checks");
+            script_throws=true;bool caught{};try {guard::testing::invoke(nullptr,2,0,1);} catch(const std::runtime_error&) {caught=true;}
+            script_throws=false;require(caught,"Protected call exception swallowed");trace_fixture=nullptr;
         }
         {
             using crml::physics::entity_exclusion;
