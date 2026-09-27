@@ -1,6 +1,6 @@
-param([ValidateSet('Debug','Release')][string]$Configuration = 'Release', [switch]$Test, [int]$Jobs = 1, [Alias('ExperimentalGameplay')][switch]$MovementProbe, [switch]$EngineObserver)
+param([ValidateSet('Debug','Release')][string]$Configuration = 'Release', [switch]$Test, [int]$Jobs = 1, [Alias('ExperimentalGameplay')][switch]$MovementProbe, [switch]$EngineObserver, [switch]$LuaProbe)
 $ErrorActionPreference = 'Stop'
-if ($EngineObserver) { $MovementProbe = $true }
+if ($EngineObserver -or $LuaProbe) { $MovementProbe = $true }
 $dependencyArgs = @()
 if ($MovementProbe) { $dependencyArgs += '--movement-probe' }
 & python "$PSScriptRoot\tools\fetch-deps.py" @dependencyArgs
@@ -12,7 +12,8 @@ $cmake = Join-Path $vs.installationPath 'Common7\IDE\CommonExtensions\Microsoft\
 if (-not (Test-Path -LiteralPath $cmake)) { $cmake = (Get-Command cmake -ErrorAction Stop).Source }
 $generator = if (([version]$vs.installationVersion).Major -ge 18) { 'Visual Studio 18 2026' } else { 'Visual Studio 17 2022' }
 $probeOption = if ($MovementProbe) { 'ON' } else { 'OFF' }
-& $cmake -S $PSScriptRoot -B "$PSScriptRoot\build\native" -G $generator -A x64 "-DCRML_MOVEMENT_PROBE=$probeOption"
+$luaOption = if ($LuaProbe) { 'ON' } else { 'OFF' }
+& $cmake -S $PSScriptRoot -B "$PSScriptRoot\build\native" -G $generator -A x64 "-DCRML_MOVEMENT_PROBE=$probeOption" "-DCRML_LUA_PROBE=$luaOption"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 & $cmake --build "$PSScriptRoot\build\native" --config $Configuration --parallel $Jobs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -28,7 +29,7 @@ Copy-Item -LiteralPath "$PSScriptRoot\examples\hello\mod.ini" -Destination "$PSS
 & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\hello\hello.wat" "$PSScriptRoot\dist\crml\mods\hello\hello.wasm"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Write-Host "Build ready in $PSScriptRoot\dist"
-@{ experimental_gameplay = [bool]$MovementProbe; engine_observer = [bool]$MovementProbe; physics_trial = [bool]$MovementProbe; physics_wasm = [bool]$MovementProbe; movement_wasm = [bool]$MovementProbe } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
+@{ experimental_gameplay = [bool]$MovementProbe; engine_observer = [bool]$MovementProbe; physics_trial = [bool]$MovementProbe; physics_wasm = [bool]$MovementProbe; movement_wasm = [bool]$MovementProbe; lua_probe = [bool]$LuaProbe } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
 if ($MovementProbe) {
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\physics-trial.enabled", '')
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\physics-wasm.enabled", '')

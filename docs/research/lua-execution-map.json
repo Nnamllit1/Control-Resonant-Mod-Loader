@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "title": "Engine Lua load, protected execution and error cleanup",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static call references; see engine-lua.md for ABI interpretations and evidence limits.",
+  "checks": [
+    {"kind":"call_rel32","rva":"0x19c384d","target":"0x3229280","label":"resource cache load wrapper"},
+    {"kind":"call_rel32","rva":"0x322929d","target":"0x2c27b70","label":"wrapper bytecode load"},
+    {"kind":"call_rel32","rva":"0x32292b1","target":"0x2c4df20","label":"wrapper error string extraction"},
+    {"kind":"call_rel32","rva":"0x32292cb","target":"0x2c4d040","label":"wrapper error stack pop"},
+    {"kind":"call_rel32","rva":"0x1a0aada","target":"0x2c4fc90","label":"fixed update protected call used by probe"},
+    {"kind":"call_rel32","rva":"0x2c4fd4b","target":"0x2c434f0","label":"Lua call internal protection"},
+    {"kind":"call_rel32","rva":"0x2c43524","target":"0x2c43a40","label":"protected callback exception boundary"},
+    {"kind":"call_rel32","rva":"0x2c435cb","target":"0x2c42bf0","label":"error path pending upvalue cleanup"},
+    {"kind":"call_rel32","rva":"0x2c435d8","target":"0x2c43e60","label":"error object placement"}
+  ]
+}

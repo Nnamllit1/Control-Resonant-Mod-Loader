@@ -65,6 +65,8 @@ nav:
       - Engine diagnostics: engine-validation.md
       - System index: engine-system-index.md
       - Reviewed engine paths: engine-paths.md
+      - Lua bytecode tools: binlua.md
+      - Engine Lua integration: engine-lua.md
       - Engine internals: engine-internals.md
       - Physics dynamics: physics-dynamics.md
       - Entity inspector: entity-inspector.md

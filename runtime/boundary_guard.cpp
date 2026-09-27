@@ -1,6 +1,8 @@
 #include "boundary_guard.h"
 #include "script_origin.h"
+#include "lua_probe.h"
 #include <MinHook.h>
+#include <intrin.h>
 #include <atomic>
 #include <ostream>
 
@@ -61,9 +63,12 @@ bool omit(void* state,int nargs,int results,int error,fall::Player player) noexc
         ++read_failures;return false;
     }
 }
-int protected_call(void* vm,int nargs,int results,int error) {
+__declspec(noinline) int protected_call(void* vm,int nargs,int results,int error) {
+    const auto caller=reinterpret_cast<uintptr_t>(_ReturnAddress());
     if(ready.load(std::memory_order_acquire) && omit(vm,nargs,results,error,active_callback())) return 0;
-    return original(vm,nargs,results,error);
+    const auto status=original(vm,nargs,results,error);
+    lua::after_call(vm,caller,nargs,results,error,status);
+    return status;
 }
 }
 bool start(uintptr_t image,fall::Active active) noexcept {
@@ -73,6 +78,7 @@ bool start(uintptr_t image,fall::Active active) noexcept {
     if(std::memcmp(entry,signature,sizeof(signature))) return false;
     active_callback=active;
     if(MH_CreateHook(entry,reinterpret_cast<void*>(&protected_call),reinterpret_cast<void**>(&original))!=MH_OK || MH_EnableHook(entry)!=MH_OK) return false;
+    lua::start(image,original);
     ready.store(true,std::memory_order_release);return true;
 }
 bool skip_height(const void* view) noexcept {
@@ -85,8 +91,9 @@ void write(std::ostream& out) {
     out<<"{\"type\":\"boundary_guard\",\"tick_ms\":"<<GetTickCount64()<<",\"ready\":"<<(ready.load()?"true":"false")
        <<",\"script_exits_skipped\":"<<boundary_exits.load()<<",\"invalid_area_entries_skipped\":"<<invalid_areas.load()
        <<",\"height_checks_skipped\":"<<height_checks.load()<<",\"calls_during_flight\":"<<flight_calls.load()<<",\"read_failures\":"<<read_failures.load()<<"}\n";
+    lua::write(out);
 }
-void stop() noexcept {ready.store(false,std::memory_order_release);}
+void stop() noexcept {ready.store(false,std::memory_order_release);lua::stop();}
 #ifdef CRML_FALL_TRACE_TESTING
 namespace testing {
 void configure(fall::Active active,void* call) noexcept {
