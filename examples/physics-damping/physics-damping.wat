@@ -9,7 +9,7 @@
   (global $previous (mut i32) (i32.const 0))
   (func (export "crml_abi_version") (result i32) i32.const 1)
   (func (export "crml_init")
-    i32.const 1 i32.const 0 i32.const 47 call $log)
+    i32.const 1 i32.const 0 i32.const 49 call $log)
   (func (export "crml_tick") (param f32)
     (local $buttons i32) (local $edges i32) (local $handle i64)
     call $input local.tee $buttons

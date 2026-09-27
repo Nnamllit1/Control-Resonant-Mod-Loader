@@ -21,7 +21,7 @@ capabilities=log
 | `id` | Required, 1–64 lowercase letters, digits, `_` or `-`; unique within the host |
 | `abi` | Required, exactly `1` |
 | `module` | Required, local `.wasm` filename; no directories or absolute paths |
-| `capabilities` | Empty/omitted, or a comma-separated list of `log`, `input.buttons`, `player.noclip`, `player.visibility`, and `physics.damping`; duplicates and unknown requests are rejected |
+| `capabilities` | Empty/omitted, or a comma-separated list of `log`, `input.buttons`, `input.motion`, `player.noclip`, `player.visibility`, `player.motion`, and `physics.damping`; duplicates and unknown requests are rejected |
 
 Logging is available when requested. The experimental noclip import also requires native build support, a matching game fingerprint, and installation opt-in; declaring the capability cannot bypass those gates.
 
@@ -35,7 +35,7 @@ Logging is available when requested. The experimental noclip import also require
 | `crml_shutdown` | `() -> ()` | No |
 | `memory` | wasm32 linear memory | For logging |
 
-All callbacks run serially on a runtime worker. In-game ticks are approximately 100 ms apart, or 10 ms in the isolated physics service, and elapsed time is capped at one second. They are not render callbacks or a game-thread scheduling guarantee.
+All callbacks run serially on a runtime worker. In-game ticks are approximately 100 ms apart, or 10 ms in the isolated physics and movement services, and elapsed time is capped at one second. They are not render callbacks or a game-thread scheduling guarantee.
 
 ## Host imports
 
@@ -92,3 +92,17 @@ The import accepts finite damping from **0 through 8**, for **1 through 5,000 ms
 Focus loss, Escape, F11, the worker/session deadline, mod failure, shutdown and runtime destruction request cleanup. Cleanup is serviced on the physics callback, including after the guest has stopped. A game-written conflicting value is preserved; retired bodies are not written through stale handles. Temporary unavailability keeps restoration pending. The service retains the diagnostic session's ten-minute/four-MiB limits; restart the game to begin a new session after a limit is reached.
 
 See the [Wasm damping example](physics-trial.md#wasm-damping-example) for setup and expected behavior.
+
+## Experimental movement requests
+
+The isolated `--movement-wasm` mode exposes explicit character movement commands. The [movement example](movement.md) implements the toggle and camera-relative controls in its own guest source. This mode does not start the legacy noclip/fall hooks, visibility service or physics-property service.
+
+`crml_v1.input_motion() -> i32` requires **`input.motion`**. Bits 0–7 represent **F6, W, S, A, D, Space, Ctrl, Shift**, respectively. All other bits are zero. The result is zero without focus, while Escape is held, or when the service is unavailable. No text input or arbitrary key-code API is exposed.
+
+`crml_v1.motion_camera(output: i32) -> i32` requires **`player.motion`**. It copies two `f32` values into eight bytes of exported guest memory: the normalized horizontal right vector's X and Z components. Return `1` means a validated camera sample no older than 100 ms; `-1` means unavailable and zeroes both outputs. Invalid guest-memory ranges trap the mod before native access. The vector is a snapshot, not camera ownership; guest forward can be computed as `(-right_z, 0, right_x)`.
+
+`crml_v1.motion_set(enabled: i32, x: f32, y: f32, z: f32) -> i32` requires **`player.motion`**. With `enabled = 1`, it submits a world-space velocity and renews an owner-bound, 500 ms noncolliding character-motion lease. The vector must be finite and its magnitude at most **20 world units per second**. Zero velocity holds position. With `enabled = 0`, it releases this mod's lease. Invalid enable values, nonfinite velocities, excess speed and exceeding the shared eight-call gameplay budget trap the mod.
+
+Results are `1` accepted, `0` released/already off, `-1` unavailable, or `-2` another owner. Acceptance is not proof of a controller update. The native callback integrates the velocity using a maximum 50 ms step and validates current player/world identity and controller arguments. Normal WASD, Space, Ctrl and Shift keyboard actions are suppressed while the lease is active; mouse look remains under game control.
+
+Escape, focus loss, stale input samples, an expired lease, player/world replacement, disabled/keyframed controllers, large unexplained displacement and engine teleports cancel movement. A controller gap over 250 ms also cancels. A pending guest cancellation is reported on its next renewal so the example can switch off instead of silently restarting. Mod traps and shutdown release ownership independently of guest cleanup. The service does not restore pre-flight position, suppress fall recovery, override engine teleports or provide free-camera control.

@@ -10,6 +10,68 @@ BASE = '(func (export "crml_abi_version") (result i32) i32.const 1)'
 LOG = '(import "crml_v1" "log" (func $log (param i32 i32 i32)))'
 
 class SandboxTests(unittest.TestCase):
+    def movement_package(self, body, capability='player.motion,input.motion'):
+        imports='''(import "crml_v1" "input_motion" (func $input (result i32)))
+        (import "crml_v1" "motion_camera" (func $camera (param i32) (result i32)))
+        (import "crml_v1" "motion_set" (func $set (param i32 f32 f32 f32) (result i32)))'''
+        self.package(f'(module {imports} {BASE} {body})',manifest=f'id=test\nabi=1\nmodule=mod.wasm\ncapabilities={capability}\n')
+
+    def test_movement_example_guest_calculates_velocity(self):
+        source=(Path(__file__).resolve().parents[1]/'examples/movement/movement.wat').read_text()
+        self.package(source,manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=player.motion,input.motion\n')
+        result=subprocess.run([str(BIN/'crml_gameplay_tests.exe'),str(self.mods),'4'],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('Motion request: 1 velocity 5,0,0',result.stdout)
+        self.assertIn('Motion request: 1 velocity 15,0,0',result.stdout)
+        self.assertIn('Gameplay calls: 5; failures: 0; owners: 0',result.stdout)
+
+    def test_movement_input_separate_capability(self):
+        self.movement_package('(func (export "crml_init"))','player.motion')
+        self.assertIn('unknown import',self.run_host(1))
+
+    def test_movement_speed_budget_and_cleanup(self):
+        self.movement_package('''(func (export "crml_init")
+          i32.const 1 f32.const 5 f32.const 0 f32.const 0 call $set drop
+          i32.const 1 f32.const 20 f32.const 20 f32.const 0 call $set drop)''')
+        self.assertIn('Gameplay calls: 1; failures: 1; owners: 0',self.run_gameplay())
+
+    def test_movement_nan_rejected(self):
+        self.movement_package('''(func (export "crml_init")
+          i32.const 1 f32.const nan f32.const 0 f32.const 0 call $set drop)''')
+        self.assertIn('Gameplay calls: 0; failures: 1; owners: 0',self.run_gameplay())
+
+    def test_movement_shared_call_budget(self):
+        self.movement_package('''(func (export "crml_init")
+          i32.const 1 f32.const 0 f32.const 0 f32.const 0 call $set drop
+          (loop call $input drop br 0))''')
+        output=self.run_gameplay()
+        self.assertIn('Gameplay call budget exceeded',output)
+        self.assertIn('Gameplay calls: 1; failures: 1; owners: 0',output)
+
+    def test_movement_camera_memory_bounds(self):
+        self.movement_package('''(memory (export "memory") 1)
+          (func (export "crml_init") i32.const 1 f32.const 0 f32.const 0 f32.const 0 call $set drop
+          i32.const 65532 call $camera drop)''')
+        output=self.run_gameplay()
+        self.assertIn('Camera output outside guest memory',output)
+        self.assertIn('Gameplay calls: 1; failures: 1; owners: 0',output)
+
+    def test_movement_unavailable_camera_zeroes_output(self):
+        self.movement_package('''(memory (export "memory") 1)
+          (func (export "crml_init") i32.const 0 f32.const 99 f32.store
+          i32.const 4 f32.const 99 f32.store
+          i32.const 0 call $camera i32.const -1 i32.ne if unreachable end
+          i32.const 0 i64.load i64.eqz i32.eqz if unreachable end
+          call $input if unreachable end)''')
+        self.assertIn('Active: 1; failures: 0',self.run_host())
+
+    def test_movement_camera_last_valid_bytes(self):
+        self.movement_package('''(memory (export "memory") 1)
+          (func (export "crml_init") i32.const 65528 call $camera i32.const 1 i32.ne if unreachable end
+          i32.const 65528 f32.load f32.const 0 f32.ne if unreachable end
+          i32.const 65532 f32.load f32.const -1 f32.ne if unreachable end)''')
+        self.assertIn('failures: 0; owners: 0',self.run_gameplay())
+
     def physics_package(self, body, capability='physics.damping'):
         imports='''(import "crml_v1" "physics_select" (func $select (result i32)))
         (import "crml_v1" "physics_target" (func $target (result i64)))

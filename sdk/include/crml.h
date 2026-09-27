@@ -52,6 +52,27 @@ int32_t crml_physics_status(void);
 // Requests restoration/cancellation and releases ownership after cleanup.
 __attribute__((import_module("crml_v1"), import_name("physics_restore")))
 int32_t crml_physics_restore(void);
+// Fixed motion buttons; requires input.motion. Zero without focus/service.
+#define CRML_MOTION_F6 1u
+#define CRML_MOTION_W 2u
+#define CRML_MOTION_S 4u
+#define CRML_MOTION_A 8u
+#define CRML_MOTION_D 16u
+#define CRML_MOTION_SPACE 32u
+#define CRML_MOTION_CTRL 64u
+#define CRML_MOTION_SHIFT 128u
+__attribute__((import_module("crml_v1"), import_name("input_motion")))
+uint32_t crml_input_motion(void);
+// Requires player.motion and --movement-wasm. Writes normalized camera right
+// X,Z as two f32s (8 bytes). Returns 1 valid, -1 unavailable (output zeroed).
+__attribute__((import_module("crml_v1"), import_name("motion_camera")))
+int32_t crml_motion_camera(float right_xz[2]);
+// World-space velocity, length <=20 units/s. 1 renews a 500ms noncolliding
+// character-motion lease with keyboard suppression; 0 releases. Returns
+// 1 accepted, 0 released, -1 unavailable, -2 another owner. Bad args trap.
+// Teleports/identity changes cancel; no fall/reset or camera-position override.
+__attribute__((import_module("crml_v1"), import_name("motion_set")))
+int32_t crml_motion_set(int32_t enabled, float x, float y, float z);
 CRML_EXPORT("crml_abi_version") uint32_t crml_abi_version(void);
 CRML_EXPORT("crml_init") void crml_init(void);
 // Optional; worker heartbeat, NOT a game frame or game-thread callback.

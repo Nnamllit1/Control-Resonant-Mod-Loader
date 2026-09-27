@@ -5,6 +5,8 @@ description: Build and use the experimental CONTROL Resonant noclip mod, configu
 
 # Gameplay and noclip
 
+This page describes the legacy native-controlled noclip prototype. For guest-owned controls and explicit velocity requests, see [guest-controlled movement](movement.md).
+
 **Experimental:** noclip can encounter boundary resets, persistent fall-recovery fog, and camera collision artifacts.
 
 The prototype targets the controlled character through the game's character-controller movement routine. Private per-call arguments supply the requested transform, select keyframed movement, and suppress the subsequent contact/push pass. Flight retains its requested position across small ground corrections. Original component values stay intact, so subsequent normal calls resume movement. Native tests cover argument isolation and automatic cancellation; they do not replace in-game traversal tests.

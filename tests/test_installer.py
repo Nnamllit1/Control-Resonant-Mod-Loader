@@ -13,6 +13,29 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def test_movement_wasm_switch_and_build_gate(self):
+        installer.install(self.game,self.dist,self.profiles,True)
+        features=self.dist/'crml/build-features.json'
+        features.write_text('{"physics_wasm":true}')
+        with self.assertRaisesRegex(ValueError,'Rebuild'):
+            installer.sources_for(self.dist,movement_wasm=True)
+        features.write_text('{"physics_wasm":true,"movement_wasm":true}')
+        for name in ('physics-wasm.enabled','movement-wasm.enabled'):
+            (self.dist/'crml'/name).write_text('')
+        installer.update(self.game,self.dist,self.profiles,True,physics_wasm=True)
+        installer.update(self.game,self.dist,self.profiles,True,movement_wasm=True)
+        self.assertFalse((self.game/'crml/physics-wasm.enabled').exists())
+        self.assertIn('crml/movement-wasm.enabled',installer.read_receipt(self.game)['files'])
+        with self.assertRaisesRegex(ValueError,'without other'):
+            installer.sources_for(self.dist,movement_wasm=True,experimental_noclip=True)
+        installer.update(self.game,self.dist,self.profiles,True,physics_wasm=True)
+        self.assertFalse((self.game/'crml/movement-wasm.enabled').exists())
+        installer.update(self.game,self.dist,self.profiles,True,movement_wasm=True)
+        installer.update(self.game,self.dist,self.profiles,True,disable_movement_wasm=True)
+        self.assertFalse((self.game/'crml/movement-wasm.enabled').exists())
+        (self.game/'crml/movement-wasm.enabled').write_text('custom')
+        with self.assertRaisesRegex(ValueError,'unowned'):
+            installer.update(self.game,self.dist,self.profiles,True,physics_wasm=True)
     def test_wasm_physics_mode_switch_and_ownership(self):
         installer.install(self.game,self.dist,self.profiles,True)
         (self.dist/'crml/build-features.json').write_text('{"physics_wasm":true,"physics_trial":true}')

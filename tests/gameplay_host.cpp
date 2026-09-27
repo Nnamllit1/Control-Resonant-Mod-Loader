@@ -4,6 +4,13 @@
 struct FakeGame : crml::Gameplay {
     std::set<uint64_t> owners;
     unsigned calls{}, input_index{};
+    unsigned motion_input_index{};
+    uint32_t input_motion() noexcept override {constexpr uint32_t buttons[]{1,2,130,0};return buttons[(motion_input_index++)%4];}
+    int motion_camera(float (&right)[2]) noexcept override {right[0]=0;right[1]=-1;return 1;}
+    int motion_set(uint64_t owner,bool enabled,float x,float y,float z) noexcept override {
+        ++calls;if(enabled) owners.insert(owner);else owners.erase(owner);
+        std::cout<<"Motion request: "<<enabled<<" velocity "<<x<<','<<y<<','<<z<<'\n';return enabled?1:0;
+    }
     uint32_t input_buttons() noexcept override { constexpr uint32_t buttons[]{0,1,1,2}; return buttons[(input_index++)%4]; }
     int visibility_set(uint64_t owner,bool hidden) noexcept override {
         if(hidden) owners.insert(owner); else owners.erase(owner);

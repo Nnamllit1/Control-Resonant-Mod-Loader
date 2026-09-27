@@ -25,10 +25,14 @@ struct Flight {
     float speed{5};
     bool enabled{};
     bool positioned{};
+    bool guest_driven{};
+    uint64_t cancelled_guest{};
+    Direction requested{};
     std::array<float,3> position{};
     FlightStop stopped{};
     TeleportRestore restored{};
-    bool teleport_blocks(uint8_t flag) const noexcept { return flag && !(enabled && positioned); }
+    bool teleport_blocks(uint8_t flag) const noexcept { return flag && (guest_driven || !(enabled && positioned)); }
+    int request_motion(uint64_t who,bool enable,float x,float y,float z,const Sample&,uint64_t now) noexcept;
     void reset(StopReason reason=StopReason::toggle,uint64_t now=0,const Sample* sample=nullptr) noexcept;
     bool step(const Sample& sample, uint64_t current_world, uint64_t now, bool focused,
               Direction input, std::array<float, 3>& target) noexcept;

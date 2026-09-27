@@ -6,6 +6,7 @@
 #include "overlay.h"
 #include "input_filter.h"
 #include "fall_guard.h"
+#include "fall_observer.h"
 #include <Windows.h>
 #include <bcrypt.h>
 #include <MinHook.h>
@@ -40,6 +41,7 @@ Flight flight{};
 std::atomic<bool> gameplay_enabled{};
 bool toggle_down{}; // Runtime worker only.
 uint64_t last_poll{};
+std::atomic<uint64_t> motion_requests{};
 bool focused() noexcept {
     DWORD process{};
     GetWindowThreadProcessId(GetForegroundWindow(), &process);
@@ -60,6 +62,17 @@ fall::Player active_player() noexcept {
     return player;
 }
 bool input_active() noexcept { return active_player().entity!=0; }
+
+fall::Player observed_player() noexcept {
+    // Keep observing after the movement lease is cancelled by a teleport.
+    // Never wait on the worker or carry a stale world across a loading gap.
+    fall::Player p{};
+    if(!TryAcquireSRWLockShared(&sample_lock)) return p;
+    const auto now=GetTickCount64();
+    if(latest_tick && now>=latest_tick && now-latest_tick<=500) p={latest.world,latest.entity};
+    ReleaseSRWLockShared(&sample_lock);
+    return p;
+}
 
 Sample visibility_player() noexcept {
     Sample p{};
@@ -89,6 +102,7 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
         Sample sample{};
         switch (observe(view, world, sample)) {
         case Observation::player:
+            fall_trace::controller({sample.world,sample.entity});
             inspect_camera(sample.world,sample.camera);
             players.fetch_add(1, std::memory_order_relaxed);
             // Never fall back to colliding movement merely because the worker is
@@ -106,7 +120,7 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
                 if (gameplay_enabled.load(std::memory_order_relaxed)) {
                     std::array<float,3> target{};
                     const Direction keys{float(down('D'))-float(down('A')), float(down(VK_SPACE))-float(down(VK_CONTROL)), float(down('W'))-float(down('S')), down(VK_SHIFT)};
-                    const auto direction=camera_relative(keys,sample.camera);
+                    const auto direction=flight.guest_driven?flight.requested:camera_relative(keys,sample.camera);
                     if(down(VK_ESCAPE)) flight.reset(StopReason::escape,latest_tick,&sample);
                     if (flight.step(sample, sample.world, latest_tick, focused(), direction, target)) {
                         override_movement = replacement.prepare(view, sample, target);
@@ -164,10 +178,11 @@ std::string fingerprint(const std::filesystem::path& path) {
 }
 
 std::string Recorder::start(const std::filesystem::path& root) {
-    const bool visibility_requested=std::filesystem::is_regular_file(root / "visibility.enabled");
-    const bool inspector_requested=std::filesystem::is_regular_file(root / "entity-inspector.enabled");
-    const bool noclip_requested = !inspector_requested && !visibility_requested && std::filesystem::is_regular_file(root / "noclip.enabled");
-    if (!visibility_requested && !inspector_requested && !noclip_requested && !std::filesystem::is_regular_file(root / "movement-probe.enabled")) return "Experimental gameplay and movement probe disabled";
+    const bool motion_requested=std::filesystem::is_regular_file(root / "movement-wasm.enabled");
+    const bool visibility_requested=!motion_requested && std::filesystem::is_regular_file(root / "visibility.enabled");
+    const bool inspector_requested=!motion_requested && std::filesystem::is_regular_file(root / "entity-inspector.enabled");
+    const bool noclip_requested = !motion_requested && !inspector_requested && !visibility_requested && std::filesystem::is_regular_file(root / "noclip.enabled");
+    if (!motion_requested && !visibility_requested && !inspector_requested && !noclip_requested && !std::filesystem::is_regular_file(root / "movement-probe.enabled")) return "Experimental gameplay and movement probe disabled";
     wchar_t executable[32768]{};
     const auto length = GetModuleFileNameW(nullptr, executable, 32768);
     if (!length || length >= 32768 || fingerprint(executable) != "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0")
@@ -197,11 +212,27 @@ std::string Recorder::start(const std::filesystem::path& root) {
         return std::string("Movement probe refused: ") + MH_StatusToString(status);
     }
     visibility_ = visibility_requested && visibility::start(image_base,&visibility_player);
-    gameplay_ = noclip_requested && fall::start(image_base,&active_player) && input::start(&input_active);
+    motion_=motion_requested && input::start(&input_active);
+    gameplay_ = motion_ || (noclip_requested && fall::start(image_base,&active_player) && input::start(&input_active));
     gameplay_enabled.store(gameplay_);
-    if (gameplay_) overlay_ = overlay_create();
-    output_ << "{\"schema\":7,\"mode\":\"" << (visibility_ ? "experimental-visibility" : gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
+    bool fall_observer=false;
+    if(motion_) {
+        fall_output_.open(root / "fall-recovery.jsonl",std::ios::trunc);
+        fall_observer=fall_output_.is_open() && fall_trace::start(image_base,&observed_player);
+        if(fall_output_) {
+            fall_output_<<"{\"schema\":1,\"mode\":\"observe-only\",\"active\":"<<(fall_observer?"true":"false")
+                        <<",\"sha256\":\"2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0\"}\n";
+            fall_output_.flush();
+        }
+        if(!fall_observer) fall_output_.close();
+    }
+    if (gameplay_) overlay_ = overlay_create(false,false,motion_);
+    output_ << "{\"schema\":7,\"mode\":\"" << (motion_?"wasm-movement":visibility_ ? "experimental-visibility" : gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
     output_.flush();
+    if(motion_requested) return motion_ ? (fall_observer ?
+        "Wasm movement service armed; fall/reset overrides disabled; read-only recovery trace active" :
+        "Wasm movement service armed; fall/reset overrides disabled; recovery trace unavailable") :
+        "Wasm movement refused: input hook unavailable; observer remains read-only";
     if(noclip_requested && !gameplay_) return "Experimental noclip refused: input or fall-recovery hook unavailable; movement probe remains read-only";
     if(visibility_requested) return visibility_?"Experimental player visibility armed; requests controlled by player.visibility Wasm mods":"Visibility hook refused; observer remains active";
     if(inspector_requested) return "Read-only player entity inspector active; noclip disabled for this session";
@@ -219,16 +250,21 @@ void Recorder::poll() {
         else if(!latest_tick || now-latest_tick>500) flight.reset(StopReason::stale_sample,now,&latest);
         else if(flight.enabled && now-flight.lease>500) flight.reset(StopReason::lease,now,&latest);
         const int state = !foreground || !latest_tick || now-latest_tick > 500 || !last_poll || now-last_poll > 500 || latest.disabled || flight.teleport_blocks(latest.teleported) || latest.keyframed[0] || latest.keyframed[1] ||
-                          (!flight.enabled && !fall::available({latest.world,latest.entity})) ? -1 : flight.enabled ? 1 : 0;
+                          (!motion_ && !flight.enabled && !fall::available({latest.world,latest.entity})) ? -1 : flight.enabled ? 1 : 0;
         const bool camera_valid=latest.camera.valid;
         ReleaseSRWLockExclusive(&sample_lock);
         overlay_update(overlay_, foreground, state, camera_valid);
     }
-    if (!output_.is_open() || ++polls_ % 10) return;
+    if (!output_.is_open() || ++polls_ % (motion_?100:10)) return;
+    if(fall_output_.is_open()) {
+        fall_trace::write(fall_output_);fall_output_.flush();
+        if(!fall_output_) {fall_trace::stop();fall_output_.close();}
+    }
     Sample sample{};
     DWORD thread{};
     uint64_t tick{};
     bool enabled{};
+    Direction guest_velocity{};
     std::array<float,3> target{}, controller_result{};
     uint64_t outcome_tick{};
     bool outcome_valid{};
@@ -242,6 +278,7 @@ void Recorder::poll() {
     thread = latest_thread;
     tick = latest_tick;
     enabled = flight.enabled;
+    if(flight.guest_driven) guest_velocity={flight.requested.x*20.f,flight.requested.y*20.f,flight.requested.z*20.f,false};
     stopped=flight.stopped;
     restored=flight.restored;
     entity_snapshot=latest_entity; snapshot_tick=entity_tick; snapshot_thread=entity_thread;
@@ -256,6 +293,8 @@ void Recorder::poll() {
     output_ << "{\"calls\":" << calls.load() << ",\"invalid\":" << invalid.load()
             << ",\"visibility_submissions\":" << visibility::submissions() << ",\"other_entities\":" << others.load() << ",\"player_samples\":" << players.load()
             << ",\"overrides\":" << overrides.load() << ",\"noclip_active\":" << (enabled ? "true" : "false")
+            << ",\"motion_requests\":" << motion_requests.load()
+            << ",\"motion_velocity\":[" << guest_velocity.x << ',' << guest_velocity.y << ',' << guest_velocity.z << ']'
             << ",\"input_consumed\":" << input::consumed() << ",\"fall_checks_skipped\":" << fall::skipped_checks()
             << ",\"boundary_targets_skipped\":" << fall::skipped_triggers()
             << ",\"fall_monitors_skipped\":" << fall::skipped_monitors() << ",\"fall_actions_skipped\":" << fall::skipped_fall_actions()
@@ -289,11 +328,12 @@ void Recorder::poll() {
         if(!visibility_) recording.store(false);
         inspecting.store(false); entity_output_.close();
         output_.close();
+        fall_trace::stop();fall_output_.close();
     }
 }
 
 int Recorder::noclip_poll(uint64_t owner, float speed) noexcept {
-    if (!gameplay_ || !std::isfinite(speed) || speed < .25f || speed > 20.f) return -1;
+    if (!gameplay_ || motion_ || !std::isfinite(speed) || speed < .25f || speed > 20.f) return -1;
     const bool key = focused() && down(VK_F6);
     const bool pressed = key && !toggle_down;
     toggle_down = key;
@@ -328,6 +368,42 @@ uint32_t Recorder::input_buttons() noexcept {
     if(!focused() || down(VK_ESCAPE)) return 0;
     return (down(VK_F7)?1u:0u) | (down(VK_F8)?2u:0u);
 }
+uint32_t Recorder::input_motion() noexcept {
+    if(!motion_ || !focused() || down(VK_ESCAPE)) return 0;
+    const int keys[]{VK_F6,'W','S','A','D',VK_SPACE,VK_CONTROL,VK_SHIFT};
+    uint32_t mask{};for(unsigned i=0;i<8;++i) if(down(keys[i])) mask|=1u<<i;
+    return mask;
+}
+int Recorder::motion_camera(float (&right)[2]) noexcept {
+    right[0]=right[1]=0;
+    if(!motion_ || !focused() || down(VK_ESCAPE)) return -1;
+    const auto now=GetTickCount64();
+    AcquireSRWLockShared(&sample_lock);
+    const auto camera=latest.camera;
+    const bool valid=latest_tick && now>=latest_tick && now-latest_tick<=100 && camera.valid;
+    ReleaseSRWLockShared(&sample_lock);
+    const auto length=std::hypot(camera.right[0],camera.right[2]);
+    if(!valid || !std::isfinite(length) || length<.01f) return -1;
+    right[0]=camera.right[0]/length;right[1]=camera.right[2]/length;return 1;
+}
+int Recorder::motion_set(uint64_t owner,bool enable,float x,float y,float z) noexcept {
+    if(!motion_ || !owner) return -1;
+    const auto now=GetTickCount64();bool activated=false;
+    AcquireSRWLockExclusive(&sample_lock);
+    int result=-1;
+    if(!enable) result=flight.request_motion(owner,false,x,y,z,latest,now);
+    else if(!focused() || down(VK_ESCAPE) || !latest_tick || now<latest_tick || now-latest_tick>100) {
+        if(flight.owner==owner) flight.reset(!focused()?StopReason::focus:down(VK_ESCAPE)?StopReason::escape:StopReason::stale_sample,now,&latest);
+    } else {
+        const bool was_enabled=flight.enabled;
+        result=flight.request_motion(owner,true,x,y,z,latest,now);
+        activated=result==1 && !was_enabled;
+    }
+    if(result>=0) {last_poll=now;++motion_requests;}
+    ReleaseSRWLockExclusive(&sample_lock);
+    if(activated) input::release_held(GetForegroundWindow());
+    return result;
+}
 
 int Recorder::visibility_set(uint64_t owner,bool hidden) noexcept {
     if(!visibility_) return -1;
@@ -347,6 +423,8 @@ void Recorder::release(uint64_t owner) noexcept {
 }
 
 Recorder::~Recorder() {
+    fall_trace::stop();
+    if(fall_output_.is_open()) {fall_trace::write(fall_output_);fall_output_.flush();}
     visibility::stop();
     inspecting.store(false);
     recording.store(false); gameplay_enabled.store(false);

@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <map>
 #include <set>
@@ -54,7 +55,7 @@ std::string trim(std::string value) {
     if (first == std::string::npos) return {};
     return value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
 }
-struct Manifest { std::string id, module; bool log = false, noclip = false, visibility = false, input = false, physics = false; };
+struct Manifest { std::string id, module; bool log = false, noclip = false, visibility = false, input = false, physics = false, motion = false, motion_input = false; };
 Manifest manifest(const std::filesystem::path& path) {
     std::istringstream input(read(path, 8192));
     std::map<std::string, std::string> fields;
@@ -80,6 +81,8 @@ Manifest manifest(const std::filesystem::path& path) {
         else if (cap == "player.visibility") m.visibility = true;
         else if (cap == "input.buttons") m.input = true;
         else if (cap == "physics.damping") m.physics = true;
+        else if (cap == "player.motion") m.motion = true;
+        else if (cap == "input.motion") m.motion_input = true;
         else throw std::runtime_error("Unsupported capability");
     }
     if (!fields["capabilities"].empty() && fields["capabilities"].back() == ',') throw std::runtime_error("Empty capability");
@@ -225,6 +228,41 @@ struct Runtime::Impl {
             }
             return nullptr;
         }
+        static wasm_trap_t* motion_input_callback(void* data, wasmtime_caller_t*, const wasmtime_val_t*, size_t, wasmtime_val_t* results, size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) return wasmtime_trap_new("Gameplay call budget exceeded",29);
+            results[0].kind=WASMTIME_I32;results[0].of.i32=mod.gameplay?int32_t(mod.gameplay->input_motion()&255u):0;
+            return nullptr;
+        }
+        static wasm_trap_t* motion_set_callback(void* data, wasmtime_caller_t*, const wasmtime_val_t* args, size_t, wasmtime_val_t* results, size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            const auto enabled=args[0].of.i32;
+            const float x=args[1].of.f32,y=args[2].of.f32,z=args[3].of.f32;
+            if(++mod.gameplay_calls>8 || (enabled!=0 && enabled!=1) || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || std::hypot(x,y,z)>20.f) {
+                constexpr char error[]="Invalid movement request or call budget exceeded";
+                return wasmtime_trap_new(error,sizeof(error)-1);
+            }
+            results[0].kind=WASMTIME_I32;
+            results[0].of.i32=mod.gameplay?mod.gameplay->motion_set(mod.owner,enabled!=0,x,y,z):-1;
+            return nullptr;
+        }
+        static wasm_trap_t* motion_camera_callback(void* data, wasmtime_caller_t* caller, const wasmtime_val_t* args, size_t, wasmtime_val_t* results, size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) return wasmtime_trap_new("Gameplay call budget exceeded",29);
+            wasmtime_extern_t memory{};
+            if(!wasmtime_caller_export_get(caller,"memory",6,&memory)) return wasmtime_trap_new("Missing guest memory",20);
+            if(memory.kind!=WASMTIME_EXTERN_MEMORY) {wasmtime_extern_delete(&memory);return wasmtime_trap_new("Invalid guest memory",20);}
+            const auto offset=static_cast<uint32_t>(args[0].of.i32);
+            auto* context=wasmtime_caller_context(caller);
+            const auto size=wasmtime_memory_data_size(context,&memory.of.memory);
+            if(offset>size || size-offset<8) {wasmtime_extern_delete(&memory);return wasmtime_trap_new("Camera output outside guest memory",34);}
+            float right[2]{};
+            int status=mod.gameplay?mod.gameplay->motion_camera(right):-1;
+            if(status!=1) right[0]=right[1]=0;
+            std::memcpy(wasmtime_memory_data(context,&memory.of.memory)+offset,right,sizeof(right));
+            wasmtime_extern_delete(&memory);
+            results[0].kind=WASMTIME_I32;results[0].of.i32=status;return nullptr;
+        }
         static wasm_trap_t* log_callback(void* data, wasmtime_caller_t* caller, const wasmtime_val_t* args,
                                          size_t, wasmtime_val_t*, size_t) noexcept {
             auto& mod = *static_cast<Mod*>(data);
@@ -328,6 +366,19 @@ struct Runtime::Impl {
                 Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new(&params,&results),wasm_functype_delete);
                 check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,names[op],strlen(names[op]),type.get(),callbacks[op],mod.get(),nullptr));
             }
+        }
+        if(mod->info.motion_input) {
+            Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_0_1(wasm_valtype_new_i32()),wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"input_motion",12,type.get(),Mod::motion_input_callback,mod.get(),nullptr));
+        }
+        if(mod->info.motion) {
+            Owned<wasm_functype_t, wasm_functype_delete> camera(wasm_functype_new_1_1(wasm_valtype_new_i32(),wasm_valtype_new_i32()),wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"motion_camera",13,camera.get(),Mod::motion_camera_callback,mod.get(),nullptr));
+            wasm_valtype_t* types[]{wasm_valtype_new_i32(),wasm_valtype_new_f32(),wasm_valtype_new_f32(),wasm_valtype_new_f32()};
+            wasm_valtype_vec_t params{},results{};wasm_valtype_vec_new(&params,4,types);
+            wasm_valtype_t* output[]{wasm_valtype_new_i32()};wasm_valtype_vec_new(&results,1,output);
+            Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new(&params,&results),wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"motion_set",10,type.get(),Mod::motion_set_callback,mod.get(),nullptr));
         }
         // Fuel and memory limits apply even to the module's start function.
         mod->budget();

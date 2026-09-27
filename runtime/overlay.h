@@ -1,7 +1,7 @@
 #pragma once
 namespace crml::probe {
 // All graphics work runs on intercepted render calls. The worker publishes state only.
-void* overlay_create(bool physics_trial=false,bool guest_physics=false) noexcept;
+void* overlay_create(bool physics_trial=false,bool guest_physics=false,bool guest_movement=false) noexcept;
 void overlay_update(void* window, bool visible, int status, bool camera_valid=true) noexcept;
 void overlay_destroy(void* window) noexcept;
 struct OverlayDiagnostics { unsigned long long presents, frames, queue_matches; const char* status; };

@@ -18,6 +18,9 @@ struct Gameplay {
     virtual int physics_apply(uint64_t, uint64_t, float, uint32_t) noexcept { return -1; }
     virtual int physics_status(uint64_t) noexcept { return -1; }
     virtual int physics_restore(uint64_t) noexcept { return -1; }
+    virtual uint32_t input_motion() noexcept { return 0; }
+    virtual int motion_camera(float (&right)[2]) noexcept { right[0]=right[1]=0; return -1; }
+    virtual int motion_set(uint64_t, bool, float, float, float) noexcept { return -1; }
     virtual void release(uint64_t owner) noexcept = 0;
     virtual ~Gameplay() = default;
 };

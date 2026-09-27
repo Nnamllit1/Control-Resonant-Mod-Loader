@@ -1,6 +1,6 @@
 # Temporary prop damping
 
-This example selects a nearby prop with **F7** and applies linear damping `8` for five seconds with **F8**. After a brief push, the prop should slide a shorter distance while the effect is active. **F11/Esc** cancels through the native service.
+This example selects a nearby prop with **F7** and applies linear damping `8` for five seconds with **F8**. Push it yourself by briefly walking into it, then step away; the example does not apply a push automatically. The prop should slide a shorter distance while the effect is active. **F11/Esc** cancels through the native service.
 
 The complete guest behavior lives in this directory:
 

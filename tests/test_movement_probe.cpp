@@ -3,6 +3,7 @@
 #include "visibility.h"
 #include "noclip.h"
 #include "fall_guard.h"
+#include "fall_observer.h"
 #include "physics_target_diagnostics.h"
 #include <cmath>
 #include <Windows.h>
@@ -12,6 +13,7 @@
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <sstream>
 #include <vector>
 
 using crml::probe::Observation;
@@ -78,6 +80,16 @@ struct Fixture {
 };
 
 using Six = void(*)(void*,void*,void*,void*,void*,void*);
+Fixture* trace_fixture{};
+std::array<void*,8> trace_arguments{};
+unsigned trace_calls{};
+crml::probe::fall::Player trace_player() noexcept {return trace_fixture?crml::probe::fall::Player{trace_fixture->world_pointer,(uint64_t{7}<<32)|2}:crml::probe::fall::Player{};}
+void trace_four(void* a,void* b,void* c,void* d) {++trace_calls;trace_arguments={a,b,c,d};}
+void trace_two(void* a,void* b) {
+    ++trace_calls;trace_arguments={a,b};
+    if(trace_fixture) trace_fixture->chunk[0x400+trace_fixture->row*240+0xe5]=1;
+}
+void trace_eight(void* a,void* b,void* c,void* d,void* e,void* f,void* g,void* h) {++trace_calls;trace_arguments={a,b,c,d,e,f,g,h};}
 Six trampoline{};
 volatile uintptr_t forwarded{};
 unsigned intercepted{};
@@ -88,6 +100,51 @@ __declspec(noinline) void target(void* a,void* b,void* c,void* d,void* e,void* f
 void detour(void* a,void* b,void* c,void* d,void* e,void* f) { ++intercepted; trampoline(a,b,c,d,e,f); }
 int main() {
     try {
+        {
+            using namespace crml::probe::fall_trace;
+            Fixture f(3);trace_fixture=&f;auto p=trace_player();
+            const auto at=0x400+f.row*240;
+            put(f.chunk,at+0x24,10.f);put(f.chunk,at+0xb4,2.f);f.chunk[at+0x40]=1;
+            const auto unchanged=f.chunk;
+            State state{};require(snapshot(p,state) && state.entity==p.entity && state.safe_position[1]==10.f && state.transition_delay==2.f,"Recovery snapshot fields");
+            require(f.chunk==unchanged,"Recovery observer wrote game memory");
+            auto timer=state;timer.elapsed=1.f;timer.position[0]+=3.f;
+            require(!changed(state,timer),"Continuous movement floods recovery trace");
+            timer.flags=1;require(changed(state,timer),"Recovery activation missing");
+            put(f.generations,16,uint32_t{8});
+            require(!snapshot(p,state) && !state.entity,"Recovery stale generation accepted");
+            put(f.generations,16,uint32_t{7});
+            require(!snapshot({1,1},state) && !state.entity,"Recovery invalid world accepted");
+            testing::configure(&trace_player,reinterpret_cast<void*>(&trace_four),reinterpret_cast<void*>(&trace_two),reinterpret_cast<void*>(&trace_eight),reinterpret_cast<void*>(&trace_four));
+            std::array<uintptr_t,11> active{};active[4]=address(f.chunk)+0x400;active[9]=address(f.chunk);active[10]=f.row;
+            std::array<void*,8> args{active.data(),&f,&state,&timer,&args,&p,&active,&f.world_pointer};
+            testing::invoke(Stage::recovery,args);
+            require(trace_arguments==args && trace_calls==1 && f.chunk==unchanged,"Observer did not preserve eight recovery arguments");
+            std::array<uintptr_t,11> inactive=active;inactive[6]=active[4];args[0]=inactive.data();
+            testing::invoke(Stage::inactive,args);
+            require(trace_arguments[0]==args[0] && trace_arguments[3]==args[3] && trace_calls==2,"Inactive forwarding");
+            std::array<uintptr_t,5> camera_view{address(f.chunk)+0x400,address(f.chunk)+0xb00,address(f.chunk)+0xa00,address(f.chunk),f.row};
+            std::array<unsigned char,16> fade{};args[0]=camera_view.data();args[3]=fade.data();
+            testing::invoke(Stage::camera,args);
+            require(trace_calls==3 && f.chunk==unchanged && trace_arguments[3]==fade.data(),"Camera observer changed state/arguments");
+            args[0]=&f;args[1]=&f.world_pointer;
+            put(f.chunk,at+0xe0,std::numeric_limits<float>::quiet_NaN());
+            testing::invoke(Stage::trigger,args);
+            require(trace_calls==4 && f.chunk[at+0xe5]==1 && trace_arguments[1]==args[1],"Trigger original not called");
+            std::ostringstream log;write(log);
+            require(log.str().find("\"stage\":\"trigger\"")!=std::string::npos && log.str().find("\"flags\":1")!=std::string::npos && log.str().find("\"dropped\":0")!=std::string::npos,"Producer transition not recorded");
+            require(log.str().find("\"elapsed\":null")!=std::string::npos,"Recovery nonfinite sample corrupts JSON");
+            // Controller observes state even after flight cancellation; bounded
+            // queue overload and contention must be explicit, never block hooks.
+            controller(p);
+            for(unsigned i=0;i<140;++i) {f.chunk[at+0xe5]^=1;controller(p);}
+            testing::hold_lock(true);controller(p);testing::hold_lock(false);
+            std::ostringstream overflow;write(overflow);
+            require(overflow.str().find("\"dropped\":14")!=std::string::npos,"Recovery overflow/lock contention not counted");
+            stop();trace_fixture=nullptr;
+            testing::invoke(Stage::recovery,args);
+            require(trace_calls==5,"Stopped observer swallowed original call");
+        }
         {
             using crml::physics::entity_exclusion;
             Fixture f(3);const uint64_t entity=(uint64_t{7}<<32)|2;
@@ -356,6 +413,28 @@ int main() {
             require(w.x==-axes[1] && w.z==axes[0] && w.y==0,"Forward did not follow camera yaw");
             require(w.x==-back.x && w.z==-back.z && a.x==-d.x && a.z==-d.z,"Opposing movement keys were not symmetric");
             require(std::abs(w.x*d.x+w.z*d.z)<.001f,"Camera forward and strafe were not perpendicular");
+        }
+        {
+            crml::probe::Flight guest;
+            s={};s.entity=42;s.world=100;
+            require(guest.request_motion(1,true,5,0,0,s,1000)==1,"Guest velocity request rejected");
+            require(guest.request_motion(2,false,0,0,0,s,1000)==-2 && guest.enabled,"Foreign owner released movement");
+            require(guest.request_motion(1,true,20,20,0,s,1000)==-1,"Excess magnitude accepted");
+            require(guest.step(s,100,1000,true,guest.requested,next),"Guest position acquisition failed");
+            require(guest.step(s,100,1050,true,guest.requested,next) && std::abs(next[0]-.25f)<.0001f,"World velocity integrated incorrectly");
+            s.teleported=1;
+            require(!guest.step(s,100,1060,true,guest.requested,next) && guest.stopped.reason==crml::probe::StopReason::teleport,"Guest mode fought a teleport");
+            s.teleported=0;
+            guest.request_motion(2,false,0,0,0,s,1060);
+            require(guest.request_motion(1,true,5,0,0,s,1060)==-1,"Cancellation silently rearmed on next heartbeat");
+            require(guest.request_motion(1,false,0,0,0,s,1060)==0,"Explicit guest release failed");
+            require(guest.request_motion(1,true,0,0,0,s,1070)==1,"Zero velocity cannot hold position");
+            require(guest.request_motion(1,true,0,0,0,s,1600)==-1 && !guest.enabled,"Missed heartbeat renewed stale flight");
+            guest.request_motion(1,false,0,0,0,s,1600);
+            require(guest.request_motion(1,true,0,-5,0,s,1700)==1,"Fresh guest descent rejected");
+            s.entity=43;
+            require(guest.request_motion(1,true,0,-5,0,s,1710)==-1 && !guest.enabled,"Guest request adopted a replacement player");
+            require(guest.restored.count==0,"Guest mode unexpectedly restored a teleport");
         }
         require(crml::probe::inspect(nullptr,nullptr,3,s)==Observation::invalid,"Null view accepted");
         auto page=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_NOACCESS);

@@ -16,12 +16,31 @@ Direction camera_relative(Direction input, const CameraBasis& camera) noexcept {
 void Flight::reset(StopReason reason,uint64_t now,const Sample* sample) noexcept {
     auto saved=stopped;
     const auto saved_restore=restored;
+    const auto cancelled=enabled && guest_driven?owner:cancelled_guest;
     if(enabled) {
         saved.reason=reason; ++saved.count; saved.tick=now; saved.entity=entity; saved.requested=position;
         if(sample) std::copy_n(sample->position,3,saved.observed.begin());
         else saved.observed=position;
     }
-    *this=Flight{}; stopped=saved; restored=saved_restore;
+    *this=Flight{}; stopped=saved; restored=saved_restore;cancelled_guest=cancelled;
+}
+int Flight::request_motion(uint64_t who,bool enable,float x,float y,float z,const Sample& sample,uint64_t now) noexcept {
+    if(!who || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z) || std::hypot(x,y,z)>20.f) return -1;
+    if(owner && owner!=who) return -2;
+    if(!enable) {
+        if(!owner && cancelled_guest!=who) return 0;
+        reset(StopReason::mod_release,now,&sample);cancelled_guest=0;return 0;
+    }
+    if(!enabled && cancelled_guest==who) {cancelled_guest=0;return -1;}
+    if(enabled && (now<lease || now-lease>500)) {reset(StopReason::lease,now,&sample);return -1;}
+    if(enabled && (entity!=sample.entity || world!=sample.world)) {reset(entity!=sample.entity?StopReason::entity:StopReason::world,now,&sample);return -1;}
+    if(!sample.entity || !sample.world || sample.disabled || sample.teleported || sample.keyframed[0] || sample.keyframed[1]) {
+        reset(sample.disabled?StopReason::disabled:sample.teleported?StopReason::teleport:StopReason::keyframed,now,&sample);return -1;
+    }
+    if(!enabled) {owner=who;entity=sample.entity;world=sample.world;enabled=true;last_step=0;}
+    guest_driven=true;lease=now;speed=20.f;
+    requested={x/20.f,y/20.f,z/20.f,false};
+    return 1;
 }
 bool Flight::step(const Sample& sample, uint64_t current_world, uint64_t now, bool focused,
                   Direction input, std::array<float, 3>& target) noexcept {

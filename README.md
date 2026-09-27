@@ -8,6 +8,8 @@ A Windows x64 mod framework for **CONTROL Resonant**, with a native loader and s
 
 The isolated [Wasm physics service](docs/api.md#experimental-prop-damping) supports nearby-prop selection and temporary linear damping through owner-scoped handles. Its [example](docs/physics-trial.md#wasm-damping-example) uses F7/F8; it runs separately from the native F9/F10 trial and other gameplay hooks.
 
+The [movement example](docs/movement.md) implements controls and camera-relative velocity in Wasm using the experimental `player.motion` API. Its separate mode leaves fall/reset behavior under game control.
+
 ## Build and try it
 
 Requires Python 3.10+, Visual Studio 2022/2026 with Desktop development with C++, and CMake 3.24+ (the Visual Studio component is supported).

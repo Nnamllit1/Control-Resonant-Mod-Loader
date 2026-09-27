@@ -25,7 +25,8 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
             const bool observe_only=std::filesystem::is_regular_file(root / "engine-observer.enabled");
             const bool physics_trial=std::filesystem::is_regular_file(root / "physics-trial.enabled");
             const bool physics_wasm=std::filesystem::is_regular_file(root / "physics-wasm.enabled");
-            const bool conflict=unsigned(observe_only)+unsigned(physics_trial)+unsigned(physics_wasm)>1;
+            const bool movement_wasm=std::filesystem::is_regular_file(root / "movement-wasm.enabled");
+            const bool conflict=unsigned(observe_only)+unsigned(physics_trial)+unsigned(physics_wasm)+unsigned(movement_wasm)>1;
             const bool diagnostics=observe_only || physics_trial || physics_wasm;
             std::ofstream log(root / "crml.log", std::ios::trunc);
             if (!log) return;
@@ -44,7 +45,7 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
                 written += line.size() + 1;
             }
 #ifdef CRML_MOVEMENT_PROBE
-            , physics_wasm && !conflict ? static_cast<crml::Gameplay*>(&physics) : diagnostics ? nullptr : &probe
+            , physics_wasm && !conflict ? static_cast<crml::Gameplay*>(&physics) : diagnostics || conflict ? nullptr : &probe
 #endif
             );
             log << "CRML 0.1.0 experimental bootstrap\n";
@@ -59,10 +60,12 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
             if(observe_only) log << "Engine observer refused: this build does not include diagnostics; mods remain suspended\n";
             else if(physics_trial) log << "Physics trial refused: this build does not include diagnostics; mods remain suspended\n";
             else if(physics_wasm) log << "Wasm physics refused: this build does not include diagnostics; mods remain suspended\n";
+            else if(movement_wasm) log << "Wasm movement refused: this build does not include gameplay support; mods remain suspended\n";
 #endif
-            bool load_mods=!diagnostics;
+            bool load_mods=!diagnostics && !conflict && !movement_wasm;
 #ifdef CRML_MOVEMENT_PROBE
             load_mods=load_mods || (physics_wasm && !conflict && physics.active());
+            load_mods=load_mods || (movement_wasm && !conflict && probe.guest_motion());
 #endif
             if(load_mods) runtime.load(root / "mods");
             auto last = std::chrono::steady_clock::now();
@@ -72,7 +75,7 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
 #endif
             ) {
 #ifdef CRML_MOVEMENT_PROBE
-                Sleep(physics.active()?10:100);
+                Sleep(physics.active() || probe.guest_motion()?10:100);
 #else
                 Sleep(100);
 #endif

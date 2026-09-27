@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "scope": "Player fall recovery activation, return-transition submission and camera fade production. Static references do not establish which path produced a particular live reset.",
+  "checks": [
+    {"kind":"call_rel32","rva":"0x25a7516","target":"0x25a55c0","label":"Player inactive update invokes safe-history and height-check helper"},
+    {"kind":"call_rel32","rva":"0x25a7607","target":"0x25a55c0","label":"Separate inactive caller shares height-check helper"},
+    {"kind":"call_rel32","rva":"0x25a840b","target":"0x25ad320","label":"Trigger update resolves target entity view"},
+    {"kind":"call_rel32","rva":"0x25b0a2c","target":"0x25a7620","label":"Active-player system dispatches recovery update"},
+    {"kind":"call_rel32","rva":"0x25a7b99","target":"0x1b78f80","label":"Recovery prepares stored orientation before return-position resolution"},
+    {"kind":"call_rel32","rva":"0x25a7be5","target":"0x25a5ba0","label":"Recovery resolves return position"},
+    {"kind":"call_rel32","rva":"0x25a7d4b","target":"0x1b49f30","label":"Recovery submits transition selector 0x10"},
+    {"kind":"call_rel32","rva":"0x25a7e14","target":"0x421830","label":"Recovery updates property 0x24 after transition submission"},
+    {"kind":"call_rel32","rva":"0x25a767c","target":"0x421830","label":"Completion branch clears property 0x24"},
+    {"kind":"call_rel32","rva":"0x25a86b1","target":"0x25b9520","label":"Camera updater resolves camera mixer view"},
+    {"kind":"call_rel32","rva":"0x25a8706","target":"0x27d1cb0","label":"Recovery camera override activation"},
+    {"kind":"call_rel32","rva":"0x25a8711","target":"0x27d1d20","label":"Recovery camera override release"},
+    {"kind":"call_rel32","rva":"0x25a8749","target":"0x23a9760","label":"Recovery camera mode request"},
+    {"kind":"call_rel32","rva":"0x25a8766","target":"0x23a9760","label":"Inactive camera mode reset request"},
+    {"kind":"jump_rel32","rva":"0x25a673c","target":"0x22960c0","label":"Recovery active state propagates logic-mode bit 0x100000"},
+    {"kind":"call_rel32","rva":"0x25b153e","target":"0x25a6f50","label":"Teleported system dispatches safe-position handling"},
+    {"kind":"call_rel32","rva":"0x25a71ad","target":"0x25a5980","label":"Teleport safe-position update checks containing region"}
+  ],
+  "components": {
+    "FallRespawnData": {"hash":"0x6507c6a9","stride":"0xf0","safe_position":"0x20","safe_valid":"0x40","effect_delay":"0xb0","transition_delay":"0xb4","source_entity":"0xd0","elapsed":"0xe0","inactive_exclusion":"0xe4","flags":"0xe5"},
+    "FallRespawnCameraData": {"hash":"0xa342c1c2","stride":"0x10","active":"0x0","fade_latched":"0x1","relative_timing":"0x2","override_duration":"0x4","fade_duration":"0x8","clear_duration":"0xc"}
+  },
+  "activation_stores": {
+    "height": {"rva":"0x25a58a0","condition":"valid safe position and positive configured threshold, with stored safe Y minus current Y exceeding that threshold"},
+    "trigger": {"rva":"0x25a848a","condition":"resolved inactive target with matching configured category"}
+  },
+  "limitations": [
+    "The final transition executor and renderer consumer are not mapped here.",
+    "FallRespawnData+0xe4 ownership and all other recovery producers remain incomplete.",
+    "No recovery suppression or gameplay exemption is established by these references."
+  ]
+}

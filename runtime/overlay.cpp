@@ -238,7 +238,7 @@ HRESULT STDMETHODCALLTYPE resize1_hook(IDXGISwapChain3* swap,UINT count,UINT wid
     return original_resize1(swap,count,width,height,format,flags,masks,queues);
 }
 
-bool rasterize(State& s,bool physics_trial,bool guest_physics) {
+bool rasterize(State& s,bool physics_trial,bool guest_physics,bool guest_movement) {
     // GDI creates the font mask once; only native D3D12 commands touch the game image.
     constexpr int width=510,height=86;
     BITMAPINFO info{}; info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER); info.bmiHeader.biWidth=width;
@@ -279,7 +279,13 @@ bool rasterize(State& s,bool physics_trial,bool guest_physics) {
             L"PHYSICS MOD: TWO PROPS EQUALLY CLOSE\nMove closer to the prop you want\nUse your mod's selection control to retry",
             L"PHYSICS MOD: SELECTION CHANGED\nStay still while searching\nUse your mod's selection control to retry",
             L"PHYSICS MOD: SEARCH TIMED OUT\nLet the scene finish loading\nUse your mod's selection control to retry"};
-        RECT rect{12,9,width-12,height-9}; DrawTextW(dc,guest_physics?guest_labels[state_index]:physics_trial?trial_labels[state_index]:labels[state_index<5?state_index:0],-1,&rect,DT_LEFT|DT_NOPREFIX); GdiFlush();
+        constexpr const wchar_t* movement_labels[]{
+            L"MOVEMENT MOD: UNAVAILABLE\nWaiting for player and mod requests\n[Esc] cancel",
+            L"MOVEMENT MOD: OFF\nUse your mod's activation control\nNormal movement is active",
+            L"MOVEMENT MOD: ACTIVE\nMovement controlled by the mod\n[Esc] cancel",
+            L"MOVEMENT MOD: OFF\nCamera heading unavailable\nUse your mod's activation control",
+            L"MOVEMENT MOD: ACTIVE\nCamera heading unavailable\n[Esc] cancel"};
+        RECT rect{12,9,width-12,height-9}; DrawTextW(dc,guest_movement?movement_labels[state_index<5?state_index:0]:guest_physics?guest_labels[state_index]:physics_trial?trial_labels[state_index]:labels[state_index<5?state_index:0],-1,&rect,DT_LEFT|DT_NOPREFIX); GdiFlush();
         auto* data=static_cast<const unsigned*>(pixels);
         s.text[state_index].resize(width*height);
         for(int y=0;y<height;++y) for(int x=0;x<width;++x)
@@ -290,13 +296,13 @@ bool rasterize(State& s,bool physics_trial,bool guest_physics) {
 }
 }
 
-void* overlay_create(bool physics_trial,bool guest_physics) noexcept {
+void* overlay_create(bool physics_trial,bool guest_physics,bool guest_movement) noexcept {
     try {
         Internal guard;
         auto& s=state();
         if(enabled) return &s;
         diagnostic="hook_initialization_failed";
-        if(!rasterize(s,physics_trial,guest_physics)) return nullptr;
+        if(!rasterize(s,physics_trial,guest_physics,guest_movement)) return nullptr;
         const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return nullptr;
         ComPtr<ID3D12Device> device; ComPtr<IDXGIFactory4> factory; ComPtr<ID3D12CommandQueue> queue;
         ComPtr<ID3D12CommandAllocator> allocator; ComPtr<ID3D12GraphicsCommandList> list;

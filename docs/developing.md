@@ -41,6 +41,8 @@ Keep controls, timing, state and combinations of API calls in the mod's example/
 
 The trusted runtime provides engine operations and enforces their boundaries: it resolves live objects, schedules access on the researched engine phase, checks values and identities, and performs cleanup when a mod stops. A helper that contains an entire gameplay feature, such as the legacy `noclip_poll`, is not the pattern for new composable APIs. Prefer explicit requests such as `visibility_set` and `physics_apply`, with mod policy in the guest.
 
+The [movement example](movement.md) also keeps camera-relative axes, speed selection and toggling in its guest. Its runtime request is a bounded world-space velocity; it does not delegate the control scheme to `noclip_poll`.
+
 ## Lifecycle
 
 The host validates signatures, checks ABI version 1, and calls `crml_init`. Optional ticks receive elapsed seconds. A trap disables the offending mod and releases its store. Healthy mods continue.

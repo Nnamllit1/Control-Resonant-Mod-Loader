@@ -12,6 +12,24 @@
       ],
       "status": "experimental",
       "gameplay_bridge": false,
+      "movement_wasm": {
+        "implemented": true,
+        "status": "experimental",
+        "requires_opt_in": true,
+        "capabilities": ["player.motion", "input.motion"],
+        "scope": "guest-selected world velocity for the controlled character, read-only camera heading",
+        "max_speed": 20,
+        "lease_ms": 500,
+        "fall_reset_overrides": false,
+        "recovery_trace": {
+          "mode": "read-only",
+          "capture_schema": 1,
+          "max_events": 2048,
+          "documentation": "docs/fall-recovery.md"
+        },
+        "teleport_policy": "cancel",
+        "documentation": "docs/movement.md"
+      },
       "physics_wasm": {
         "implemented": true,
         "status": "experimental",

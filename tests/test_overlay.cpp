@@ -128,7 +128,7 @@ int main(int argc,char**) {
     try {
         Fixture f;
         f.draw(); // Graphics already initialized before the loader starts.
-        auto overlay=crml::probe::overlay_create(argc>1,argc>2); require(overlay!=nullptr,"Graphics hook initialization failed");
+        auto overlay=crml::probe::overlay_create(argc>1,argc>2,argc>3); require(overlay!=nullptr,"Graphics hook initialization failed");
         crml::probe::overlay_update(overlay,true,0);
         UINT index{};
         for(int i=0;i<5;++i) index=f.draw(); f.verify(index,true);
