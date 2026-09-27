@@ -49,6 +49,17 @@ std::atomic<float> selection_nearest{-1},selection_second{-1};
 Target selected{};
 uint64_t serial{},world_token{},owner_token{},actor_token{},selected_tick{};
 uint64_t next_motion{},after_until{};
+std::atomic<uint64_t> guest_owner{};
+std::atomic<bool> guest_releasing{};
+bool guest_mode{}; // Set before hooks are enabled.
+int guest_state{};
+float requested_damping=8.f;
+uint32_t requested_duration=5000;
+uint64_t requested_target{};
+struct StateGuard {
+    bool held=TryAcquireSRWLockExclusive(&state_lock)!=FALSE;
+    ~StateGuard() {if(held) ReleaseSRWLockExclusive(&state_lock);}
+};
 struct Player { uint64_t world{},entity{},tick{}; float position[3]{}; } player;
 
 uint64_t token(uintptr_t pointer) noexcept { return identity(pointer,salt); }
@@ -59,8 +70,21 @@ void record(unsigned action,unsigned result,float before=0,float after=0) noexce
     e.value=uint64_t(std::bit_cast<uint32_t>(before)) | (uint64_t(std::bit_cast<uint32_t>(after))<<32);
     events.push(e);
 }
-bool focused() noexcept { DWORD pid{}; GetWindowThreadProcessId(GetForegroundWindow(),&pid); return pid==GetCurrentProcessId(); }
-bool down(int key) noexcept { return (GetAsyncKeyState(key)&0x8000)!=0; }
+#ifdef CRML_PHYSICS_SESSION_TESTING
+int test_focus=-1;
+#endif
+bool focused() noexcept {
+#ifdef CRML_PHYSICS_SESSION_TESTING
+    if(test_focus>=0) return test_focus!=0;
+#endif
+    DWORD pid{}; GetWindowThreadProcessId(GetForegroundWindow(),&pid); return pid==GetCurrentProcessId();
+}
+bool down(int key) noexcept {
+#ifdef CRML_PHYSICS_SESSION_TESTING
+    if(test_focus>=0) return false;
+#endif
+    return (GetAsyncKeyState(key)&0x8000)!=0;
+}
 bool position(uintptr_t world,uint64_t entity,float (&out)[3],bool exclude_controller=true) noexcept {
     __try {
         uintptr_t chunk{}; uint32_t row{};
@@ -204,14 +228,16 @@ void dispatch(void* view,uint16_t id,void* descriptor) {
         if(result!=TrialResult::active) record(1,unsigned(result));
         ui=result==TrialResult::active?1:trial.pending()?3:2;
         if(!trial.pending()) after_until=now+5000;
+        guest_state=trial.pending()?(result==TrialResult::active?4:5):result==TrialResult::retired?7:result==TrialResult::conflict?8:6;
     } else if(!keep || (requested&4)) {search.cancel();selected={};watched_owner=0;retired=true;after_until=0;ui=-1;}
     else if(recent && (requested&1)) select(context,now,true);
     else if(search.pending()) select(context,now,false);
-    else if(recent && (requested&2) && selected.epoch && ui.load()==0) {
+    else if(recent && (requested&2) && selected.epoch && ui.load()==0 && (!guest_mode || requested_target==selected.epoch)) {
         if(now<selected_tick || now-selected_tick>15000) {selected={};ui=3;}
         else {
-            const auto result=trial.apply(native,selected,8.f,now,5000);
+            const auto result=trial.apply(native,selected,guest_mode?requested_damping:8.f,now,guest_mode?requested_duration:5000);
             record(1,unsigned(result)); ui=result==TrialResult::applied?1:3;
+            guest_state=trial.pending()?(result==TrialResult::applied?4:5):result==TrialResult::retired?7:result==TrialResult::conflict?8:result==TrialResult::unchanged?6:9;
             if(!trial.pending()) after_until=now+5000;
         }
     }
@@ -229,6 +255,16 @@ void dispatch(void* view,uint16_t id,void* descriptor) {
     }
     if(!trial.pending() && ((after_until && now>=after_until) || (selected.epoch && now-selected_tick>15000))) {
         selected={};watched_owner=0;retired=true;after_until=0;
+    }
+    if(guest_mode && !trial.pending()) {
+        if(search.pending()) guest_state=2;
+        else if(selected.epoch && ui.load()==0 && !retired.load()) guest_state=3;
+        else if(!after_until && selected.epoch) guest_state=9;
+        else if(!selected.epoch) guest_state=0;
+        if(guest_releasing.load() || !keep || (requested&4)) {
+            search.cancel();selected={};watched_owner=0;retired=true;after_until=0;ui=-1;
+            guest_state=0;guest_owner=0;guest_releasing=false;
+        } else if(!selected.epoch && !search.pending()) guest_owner=0;
     }
     ReleaseSRWLockExclusive(&state_lock);
 }
@@ -273,7 +309,8 @@ const Hook hooks[]{
     {0x1b98950,{0x48,0x8b,0xc4,0x4c,0x89,0x48,0x20,0x4c,0x89,0x40,0x18,0x48,0x89,0x50,0x10,0x53,0x56,0x57},reinterpret_cast<void*>(&movement),reinterpret_cast<void**>(&move_original)}
 };
 }
-std::string Session::start(const std::filesystem::path& root) {
+std::string Session::start(const std::filesystem::path& root,bool wasm) {
+    wasm_=wasm;guest_mode=wasm;
     wchar_t path[32768]{}; const auto size=GetModuleFileNameW(nullptr,path,32768);
     if(!size || size>=32768 || module_fingerprint(path)!=game_sha) return "Physics trial refused: unsupported executable fingerprint";
     auto backend=GetModuleHandleW(L"PhysX_64.dll");
@@ -296,22 +333,66 @@ std::string Session::start(const std::filesystem::path& root) {
     log_.open(root/name,std::ios::out|std::ios::binary);
     if(!log_) return "Physics trial refused: cannot open log";
     std::ostringstream header;
-    header<<"{\"type\":\"header\",\"schema\":1,\"mode\":\"native-physics-trial\",\"sha256\":\""<<game_sha<<"\",\"physx_sha256\":\""<<backend_sha<<"\",\"mods_suspended\":true}\n";
+    header<<"{\"type\":\"header\",\"schema\":1,\"mode\":\"native-physics-trial\",\"sha256\":\""<<game_sha<<"\",\"physx_sha256\":\""<<backend_sha<<"\",\"mods_suspended\":"<<(wasm?"false":"true")<<"}\n";
     const auto header_text=header.str();log_<<header_text;bytes_=header_text.size();
     log_.flush(); if(!log_) return "Physics trial refused: cannot write log";
-    overlay_=probe::overlay_create(true);
+    overlay_=probe::overlay_create(true,wasm);
     if(!overlay_) return "Physics trial refused: overlay unavailable";
     events.open();
     for(const auto& hook:hooks) if(MH_EnableHook(reinterpret_cast<void*>(image+hook.rva))!=MH_OK) return "Physics trial refused: hook enable";
     accepting=true; ready=true; active_=true;
-    return "Native physics trial ready: F9 select, F10 apply for five seconds, F11/Esc restore; log: "+name;
+    return (wasm?"Wasm physics service ready; F11/Esc cancel; log: ":"Native physics trial ready: F9 select, F10 apply for five seconds, F11/Esc restore; log: ")+name;
+}
+uint32_t Session::input_buttons() noexcept {
+    if(!active_ || !wasm_ || !focused() || down(VK_ESCAPE)) return 0;
+    return unsigned(down(VK_F7)) | (unsigned(down(VK_F8))<<1);
+}
+int Session::physics_select(uint64_t owner) noexcept {
+    if(!active_ || !wasm_ || !owner || !accepting.load() || !focused() || down(VK_ESCAPE)) return -1;
+    StateGuard guard;if(!guard.held) return -2;
+    if(guest_releasing.load() || commands.load() || trial.pending() || search.pending()
+       || (guest_owner.load() && guest_owner.load()!=owner)) return -2;
+    guest_owner=owner;guest_state=1;request_tick=GetTickCount64();commands.fetch_or(1);return 0;
+}
+uint64_t Session::physics_target(uint64_t owner) noexcept {
+    if(!active_ || !wasm_ || !owner) return 0;
+    StateGuard guard;if(!guard.held) return 0;
+    const auto now=GetTickCount64();
+    return guest_owner.load()==owner && !guest_releasing.load() && !commands.load() && !retired.load()
+        && !trial.pending() && ui.load()==0 && selected.epoch && now>=selected_tick && now-selected_tick<=15000?selected.epoch:0;
+}
+int Session::physics_apply(uint64_t owner,uint64_t handle,float value,uint32_t duration) noexcept {
+    if(!active_ || !wasm_ || !owner || !accepting.load() || !focused() || down(VK_ESCAPE)) return -1;
+    if(!handle || !std::isfinite(value) || value<0 || value>8 || !duration || duration>5000) return -3;
+    StateGuard guard;if(!guard.held) return -2;
+    if(guest_owner.load()!=owner) return guest_owner.load()?-2:-3;
+    if(guest_releasing.load() || commands.load() || trial.pending() || search.pending()) return -2;
+    const auto now=GetTickCount64();
+    if(handle!=selected.epoch || retired.load() || ui.load()!=0 || now<selected_tick || now-selected_tick>15000) return -3;
+    requested_target=handle;requested_damping=value;requested_duration=duration;
+    guest_state=1;request_tick=now;commands.fetch_or(2);return 0;
+}
+int Session::physics_status(uint64_t owner) noexcept {
+    if(!active_ || !wasm_ || !owner || !accepting.load()) return -1;
+    StateGuard guard;if(!guard.held) return -2;
+    if(guest_owner.load()!=owner) return guest_owner.load()?-2:0;
+    return guest_releasing.load()?5:guest_state;
+}
+int Session::physics_restore(uint64_t owner) noexcept {
+    if(!active_ || !wasm_ || !owner) return -1;
+    if(guest_owner.load()!=owner) return guest_owner.load()?-2:0;
+    release(owner);return 0;
+}
+void Session::release(uint64_t owner) noexcept {
+    // Owner cleanup must succeed even when the simulation owns state_lock.
+    if(owner && guest_owner.load()==owner) {guest_releasing=true;commands.fetch_or(4);}
 }
 void Session::poll() {
     if(!active_) return;
     const auto now=GetTickCount64(); heartbeat=now;
     const bool focus=focused();
     const unsigned current=focus?(unsigned(down(VK_F9))|unsigned(down(VK_F10))*2|unsigned(down(VK_F11)||down(VK_ESCAPE))*4):0;
-    const auto edges=current&~keys_; keys_=current;
+    const auto edges=(current&~keys_)&(wasm_?4u:7u); keys_=current;
     if(now-started_>=600000 || !log_.is_open() || !log_) accepting=false;
     if(!accepting.load() || !focus) commands.fetch_or(4);
     else if(edges && probe::overlay_diagnostics().frames) {
@@ -392,6 +473,31 @@ bool test_session_prologues() {
     destroy(reinterpret_cast<void*>(0x2000));
     ok=ok && events.drain(&event,1)==1 && event.edge==6 && event.flags==1 && event.span==43;
     events.close();destroy_original=old_destroy;release_original=old_release;
+    {
+        Session service;service.active_=service.wasm_=true;
+        accepting=true;test_focus=1;commands=0;guest_owner=0;guest_releasing=false;
+        selected={};search.cancel();
+        ok=ok && service.physics_select(100)==0 && service.physics_select(200)==-2;
+        ok=ok && service.physics_target(200)==0 && service.physics_status(200)==-2;
+        commands=0;selected={0x100000001ull,99,0x300000003ull,0};selected_tick=GetTickCount64();ui=0;retired=false;
+        ok=ok && service.physics_target(100)==selected.epoch;
+        ok=ok && service.physics_apply(200,selected.epoch,8,5000)==-2;
+        ok=ok && service.physics_apply(100,1,8,5000)==-3;
+        ok=ok && service.physics_apply(100,selected.epoch,8,5001)==-3;
+        ok=ok && service.physics_apply(100,selected.epoch,9,5000)==-3;
+        ok=ok && service.physics_apply(100,selected.epoch,8,5000)==0;
+        ok=ok && requested_target==selected.epoch && requested_duration==5000 && commands.load()==2;
+        ok=ok && service.physics_apply(100,selected.epoch,8,5000)==-2;
+        service.release(200);ok=ok && !guest_releasing.load();
+        AcquireSRWLockExclusive(&state_lock);service.release(100);ReleaseSRWLockExclusive(&state_lock);
+        ok=ok && guest_releasing.load() && (commands.load()&4) && service.physics_target(100)==0;
+        guest_releasing=false;commands=0;retired=true;
+        ok=ok && service.physics_target(100)==0 && service.physics_apply(100,selected.epoch,8,5000)==-3;
+        retired=false;selected_tick=GetTickCount64()-16000;
+        ok=ok && service.physics_target(100)==0 && service.physics_apply(100,selected.epoch,8,5000)==-3;
+        test_focus=0;ok=ok && service.physics_select(100)==-1;
+        service.active_=service.wasm_=false;selected={};guest_owner=0;commands=0;test_focus=-1;
+    }
     return ok;
 }
 #endif

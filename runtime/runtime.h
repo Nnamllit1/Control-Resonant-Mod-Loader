@@ -13,6 +13,11 @@ struct Gameplay {
     virtual uint32_t input_buttons() noexcept { return 0; }
     virtual int visibility_set(uint64_t, bool) noexcept { return -1; }
     virtual int visibility_poll(uint64_t) noexcept { return -1; }
+    virtual int physics_select(uint64_t) noexcept { return -1; }
+    virtual uint64_t physics_target(uint64_t) noexcept { return 0; }
+    virtual int physics_apply(uint64_t, uint64_t, float, uint32_t) noexcept { return -1; }
+    virtual int physics_status(uint64_t) noexcept { return -1; }
+    virtual int physics_restore(uint64_t) noexcept { return -1; }
     virtual void release(uint64_t owner) noexcept = 0;
     virtual ~Gameplay() = default;
 };

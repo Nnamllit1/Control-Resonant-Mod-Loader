@@ -10,6 +10,73 @@ BASE = '(func (export "crml_abi_version") (result i32) i32.const 1)'
 LOG = '(import "crml_v1" "log" (func $log (param i32 i32 i32)))'
 
 class SandboxTests(unittest.TestCase):
+    def physics_package(self, body, capability='physics.damping'):
+        imports='''(import "crml_v1" "physics_select" (func $select (result i32)))
+        (import "crml_v1" "physics_target" (func $target (result i64)))
+        (import "crml_v1" "physics_apply" (func $apply (param i64 f32 i32) (result i32)))
+        (import "crml_v1" "physics_status" (func $status (result i32)))
+        (import "crml_v1" "physics_restore" (func $restore (result i32)))'''
+        self.package(f'(module {imports} {BASE} {body})', manifest=f'id=test\nabi=1\nmodule=mod.wasm\ncapabilities={capability}\n')
+
+    def run_gameplay(self):
+        result=subprocess.run([str(BIN/'crml_gameplay_tests.exe'),str(self.mods)],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        return result.stdout
+
+    def test_physics_guest_bridge_and_cleanup(self):
+        self.physics_package('''(func (export "crml_init")
+          call $select if unreachable end
+          call $status i32.const 3 i32.ne if unreachable end
+          call $target f32.const 8 i32.const 5000 call $apply if unreachable end)
+          (func (export "crml_tick") (param f32) unreachable)''')
+        output=self.run_gameplay()
+        self.assertIn('Physics apply: owner-scoped token',output)
+        self.assertIn('Gameplay calls: 4; failures: 1; owners: 0',output)
+
+    def test_physics_capability_required(self):
+        self.physics_package('(func (export "crml_init"))', '')
+        self.assertIn('unknown import',self.run_host(1))
+
+    def test_physics_unavailable_host(self):
+        self.physics_package('''(func (export "crml_init")
+          call $select i32.const -1 i32.ne if unreachable end
+          call $target i64.eqz i32.eqz if unreachable end
+          i64.const 1 f32.const 8 i32.const 5000 call $apply i32.const -1 i32.ne if unreachable end
+          call $restore i32.const -1 i32.ne if unreachable end)''')
+        self.assertIn('Active: 1; failures: 0',self.run_host())
+
+    def test_physics_invalid_duration_traps_and_releases(self):
+        self.physics_package('''(func (export "crml_init") call $select drop
+          call $target f32.const 8 i32.const 5001 call $apply drop)''')
+        self.assertIn('Gameplay calls: 2; failures: 1; owners: 0',self.run_gameplay())
+
+    def test_physics_nonfinite_damping_traps(self):
+        self.physics_package('''(func (export "crml_init")
+          i64.const 1 f32.const nan i32.const 5000 call $apply drop)''')
+        self.assertIn('out of range',self.run_host(1))
+
+    def test_physics_shared_call_budget(self):
+        self.physics_package('''(func (export "crml_init") call $select drop
+          (loop call $status drop br 0))''')
+        self.assertIn('Gameplay calls: 8; failures: 1; owners: 0',self.run_gameplay())
+
+    def test_physics_example_uses_guest_input(self):
+        source=(Path(__file__).resolve().parents[1]/'examples/physics-damping/physics-damping.wat').read_text()
+        self.package(source,manifest='id=test\nabi=1\nmodule=mod.wasm\ncapabilities=log,input.buttons,physics.damping\n')
+        result=subprocess.run([str(BIN/'crml_gameplay_tests.exe'),str(self.mods),'4'],capture_output=True,text=True,timeout=10)
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+        self.assertIn('Physics apply: owner-scoped token',result.stdout)
+        self.assertIn('Gameplay calls: 3; failures: 0; owners: 0',result.stdout)
+
+    def test_physics_owner_cleanup_after_start_trap(self):
+        self.physics_package('(func $start call $select drop unreachable) (start $start) (func (export "crml_init"))')
+        self.assertIn('Gameplay calls: 1; failures: 1; owners: 0',self.run_gameplay())
+
+    def test_physics_restore_bridge(self):
+        self.physics_package('''(func (export "crml_init") call $select drop call $restore if unreachable end
+          call $target i64.eqz i32.eqz if unreachable end)''')
+        self.assertIn('Gameplay calls: 3; failures: 0; owners: 0',self.run_gameplay())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(dir=BIN.parent)
         self.root = Path(self.temp.name)

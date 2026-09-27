@@ -57,6 +57,19 @@ def main():
                        check=True, timeout=20, capture_output=True)
         log = (root / 'crml.log').read_text()
         assert 'conflicting observer and physics trial markers' in log and 'must-not-load' not in log, log
+        (root / 'engine-observer.enabled').unlink()
+        (root / 'physics-trial.enabled').unlink()
+        (root / 'physics-wasm.enabled').write_text('')
+        subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
+                       check=True, timeout=20, capture_output=True)
+        log = (root / 'crml.log').read_text()
+        assert 'Physics trial refused: unsupported executable fingerprint' in log, log
+        assert 'must-not-load' not in log and 'Movement probe' not in log, log
+        (root / 'physics-trial.enabled').write_text('')
+        subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
+                       check=True, timeout=20, capture_output=True)
+        log = (root / 'crml.log').read_text()
+        assert 'conflicting observer and physics trial markers' in log and 'must-not-load' not in log, log
         print('Real-runtime unsupported-host refusal and observe-only startup isolation passed')
     return 0
 

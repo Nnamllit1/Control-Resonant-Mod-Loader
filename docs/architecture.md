@@ -26,6 +26,8 @@ The proxy and runtime remain loaded for the lifetime of the game process. See [t
 
 `runtime/` owns discovery, validation, Wasmtime stores, budgets, logging, and lifecycle. `sdk/` defines the guest contract independently from the Windows loader. `crml_host` embeds the same core as the DLL, so sandbox behavior can be tested without launching the game.
 
+The isolated Wasm physics service accepts bounded commands on that worker and consumes them after the native physics dispatcher returns. A mod owns an opaque selection token, never an engine pointer. The service resolves the current entity/body generation again before every access and retains restoration state independently of the guest. Mod traps and shutdown request cleanup without calling guest code from an engine hook. Only one mod can own the operation at a time. See the [damping API](api.md#experimental-prop-damping) for limits and result semantics.
+
 Packages load in directory-name order. One failed package does not stop the rest. The current runtime is single-threaded, has no hot reload, and has no guest-to-guest shared memory.
 
 ## Game bridge

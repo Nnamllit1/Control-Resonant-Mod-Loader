@@ -12,6 +12,17 @@
       ],
       "status": "experimental",
       "gameplay_bridge": false,
+      "physics_wasm": {
+        "implemented": true,
+        "status": "experimental",
+        "requires_opt_in": true,
+        "capability": "physics.damping",
+        "scope": "one owner-scoped nearby prop, asynchronous temporary linear damping",
+        "max_duration_ms": 5000,
+        "linear_damping_range": [0, 8],
+        "physx_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
+        "documentation": "docs/api.md#experimental-prop-damping"
+      },
       "physics_trial": {
         "implemented": true,
         "status": "experimental",

@@ -54,7 +54,7 @@ std::string trim(std::string value) {
     if (first == std::string::npos) return {};
     return value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
 }
-struct Manifest { std::string id, module; bool log = false, noclip = false, visibility = false, input = false; };
+struct Manifest { std::string id, module; bool log = false, noclip = false, visibility = false, input = false, physics = false; };
 Manifest manifest(const std::filesystem::path& path) {
     std::istringstream input(read(path, 8192));
     std::map<std::string, std::string> fields;
@@ -79,6 +79,7 @@ Manifest manifest(const std::filesystem::path& path) {
         else if (cap == "player.noclip") m.noclip = true;
         else if (cap == "player.visibility") m.visibility = true;
         else if (cap == "input.buttons") m.input = true;
+        else if (cap == "physics.damping") m.physics = true;
         else throw std::runtime_error("Unsupported capability");
     }
     if (!fields["capabilities"].empty() && fields["capabilities"].back() == ',') throw std::runtime_error("Empty capability");
@@ -194,6 +195,36 @@ struct Runtime::Impl {
             results[0].of.i32=mod.gameplay?mod.gameplay->visibility_poll(mod.owner):-1;
             return nullptr;
         }
+        template<unsigned Op>
+        static wasm_trap_t* physics_callback(void* data, wasmtime_caller_t*, const wasmtime_val_t* args,
+                                            size_t, wasmtime_val_t* results, size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) {
+                constexpr char error[]="Gameplay call budget exceeded";
+                return wasmtime_trap_new(error,sizeof(error)-1);
+            }
+            if constexpr(Op==2) {
+                if(!std::isfinite(args[1].of.f32) || args[1].of.f32<0 || args[1].of.f32>8
+                   || args[2].of.i32<1 || args[2].of.i32>5000) {
+                    constexpr char error[]="Physics damping value or duration out of range";
+                    return wasmtime_trap_new(error,sizeof(error)-1);
+                }
+            }
+            if constexpr(Op==1) {
+                results[0].kind=WASMTIME_I64;
+                results[0].of.i64=mod.gameplay?static_cast<int64_t>(mod.gameplay->physics_target(mod.owner)):0;
+            } else {
+                int result=-1;
+                if(mod.gameplay) {
+                    if constexpr(Op==0) result=mod.gameplay->physics_select(mod.owner);
+                    if constexpr(Op==2) result=mod.gameplay->physics_apply(mod.owner,static_cast<uint64_t>(args[0].of.i64),args[1].of.f32,static_cast<uint32_t>(args[2].of.i32));
+                    if constexpr(Op==3) result=mod.gameplay->physics_status(mod.owner);
+                    if constexpr(Op==4) result=mod.gameplay->physics_restore(mod.owner);
+                }
+                results[0].kind=WASMTIME_I32;results[0].of.i32=result;
+            }
+            return nullptr;
+        }
         static wasm_trap_t* log_callback(void* data, wasmtime_caller_t* caller, const wasmtime_val_t* args,
                                          size_t, wasmtime_val_t*, size_t) noexcept {
             auto& mod = *static_cast<Mod*>(data);
@@ -282,6 +313,21 @@ struct Runtime::Impl {
         if (mod->info.visibility) {
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_1_1(wasm_valtype_new_i32(), wasm_valtype_new_i32()), wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "visibility_set", 14, type.get(), Mod::visibility_set_callback, mod.get(), nullptr));
+        }
+        if(mod->info.physics) {
+            const char* names[]{"physics_select", "physics_target", "physics_apply", "physics_status", "physics_restore"};
+            const wasmtime_func_callback_t callbacks[]{Mod::physics_callback<0>,Mod::physics_callback<1>,Mod::physics_callback<2>,Mod::physics_callback<3>,Mod::physics_callback<4>};
+            for(unsigned op=0;op<5;++op) {
+                wasm_valtype_vec_t params{},results{};
+                if(op==2) {
+                    wasm_valtype_t* types[]{wasm_valtype_new_i64(),wasm_valtype_new_f32(),wasm_valtype_new_i32()};
+                    wasm_valtype_vec_new(&params,3,types);
+                } else wasm_valtype_vec_new_empty(&params);
+                wasm_valtype_t* output[]{op==1?wasm_valtype_new_i64():wasm_valtype_new_i32()};
+                wasm_valtype_vec_new(&results,1,output);
+                Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new(&params,&results),wasm_functype_delete);
+                check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,names[op],strlen(names[op]),type.get(),callbacks[op],mod.get(),nullptr));
+            }
         }
         // Fuel and memory limits apply even to the module's start function.
         mod->budget();

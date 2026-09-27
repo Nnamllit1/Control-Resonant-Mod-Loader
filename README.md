@@ -6,6 +6,8 @@ A Windows x64 mod framework for **CONTROL Resonant**, with a native loader and s
 
 **Experimental developer preview.** Includes an XInput proxy, a sandboxed hello mod, and an opt-in noclip prototype with a Wasm example and status overlay. Compatibility is limited to the fingerprinted game build. See the [noclip guide](docs/gameplay.md) for controls and known limitations.
 
+The isolated [Wasm physics service](docs/api.md#experimental-prop-damping) supports nearby-prop selection and temporary linear damping through owner-scoped handles. Its [example](docs/physics-trial.md#wasm-damping-example) uses F7/F8; it runs separately from the native F9/F10 trial and other gameplay hooks.
+
 ## Build and try it
 
 Requires Python 3.10+, Visual Studio 2022/2026 with Desktop development with C++, and CMake 3.24+ (the Visual Studio component is supported).

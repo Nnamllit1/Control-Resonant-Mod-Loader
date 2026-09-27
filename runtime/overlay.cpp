@@ -238,7 +238,7 @@ HRESULT STDMETHODCALLTYPE resize1_hook(IDXGISwapChain3* swap,UINT count,UINT wid
     return original_resize1(swap,count,width,height,format,flags,masks,queues);
 }
 
-bool rasterize(State& s,bool physics_trial) {
+bool rasterize(State& s,bool physics_trial,bool guest_physics) {
     // GDI creates the font mask once; only native D3D12 commands touch the game image.
     constexpr int width=510,height=86;
     BITMAPINFO info{}; info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER); info.bmiHeader.biWidth=width;
@@ -268,7 +268,18 @@ bool rasterize(State& s,bool physics_trial) {
         L"PHYSICS TRIAL: SEARCH TIMED OUT\nLet the scene finish loading, then try again\n[F9] search again"};
     for(int state_index=0;state_index<10;++state_index) {
         PatBlt(dc,0,0,width,height,BLACKNESS);
-        RECT rect{12,9,width-12,height-9}; DrawTextW(dc,physics_trial?trial_labels[state_index]:labels[state_index<5?state_index:0],-1,&rect,DT_LEFT|DT_NOPREFIX); GdiFlush();
+        const wchar_t* guest_labels[]{
+            L"PHYSICS MOD: READY\nUse your mod's selection and apply controls\n[F11/Esc] cancel",
+            L"PHYSICS MOD: PROP SELECTED\nWaiting for the mod's damping request\n[F11/Esc] cancel",
+            L"PHYSICS MOD: DAMPING ACTIVE\nTemporary change; restoration is automatic\n[F11/Esc] restore",
+            L"PHYSICS MOD: FINISHED\nSelect a prop for another request\n[F11/Esc] dismiss",
+            L"PHYSICS MOD: RESTORING / UNAVAILABLE\nWaiting for a valid physics update\n[F11/Esc] request restoration",
+            L"PHYSICS MOD: SEARCHING NEARBY PROPS\nStay still until selection finishes\n[F11/Esc] cancel",
+            L"PHYSICS MOD: NO ELIGIBLE PROP NEARBY\nMove closer to a loose, movable prop\nUse your mod's selection control to retry",
+            L"PHYSICS MOD: TWO PROPS EQUALLY CLOSE\nMove closer to the prop you want\nUse your mod's selection control to retry",
+            L"PHYSICS MOD: SELECTION CHANGED\nStay still while searching\nUse your mod's selection control to retry",
+            L"PHYSICS MOD: SEARCH TIMED OUT\nLet the scene finish loading\nUse your mod's selection control to retry"};
+        RECT rect{12,9,width-12,height-9}; DrawTextW(dc,guest_physics?guest_labels[state_index]:physics_trial?trial_labels[state_index]:labels[state_index<5?state_index:0],-1,&rect,DT_LEFT|DT_NOPREFIX); GdiFlush();
         auto* data=static_cast<const unsigned*>(pixels);
         s.text[state_index].resize(width*height);
         for(int y=0;y<height;++y) for(int x=0;x<width;++x)
@@ -279,13 +290,13 @@ bool rasterize(State& s,bool physics_trial) {
 }
 }
 
-void* overlay_create(bool physics_trial) noexcept {
+void* overlay_create(bool physics_trial,bool guest_physics) noexcept {
     try {
         Internal guard;
         auto& s=state();
         if(enabled) return &s;
         diagnostic="hook_initialization_failed";
-        if(!rasterize(s,physics_trial)) return nullptr;
+        if(!rasterize(s,physics_trial,guest_physics)) return nullptr;
         const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return nullptr;
         ComPtr<ID3D12Device> device; ComPtr<IDXGIFactory4> factory; ComPtr<ID3D12CommandQueue> queue;
         ComPtr<ID3D12CommandAllocator> allocator; ComPtr<ID3D12GraphicsCommandList> list;

@@ -11,6 +11,15 @@ struct FakeGame : crml::Gameplay {
     }
     int noclip_poll(uint64_t owner,float) noexcept override { owners.insert(owner); ++calls; return 0; }
     int visibility_poll(uint64_t owner) noexcept override { owners.insert(owner); ++calls; return 1; }
+    int physics_select(uint64_t owner) noexcept override {owners.insert(owner);++calls;return 0;}
+    uint64_t physics_target(uint64_t owner) noexcept override {++calls;return owners.count(owner)?0x123456789abcdefull:0;}
+    int physics_apply(uint64_t owner,uint64_t handle,float value,uint32_t duration) noexcept override {
+        ++calls;
+        if(!owners.count(owner) || handle!=0x123456789abcdefull || value!=8 || duration!=5000) return -3;
+        std::cout<<"Physics apply: owner-scoped token, damping 8, duration 5000\n";return 0;
+    }
+    int physics_status(uint64_t owner) noexcept override {++calls;return owners.count(owner)?3:0;}
+    int physics_restore(uint64_t owner) noexcept override {++calls;owners.erase(owner);return 0;}
     void release(uint64_t owner) noexcept override { owners.erase(owner); }
 };
 int main(int argc,char** argv) {

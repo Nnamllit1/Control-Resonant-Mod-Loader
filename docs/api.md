@@ -21,7 +21,7 @@ capabilities=log
 | `id` | Required, 1–64 lowercase letters, digits, `_` or `-`; unique within the host |
 | `abi` | Required, exactly `1` |
 | `module` | Required, local `.wasm` filename; no directories or absolute paths |
-| `capabilities` | Empty/omitted, or a comma-separated list of `log` and `player.noclip`; duplicates and unknown requests are rejected |
+| `capabilities` | Empty/omitted, or a comma-separated list of `log`, `input.buttons`, `player.noclip`, `player.visibility`, and `physics.damping`; duplicates and unknown requests are rejected |
 
 Logging is available when requested. The experimental noclip import also requires native build support, a matching game fingerprint, and installation opt-in; declaring the capability cannot bypass those gates.
 
@@ -35,7 +35,7 @@ Logging is available when requested. The experimental noclip import also require
 | `crml_shutdown` | `() -> ()` | No |
 | `memory` | wasm32 linear memory | For logging |
 
-All callbacks run serially on a runtime worker. In-game ticks are approximately 100 ms apart and elapsed time is capped at one second. They are not render callbacks or a game-thread scheduling guarantee.
+All callbacks run serially on a runtime worker. In-game ticks are approximately 100 ms apart, or 10 ms in the isolated physics service, and elapsed time is capped at one second. They are not render callbacks or a game-thread scheduling guarantee.
 
 ## Host imports
 
@@ -70,3 +70,25 @@ Returns `1` for a renewed lease, `0` for release, `-1` when unavailable, and `-2
 The legacy `visibility_poll()` import remains available for older mods and combines native F7 polling with a visibility lease. New mods should use `visibility_set()` instead.
 
 See [the visibility example](visibility.md) for installation and controls.
+
+## Experimental prop damping
+
+Requires `physics.damping` and the isolated `--physics-wasm` installation mode. This service supports one nearby eligible prop and one mod owner at a time. It reuses the native [physics trial's selection and property checks](physics-trial.md), including player/attachment exclusions, full body generations, executable/backend fingerprints, native accessor checks and readback. It does not enable noclip or visibility hooks.
+
+| Import in `crml_v1` | Wasm signature | Result |
+| --- | --- | --- |
+| `physics_select` | `() -> i32` | Queue a nearest-prop search within two world units |
+| `physics_target` | `() -> i64` | Current owner-scoped selection token, or zero |
+| `physics_apply` | `(i64 token, f32 damping, i32 duration_ms) -> i32` | Queue temporary linear damping |
+| `physics_status` | `() -> i32` | Current operation state |
+| `physics_restore` | `() -> i32` | Request restoration/cancellation and release ownership |
+
+Command results are `0` accepted (or already idle for restore), `-1` unavailable, `-2` busy or another owner, and `-3` invalid/stale target or arguments. Acceptance is not execution: the engine callback consumes requests. Requests older than 500 ms are not applied. The guest must wait for selection to complete before obtaining a token and applying a value. A token is neither an engine address nor an entity/body ID; passing another mod's token does not grant access.
+
+`physics_status` returns `0` idle, `1` queued, `2` searching, `3` selected, `4` active, `5` restoring, `6` finished, `7` retired, `8` conflicting game change, or `9` refused. It can return `-1` unavailable or `-2` busy. Finished includes a value already equal to the request; it does not by itself prove a write occurred. Terminal status is transient and returns to idle when the selection is cleared. A failed search also returns to idle, with its reason shown in the panel and diagnostic log.
+
+The import accepts finite damping from **0 through 8**, for **1 through 5,000 ms**. Nonfinite/out-of-range values or exceeding the shared eight-call gameplay budget trap the mod. Native code independently checks these limits. Unused selection expires after 15 seconds; completing a trial consumes its token. A new application requires a fresh selection. Damping affects linear velocity decay, not friction, mass or angular damping.
+
+Focus loss, Escape, F11, the worker/session deadline, mod failure, shutdown and runtime destruction request cleanup. Cleanup is serviced on the physics callback, including after the guest has stopped. A game-written conflicting value is preserved; retired bodies are not written through stale handles. Temporary unavailability keeps restoration pending. The service retains the diagnostic session's ten-minute/four-MiB limits; restart the game to begin a new session after a limit is reached.
+
+See the [Wasm damping example](physics-trial.md#wasm-damping-example) for setup and expected behavior.

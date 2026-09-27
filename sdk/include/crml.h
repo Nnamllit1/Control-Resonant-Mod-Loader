@@ -34,6 +34,24 @@ int32_t crml_visibility_set(int32_t hidden);
 // A renewed lease is not confirmation that a render command was applied.
 __attribute__((import_module("crml_v1"), import_name("visibility_poll")))
 int32_t crml_visibility_poll(void);
+// Experimental physics.damping capability; isolated --physics-wasm mode.
+// Commands return 0 queued, -1 unavailable, -2 busy/another owner, -3 stale handle.
+// Queued is not confirmation of execution. One owner/prop at a time.
+__attribute__((import_module("crml_v1"), import_name("physics_select")))
+int32_t crml_physics_select(void);
+// Opaque owner-scoped token, not an entity ID or pointer. Zero means unavailable.
+__attribute__((import_module("crml_v1"), import_name("physics_target")))
+uint64_t crml_physics_target(void);
+// Finite value 0..8, duration 1..5000 ms. Bad ranges trap the guest.
+__attribute__((import_module("crml_v1"), import_name("physics_apply")))
+int32_t crml_physics_apply(uint64_t target, float damping, uint32_t duration_ms);
+// 0 idle, 1 queued, 2 searching, 3 selected, 4 active, 5 restoring,
+// 6 finished, 7 retired, 8 game conflict, 9 refused; negative as above.
+__attribute__((import_module("crml_v1"), import_name("physics_status")))
+int32_t crml_physics_status(void);
+// Requests restoration/cancellation and releases ownership after cleanup.
+__attribute__((import_module("crml_v1"), import_name("physics_restore")))
+int32_t crml_physics_restore(void);
 CRML_EXPORT("crml_abi_version") uint32_t crml_abi_version(void);
 CRML_EXPORT("crml_init") void crml_init(void);
 // Optional; worker heartbeat, NOT a game frame or game-thread callback.

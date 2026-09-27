@@ -13,6 +13,30 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def test_wasm_physics_mode_switch_and_ownership(self):
+        installer.install(self.game,self.dist,self.profiles,True)
+        (self.dist/'crml/build-features.json').write_text('{"physics_wasm":true,"physics_trial":true}')
+        for name in ('physics-wasm.enabled','physics-trial.enabled'):
+            (self.dist/'crml'/name).write_text('')
+        installer.update(self.game,self.dist,self.profiles,True,physics_trial=True)
+        installer.update(self.game,self.dist,self.profiles,True,physics_wasm=True)
+        self.assertFalse((self.game/'crml/physics-trial.enabled').exists())
+        self.assertIn('crml/physics-wasm.enabled',installer.read_receipt(self.game)['files'])
+        with self.assertRaisesRegex(ValueError,'without other'):
+            installer.sources_for(self.dist,physics_trial=True,physics_wasm=True)
+        installer.update(self.game,self.dist,self.profiles,True,physics_trial=True)
+        self.assertFalse((self.game/'crml/physics-wasm.enabled').exists())
+        installer.update(self.game,self.dist,self.profiles,True,physics_wasm=True)
+        installer.update(self.game,self.dist,self.profiles,True,disable_physics_wasm=True)
+        (self.game/'crml/physics-wasm.enabled').write_text('unowned')
+        with self.assertRaisesRegex(ValueError,'unowned'):
+            installer.update(self.game,self.dist,self.profiles,True,physics_trial=True)
+
+    def test_wasm_physics_requires_build_feature(self):
+        (self.dist/'crml/build-features.json').write_text('{"physics_trial":true}')
+        with self.assertRaisesRegex(ValueError,'Rebuild'):
+            installer.sources_for(self.dist,physics_wasm=True)
+
     def test_physics_trial_switch_and_disable(self):
         installer.install(self.game,self.dist,self.profiles,True)
         self.observer_fixture()
