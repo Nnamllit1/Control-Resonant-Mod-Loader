@@ -1,11 +1,11 @@
 ---
-title: Experimental noclip and gameplay bridge
-description: Build and use the experimental CONTROL Resonant noclip mod, configure its controls, and diagnose movement and rendering issues.
+title: Legacy native noclip prototype
+description: Contributor reference for the legacy native-controlled noclip prototype, its build options, hooks and diagnostics.
 ---
 
-# Gameplay and noclip
+# Legacy native noclip prototype
 
-This page describes the legacy native-controlled noclip prototype. For guest-owned controls and explicit velocity requests, see [guest-controlled movement](movement.md).
+This page describes the legacy native-controlled prototype for contributors. For guest-owned controls and explicit velocity requests, see the [Wasm movement example](movement.md). To install the framework, use the [runtime installation guide](installation.md); individual mods provide their own controls and installation instructions.
 
 **Experimental:** noclip can encounter boundary resets, persistent fall-recovery fog, and camera collision artifacts.
 

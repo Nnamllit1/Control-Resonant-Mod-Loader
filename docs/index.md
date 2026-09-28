@@ -1,55 +1,34 @@
 ---
-description: Build sandboxed Wasm mods for CONTROL Resonant and explore public Northlight engine research on assets, scripting, rendering, entities, and physics.
+description: Download CONTROL Resonant Mod Loader, install compatible mods, create Wasm mods, and explore Northlight engine research.
 ---
 
 # CONTROL Resonant Mod Loader
 
-<p class="crml-label">Developer preview · Windows x64 · WebAssembly</p>
+<p class="crml-label">Windows x64 · Experimental release</p>
 
-<p class="crml-intro">CONTROL Resonant Mod Loader (CRML) is a modding framework for CONTROL Resonant, pairing sandboxed WebAssembly mods with a trusted native runtime. The project also publishes Northlight engine research covering assets, scripting, rendering, ECS entities, and physics.</p>
+<p class="crml-intro">Install mods for CONTROL Resonant with CRML, a shared runtime for sandboxed WebAssembly mods. Download the runtime, add the mods you want, and start the game normally. No compiling is needed to play.</p>
 
-!!! warning "Early development"
-    CRML is a developer preview for the game build listed in `compatibility.json`. It includes a sandboxed mod runtime, a hello example, and an opt-in noclip prototype with a status overlay. See the [noclip guide](gameplay.md) for controls and known limitations.
+[Download and install](installation.md){ .md-button .md-button--primary }
+[Create a mod](developing.md){ .md-button }
 
-## Start here
+## Install CRML
 
-- **Install and play:** [download a release and copy it into the game folder](installation.md). No compiling needed.
-- **Write a mod:** [getting started](developing.md) and [API reference](api.md).
-- **Understand the boundary:** [sandbox limits](sandbox.md) and [architecture](architecture.md).
-- **Use noclip:** [gameplay and noclip](gameplay.md).
-- **Research the engine:** [subsystem atlas](engine-atlas.md), [system index](engine-system-index.md), and [reviewed operation paths](engine-paths.md).
+Download **`crml-runtime-<version>-windows-x64.zip`** from [GitHub Releases](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases). Extract it and copy the contents beside `CONTROLResonant.exe`. Then install compatible mods following their own instructions.
 
-## What runs today
+The runtime is the shared loader. Each mod supplies its own features and controls. The **SDK** download is for writing mods; players only need the runtime and their chosen mods.
 
-The standalone host discovers Wasm packages, validates their manifests, calls their lifecycle functions, and isolates guest traps. Each mod has its own memory and execution budget. The first example writes a greeting through the host logging API.
+The [installation guide](installation.md) shows the exact filenames, folder layout, updates and removal. Releases support the game build listed in their compatibility information; a game update may require a matching CRML release.
 
-The experimental Windows proxy forwards XInput calls to the system library and starts the trusted runtime from the first `XInputGetState` call. The executable fingerprint in `compatibility.json` determines which game build the installer accepts.
+## Make a mod
 
-## Northlight engine research for mod developers
+Use CRML's SDK, shared runtime and bounded host API to build your own gameplay behavior. Mod source examples cover movement, visibility and physics operations. Each Wasm mod has its own memory and execution budget; available operations depend on the supported API and runtime mode.
 
-The [Northlight research guide](engine-research.md) is useful independently of the loader. Native DLL mod authors, tool developers, and reverse engineers can use the same public format notes, subsystem index, and fingerprinted reference maps. Findings distinguish static evidence, live observations, and unresolved behavior; they are not an official engine SDK.
+[Create your first mod](developing.md) · [API reference](api.md) · [Sandbox limits](sandbox.md)
 
-- [Pack2 asset format](pack2.md): archive indexes, resource records, and reproducible inspection tools.
-- [Engine atlas](engine-atlas.md): recovered ECS systems and script-binding candidates.
-- [Engine internals](engine-internals.md): resource ownership, entity identity, and physics-body relationships.
-- [Physics dynamics](physics-dynamics.md): forces, mass, inertia, damping, and simulation paths.
-- [Reviewed engine paths](engine-paths.md): scripting, rendering, collision filters, and other subsystem operations.
+## Contribute and explore Northlight
 
-## Wasm mods and native DLL loaders
+The project publishes research on assets, scripting, entities, rendering and physics. It is also useful to native mod and tool developers independently of CRML. The reference maps distinguish recovered engine internals from supported mod APIs.
 
-For supported gameplay operations, build on CRML's shared runtime and capability-based API so you can focus on your mod's behavior. The [mod development guide](developing.md) starts with readable examples; the [API reference](api.md) describes what is available today.
-
-CRML uses a native XInput proxy to start its runtime, while mod packages contain sandboxed `.wasm` modules. It does not load third-party native mod DLLs. Mod authors use the [versioned host API](api.md) and declared capabilities. Research published here can inform native integrations, but offsets and compatibility findings apply to the recorded game builds, not every Northlight game.
-
-## Mod format
-
-```text
-mods/
-  hello/
-    mod.ini
-    hello.wasm
-```
-
-Mods use a deliberately small host API. They do not load native DLLs or inherit filesystem, network, process, or game-memory access. Available gameplay functions use the same capability boundary.
+[Engine research](engine-research.md) · [Build from source](building.md) · [Runtime architecture](architecture.md)
 
 Independent community project. Not affiliated with Remedy Entertainment.

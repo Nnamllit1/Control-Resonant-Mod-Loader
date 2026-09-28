@@ -2,9 +2,9 @@
 description: Build and publish CRML documentation with MkDocs, maintain canonical URLs and the sitemap, and verify crawler access for the public site.
 ---
 
-# Documentation
+# Maintaining the website
 
-The site uses MkDocs Material, with the same navigation structure, dark charcoal surfaces, blue-grey accents, theme switcher, and code-copy controls as Hammer Addons.
+The site uses MkDocs Material. Navigation starts with **Play with mods**, **Make a mod** and **Contributing**. Player pages cover release downloads and gameplay; compiler commands, engine research, diagnostics and project assets belong under Contributing. Keep existing page URLs when reorganizing the menu so external links remain valid.
 
 ```powershell
 python -m venv .venv-docs

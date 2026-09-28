@@ -4,24 +4,21 @@
 
 A Windows x64 mod framework for **CONTROL Resonant**, with a native loader and sandboxed WebAssembly mods.
 
-[Documentation and Northlight engine research](https://crml.nnamllit.de/) cover installation, mod development, asset formats, scripting, ECS entities, rendering, and physics. The research is also available to native mod and tool developers independently of the loader. For supported gameplay operations, building on CRML gives your mod a shared runtime, a bounded API and readable examples to start from. [Create your first mod](docs/developing.md).
-
-**Experimental developer preview.** Includes an XInput proxy, a sandboxed hello mod, and an opt-in noclip prototype with a Wasm example and status overlay. Compatibility is limited to the fingerprinted game build. See the [noclip guide](docs/gameplay.md) for controls and known limitations.
-
-The isolated [Wasm physics service](docs/api.md#experimental-prop-damping) supports nearby-prop selection and temporary linear damping through owner-scoped handles. Its [example](docs/physics-trial.md#wasm-damping-example) uses F7/F8; it runs separately from the native F9/F10 trial and other gameplay hooks.
-
-The [movement example](docs/movement.md) implements controls and camera-relative velocity in Wasm using the experimental `player.motion` API. Its separate mode leaves fall/reset behavior under game control.
+Install the ready-to-use runtime, add compatible mods, and start the game normally. CRML is experimental and supports the game build listed in each release's compatibility information.
 
 ## Download and install
 
-No compiling or developer tools needed. Open [Releases](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases) and expand **Assets**:
+No compiling or developer tools needed. Open [Releases](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases), expand **Assets**, and download **`crml-runtime-<version>-windows-x64.zip`**. Replace `<version>` with the release number required by your mod.
 
-- **Mod loader:** download `crml-runtime-<version>-windows-x64.zip`.
-- **Noclip & Free Flight, including the loader:** download `crml-noclip-bundle-<version>-windows-x64.zip`.
+Close the game, extract the ZIP, then copy **the extracted folder's contents** beside `CONTROLResonant.exe`. Find that folder through Steam: right-click the game, then **Manage > Browse local files**. Install your chosen mods using their instructions, then start through Steam as usual or double-click `CONTROLResonant.exe` with Steam running.
 
-Close the game, extract the ZIP, then copy **the extracted folder's contents** beside `CONTROLResonant.exe`. Find that folder through Steam: right-click the game, then **Manage > Browse local files**. Start through Steam as usual, or double-click `CONTROLResonant.exe` with Steam running. With the flight bundle, load a save and press **F6**.
+The **SDK** and **Source code** downloads are for developers. The runtime supplies the loader; individual mods supply gameplay features and controls. See [installation, updates and removal](docs/installation.md).
 
-The **SDK** and **Source code** downloads are for developers. See [installation, updates and removal](docs/installation.md) for the folder layout and full instructions.
+## Make mods and explore the engine
+
+Use CRML's [SDK and examples](docs/developing.md) to build on a shared runtime and [bounded gameplay API](docs/api.md). The movement example keeps its controls in Wasm; other examples cover visibility and temporary physics damping. Available operations depend on the selected runtime mode.
+
+[Public Northlight research](https://crml.nnamllit.de/engine-research/) covers assets, scripting, entities, rendering and physics. Native mod and tool developers can also use it independently of the loader.
 
 ## Build from source
 
@@ -47,14 +44,6 @@ docs/       Player, mod-author, and contributor documentation
 tests/      Sandbox and proxy integration tests
 ```
 
-The organization and documentation style follow Hammer Addons. The mod execution model is different: each Wasm mod receives a separate store with bounded memory and execution fuel.
-
-Read the [installation guide](docs/installation.md), [create a mod](docs/developing.md), or review the [architecture](docs/architecture.md) and [noclip guide](docs/gameplay.md).
-
-```powershell
-python -m venv .venv-docs
-.\.venv-docs\Scripts\python.exe -m pip install -r requirements-docs.txt
-.\.venv-docs\Scripts\python.exe -m mkdocs serve
-```
+See [Building from source](docs/building.md), [Architecture](docs/architecture.md), [Building releases](docs/releases.md) or [Maintaining the website](docs/documentation.md) to contribute.
 
 This is an independent community project, not affiliated with Remedy Entertainment. CONTROL Resonant and associated marks belong to their respective owners.

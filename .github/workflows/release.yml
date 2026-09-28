@@ -54,5 +54,5 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" release-assets/*.zip release-assets/SHA256SUMS.txt release-assets/release.json --verify-tag --draft --prerelease --title "CRML $RELEASE_TAG" --notes-file release-assets/RELEASE-NOTES.md
+          gh release create "$RELEASE_TAG" "release-assets/crml-runtime-${RELEASE_TAG}-windows-x64.zip" "release-assets/crml-sdk-${RELEASE_TAG}-windows-x64.zip" release-assets/SHA256SUMS.txt release-assets/release.json --verify-tag --draft --prerelease --title "CRML $RELEASE_TAG" --notes-file release-assets/RELEASE-NOTES.md
           gh release edit "$RELEASE_TAG" --draft=false

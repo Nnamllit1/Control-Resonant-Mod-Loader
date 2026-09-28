@@ -26,8 +26,9 @@ def checked_version(value):
     return value
 
 
-def archive_names(version):
-    return [f'crml-{kind}-{version}-windows-x64.zip' for kind in ('runtime', 'noclip', 'noclip-bundle', 'sdk')]
+def archive_names(version, include_noclip=False):
+    kinds = ('runtime', 'noclip', 'noclip-bundle', 'sdk') if include_noclip else ('runtime', 'sdk')
+    return [f'crml-{kind}-{version}-windows-x64.zip' for kind in kinds]
 
 
 def verify(output, version):
@@ -35,7 +36,8 @@ def verify(output, version):
     manifest = json.loads((output / 'release.json').read_text(encoding='utf-8'))
     if manifest.get('schema') != 1 or manifest.get('version') != version:
         raise ValueError('Release metadata does not match the requested version')
-    if set(manifest['archives']) != set(archive_names(version)):
+    # Retain verification of older releases and explicitly requested local mods.
+    if set(manifest['archives']) not in (set(archive_names(version)), set(archive_names(version, True))):
         raise ValueError('Unexpected release archive set')
     expected_checksums = []
     for name, record in manifest['archives'].items():
@@ -58,7 +60,7 @@ def verify(output, version):
     return manifest
 
 
-def package(dist, output, version, root=ROOT):
+def package(dist, output, version, root=ROOT, include_noclip=False):
     checked_version(version)
     if output.exists():
         raise ValueError('Output already exists; choose a new directory to preserve the previous release')
@@ -76,8 +78,7 @@ def package(dist, output, version, root=ROOT):
         'xinput1_4.dll': dist / 'xinput1_4.dll',
         'crml/crml_runtime.dll': dist / 'crml/crml_runtime.dll',
         'crml/wasmtime.dll': dist / 'crml/wasmtime.dll',
-        'crml/mods/hello/mod.ini': dist / 'crml/mods/hello/mod.ini',
-        'crml/mods/hello/hello.wasm': dist / 'crml/mods/hello/hello.wasm',
+        'crml/mods/README.txt': b'Install compatible CRML mod folders here.\nEach mod includes its own installation instructions and requirements.\nhttps://crml.nnamllit.de/installation/\n',
         'crml/licenses/wasmtime.txt': dist / 'licenses/wasmtime/LICENSE',
         'crml/licenses/minhook.txt': dist / 'licenses/minhook/LICENSE.txt',
         'compatibility.json': root / 'compatibility.json',
@@ -109,7 +110,7 @@ def package(dist, output, version, root=ROOT):
     runtime['crml/release.json'] = metadata
     noclip['crml/mods/movement/release.json'] = metadata
     sdk['release.json'] = metadata
-    mappings = (runtime, noclip, {**runtime, **noclip}, sdk)
+    mappings = (runtime, noclip, {**runtime, **noclip}, sdk) if include_noclip else (runtime, sdk)
     try:
         commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True, stderr=subprocess.DEVNULL).strip()
         dirty = bool(subprocess.check_output(['git', 'status', '--porcelain'], cwd=root, text=True, stderr=subprocess.DEVNULL).strip())
@@ -128,7 +129,7 @@ def package(dist, output, version, root=ROOT):
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='crml-package-', dir=output.parent) as tmp:
         stage = Path(tmp)
-        for name, mapping in zip(archive_names(version), mappings):
+        for name, mapping in zip(archive_names(version, include_noclip), mappings):
             member_hashes = {}
             with zipfile.ZipFile(stage / name, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
                 for member, source in sorted(mapping.items()):
@@ -175,11 +176,13 @@ def main():
     parser.add_argument('--dist', type=Path, default=ROOT / 'dist')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--verify', action='store_true')
+    parser.add_argument('--include-noclip', action='store_true',
+                        help='Also prepare local mod-only and bundle archives; not part of the GitHub release')
     args = parser.parse_args()
     try:
         checked_version(args.version)
         output = args.output or ROOT / '.local/releases' / args.version
-        (verify(output, args.version) if args.verify else package(args.dist, output, args.version))
+        (verify(output, args.version) if args.verify else package(args.dist, output, args.version, include_noclip=args.include_noclip))
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error:
         parser.exit(1, f'{error}\n')
 

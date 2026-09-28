@@ -5,6 +5,8 @@ description: Build a Wasm movement mod with explicit velocity requests, camera h
 
 # Guest-controlled movement
 
+This is a developer reference for the Wasm movement example. For the framework download, use the [runtime installation guide](installation.md). Individual mod downloads provide their own controls and installation instructions.
+
 The `movement` example owns its toggle, controls, speed and camera-relative calculation in Wasm. The native service accepts a bounded world-space velocity and applies noncolliding character movement on the controller callback. This is an experimental alternative to the legacy `noclip_poll` helper.
 
 This mode suppresses the normal WASD, Space, Ctrl and Shift keyboard actions while the lease is active. Its experimental [boundary guard](fall-recovery.md#flight-boundary-guard) prevents two scripted boundary handlers and the native height check from starting new recovery during flight. Already scheduled recovery and other transition producers remain active; a teleport still cancels movement. Camera collision can still change the view when traversing geometry. This mode does not provide free-camera control.

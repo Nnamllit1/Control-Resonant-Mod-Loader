@@ -11,7 +11,7 @@ Observation mode suspends all Wasm mods and the existing noclip, visibility, inp
 
 ## Build and enable
 
-Build on Windows with the dependencies described in [installation](installation.md):
+Build on Windows with the dependencies described in [Building from source](building.md):
 
 ```powershell
 .\build.bat -EngineObserver -Test

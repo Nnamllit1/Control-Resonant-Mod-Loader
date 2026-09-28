@@ -26,7 +26,6 @@ theme:
         icon: material/weather-night
         name: Switch to dark mode
   features:
-    - navigation.sections
     - navigation.top
     - search.suggest
     - search.highlight
@@ -51,31 +50,35 @@ validation:
     anchors: warn
 nav:
   - Home: index.md
-  - Using mods:
-      - Installation: installation.md
+  - Play with mods:
+      - Download and install: installation.md
       - Troubleshooting: troubleshooting.md
-  - Build a mod:
-      - Getting started: developing.md
+  - Make a mod:
+      - Your first mod: developing.md
       - Package format and API: api.md
       - Sandbox limits: sandbox.md
   - Contributing:
+      - Build from source: building.md
       - Architecture: architecture.md
-      - Northlight engine research: engine-research.md
-      - Engine atlas: engine-atlas.md
-      - Engine diagnostics: engine-validation.md
-      - System index: engine-system-index.md
-      - Reviewed engine paths: engine-paths.md
-      - Lua bytecode tools: binlua.md
-      - Engine Lua integration: engine-lua.md
-      - Engine internals: engine-internals.md
-      - Physics dynamics: physics-dynamics.md
-      - Entity inspector: entity-inspector.md
-      - Player visibility: visibility.md
-      - Pack2 format: pack2.md
-      - Gameplay and noclip: gameplay.md
-      - Guest-controlled movement: movement.md
-      - Player fall recovery: fall-recovery.md
-  - Physics property trial: physics-trial.md
-  - Documentation: documentation.md
-  - Brand assets: brand.md
-  - Building releases: releases.md
+      - Engine research:
+          - Overview: engine-research.md
+          - Subsystem atlas: engine-atlas.md
+          - System index: engine-system-index.md
+          - Reviewed operation paths: engine-paths.md
+          - Entity and resource internals: engine-internals.md
+          - Assets and Pack2: pack2.md
+          - Lua bytecode tools: binlua.md
+          - Engine Lua integration: engine-lua.md
+          - Physics dynamics: physics-dynamics.md
+      - Diagnostics and examples:
+          - Engine diagnostics: engine-validation.md
+          - Entity inspector: entity-inspector.md
+          - Player visibility: visibility.md
+          - Physics property trial: physics-trial.md
+          - Wasm movement example: movement.md
+          - Fall and boundary recovery: fall-recovery.md
+          - Legacy noclip prototype: gameplay.md
+      - Project maintenance:
+          - Building releases: releases.md
+          - Maintaining the website: documentation.md
+          - Logos and brand assets: brand.md

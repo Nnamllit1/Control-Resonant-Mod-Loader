@@ -20,7 +20,7 @@ CONTROLResonant.exe
 
 `DllMain` does no initialization. The first call to `XInputGetState` resolves the original library by absolute System32 path and schedules a worker. Forwarders preserve integer, vector, and stack arguments. The worker loads the trusted runtime with a restricted DLL search path. Both modules remain resident until process exit.
 
-The proxy and runtime remain loaded for the lifetime of the game process. See [troubleshooting](troubleshooting.md) for startup and shutdown behavior.
+The proxy and runtime remain loaded for the lifetime of the game process. See [troubleshooting](troubleshooting.md) for startup problems.
 
 ## Runtime and SDK
 
@@ -36,8 +36,8 @@ The opt-in experimental bridge observes the character-controller routine on the 
 
 The runtime worker publishes the panel's visibility and status. Native DirectX 12 hooks copy a cached text texture into the current back buffer before presentation. Queue selection requires observed transitions of that specific buffer; unrelated queue submissions cannot select it. Each buffer has its own commands and completion fence, and resize hooks release retained buffers after completion. The renderer follows the [DirectX 12 presentation state requirements](https://learn.microsoft.com/en-us/windows/win32/direct3d12/swap-chains).
 
-Native code owns input, movement, and UI resources; guests receive status codes and a bounded speed parameter, never raw addresses. The probe records up to 600 diagnostic snapshots and then stops logging. The pinned movement hook remains a pass-through when the feature is off.
+Native code owns input, movement and UI resources; guests receive status codes and opaque handles, never raw addresses. The current movement API accepts a bounded world-space velocity, with controls and speed selection in the guest. The legacy native noclip helper accepts a speed parameter instead. The probe records up to 600 diagnostic snapshots and then stops logging. The pinned movement hook remains a pass-through when the feature is off.
 
-See [gameplay and noclip](gameplay.md) for controls, installation, and limitations.
+See the [legacy native noclip prototype](gameplay.md) for that implementation, or the [Wasm movement example](movement.md) for guest controls and API ownership. Players should use the [runtime installation guide](installation.md) and their mod's own instructions.
 
 The [engine research tools](engine-research.md) map Pack2 assets, candidate script bindings, and ECS system metadata without loading the runtime into the game.

@@ -1,8 +1,9 @@
 param(
-    [string]$Version = 'v0.1.0-alpha.3',
+    [string]$Version = 'v0.1.0-alpha.4',
     [int]$Jobs = 4,
     [string]$Output,
-    [switch]$Publish
+    [switch]$Publish,
+    [switch]$IncludeNoclip
 )
 $ErrorActionPreference = 'Stop'
 Set-Location -LiteralPath $PSScriptRoot
@@ -11,6 +12,7 @@ if (-not (Test-Path -LiteralPath "release/$Version.md")) { throw 'Add release no
 if (-not $Output) { $Output = Join-Path $PSScriptRoot ".local/releases/$Version" }
 if (Test-Path -LiteralPath $Output) { throw 'Output already exists; choose a new -Output directory.' }
 if ($Publish) {
+    if ($IncludeNoclip) { throw 'GitHub releases contain only the runtime and SDK. Package mods locally without -Publish.' }
     $dirty = & git status --porcelain
     if ($LASTEXITCODE -or $dirty) { throw 'Publishing requires a clean, committed working tree.' }
     $releaseCommit = & git rev-parse HEAD
@@ -28,7 +30,9 @@ if ($LASTEXITCODE) { exit $LASTEXITCODE }
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 & python tests/test_release.py
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
-& python tools/package_release.py --version $Version --output $Output
+$packageArgs = @('--version', $Version, '--output', $Output)
+if ($IncludeNoclip) { $packageArgs += '--include-noclip' }
+& python tools/package_release.py @packageArgs
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 if ($Publish) {
     # Never commit user work or publish a tag before all local checks pass.

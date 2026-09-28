@@ -22,11 +22,13 @@ The files should look like this after copying:
 
 Do not put these files in Documents, your save folder, or another folder inside
 the game folder. CRML loads automatically when the game starts; there is no
-separate CRML application to open. The runtime alone does not add a flight panel.
+separate CRML application to open. Individual mods provide gameplay features
+and any menus or controls they need.
 
-This package includes the runtime and a small hello mod. Install the separate
-Noclip & Free Flight package to enable flight. The SDK archive is for mod authors;
-its tools and examples do not need to be copied into the game directory.
+This package includes the runtime. Add compatible mods using the instructions
+supplied with each mod. Mod folders belong in crml/mods.
+The SDK archive is for mod authors; its tools and examples do not need to be
+copied into the game directory.
 
 Updating an existing CRML installation
 Close the game and back up xinput1_4.dll and the crml folder. Copy the new runtime
@@ -54,5 +56,6 @@ Microsoft's current Visual C++ x64 Redistributable from Microsoft's website.
 Include the CRML version and game build when reporting a problem; review logs
 before sharing them.
 
+Installation guide: https://crml.nnamllit.de/installation/
 Documentation: https://crml.nnamllit.de/
 Source and releases: https://github.com/Nnamllit1/Control-Resonant-Mod-Loader

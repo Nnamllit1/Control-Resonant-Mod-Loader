@@ -3,27 +3,39 @@ title: Create a Wasm mod
 description: Create a CONTROL Resonant WebAssembly mod with a manifest, lifecycle exports, host logging, and explicit capabilities.
 ---
 
-# Getting started
+# Your first mod
 
-## Run the supplied example
+## Get the SDK
+
+Download `crml-sdk-<version>-windows-x64.zip` from [GitHub Releases](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases) and extract it into a working folder outside the game directory. It includes headers, example sources, a WAT compiler and a standalone host. Open PowerShell in that extracted folder for the commands below. You do not need to compile the native runtime to run this example.
+
+To change the loader or runtime itself, use [Building from source](building.md). A source build puts the tools under `dist/crml/`; substitute that path for `tools/` in this guide.
+
+## Run the hello example
+
+Create a working package, copy its manifest, compile the supplied WAT source and run it:
 
 ```powershell
-.\build.bat -Test
-.\dist\crml\crml_host.exe .\dist\crml\mods 2
+New-Item -ItemType Directory -Path mods/hello
+Copy-Item examples/hello/mod.ini mods/hello/mod.ini
+.\tools\crml_wat.exe examples/hello/hello.wat mods/hello/hello.wasm
+.\tools\crml_host.exe mods 2
 ```
 
-`examples/hello/hello.wat` is readable WebAssembly. The build converts it to a binary module with the bundled `crml_wat` tool. The runtime accepts binary `.wasm` packages only.
+The greeting followed by `Active: 1; failures: 0` confirms the example ran. `examples/hello/hello.wat` is readable WebAssembly; the runtime accepts compiled `.wasm` packages. The standalone host does not start or control the game.
 
 ## Create a package
 
 Create `mods/my-mod/` and add a [manifest](api.md#manifest). Compile your module with the supplied tool:
 
 ```powershell
-.\dist\crml\crml_wat.exe examples/hello/hello.wat mods/my-mod/hello.wasm
-.\dist\crml\crml_host.exe mods 10
+.\tools\crml_wat.exe examples/hello/hello.wat mods/my-mod/hello.wasm
+.\tools\crml_host.exe mods 10
 ```
 
 Change the package ID to `my-mod`. IDs must be unique across the loaded packages. Remove a package directory from the mods root to disable it; restart the host or game to reload packages.
+
+To run a mod in-game, [install the matching runtime](installation.md), close the game and copy your package folder into `crml/mods/`. Gameplay examples can require a particular runtime mode; follow their API and example documentation. Do not copy the SDK's tools into the game directory.
 
 ## C and C++ guests
 
