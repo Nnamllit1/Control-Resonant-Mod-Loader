@@ -76,10 +76,27 @@ The `lua_probe` records in `crml/fall-recovery.jsonl` contain:
 | `enabled` | This build armed the probe after its entry and call-site checks |
 | `state` | 0 waiting for an eligible call; 1 executing; 2 finished |
 | `rejected` | Calls from the selected site whose VM snapshot was unsuitable |
-| `schema` | 2 includes the event/environment stage; earlier records contain only the four execution and presence stages |
+| `schema` | 3 adds bounded error details and event diagnostic codes; 2 added the event/environment stage |
 | `passed` | All stages produced their expected results and restored the stack |
 | `steps` | Load, call and outer protection statuses, numeric result and restoration result |
 | `thread` | The engine thread that executed the test |
+
+Each step also reports `error_kind` and `error_line`. The category is one of `none`, `nil_call`, `no_active_script`, `missing_ecs`, `invalid_handler`, `assertion`, `other` or `unavailable`. A line number is extracted only when the error begins with that step's own chunk label; zero means no matching source location. The runtime reads at most 512 bytes of a bounded string error before stack cleanup and emits neither the original message nor paths or arbitrary engine text. A caught event error can supply these details even when the outer protected call succeeds.
+
+The event script returns **127** for success. Negative values identify failures; a successful VM call returning a diagnostic code is still a failed probe:
+
+| Value | Meaning |
+| --- | --- |
+| -101 through -110 | A required function is absent: `getfenv`, `setmetatable`, `setfenv`, `rawget`, `assert`, `pcall`, `nl_update_callback`, `nl_add_event_handler`, `nl_send_custom_event`, `nl_remove_event_handler`, respectively |
+| -201 | Initial event send raised an error; listener removal was attempted |
+| -202 | Listener removal raised an error; cleanup is not confirmed |
+| -203 / -204 | No delivery / more than one delivery |
+| -205 | Sender or payload differed from the expected value |
+| -206 / -207 | Send after removal raised an error / invoked the removed listener |
+| -208 / -209 | Existing update callback / shared environment value changed |
+| -210 | Private environment checks failed |
+
+These codes distinguish library availability, context errors, delivery and cleanup. They do not change the engine's dispatch or ownership behavior.
 
 The binding mask uses bits 1, 2, 4, 8, 16, 32 and 64 for `nl_update_callback`, `nl_add_event_handler`, `nl_send_custom_event`, `nl_copy_world_transform`, `spawn_bundle_with_instigator`, `npc_spawn` and `npc_despawn`, respectively. The execution test returned **15**, confirming the first four names in the default environment. A set bit proves only function presence. A clear bit does not establish that the operation is unavailable in entity-specific environments or under another namespace. Argument schemas, context requirements and behavior remain separate questions.
 

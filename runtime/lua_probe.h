@@ -12,6 +12,12 @@ struct Api {
     void(*settop)(void*,int){};
     Call call{};
     void(*push_entity)(void*,uint64_t,int){};
+    void(*new_table)(void*,int,int){};
+    void(*push_value)(void*,int){};
+    void(*set_field)(void*,int,const char*){};
+    void(*readonly)(void*,int,int){};
+    int(*set_metatable)(void*,int){};
+    int(*raw_field)(void*,int,const char*){};
 };
 struct Owner { uintptr_t world{};uint64_t entity{}; };
 // Only the fingerprint-gated boundary hook may provide this engine-thread call.
