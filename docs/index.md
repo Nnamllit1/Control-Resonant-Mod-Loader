@@ -37,6 +37,8 @@ The [Northlight research guide](engine-research.md) is useful independently of t
 
 ## Wasm mods and native DLL loaders
 
+For supported gameplay operations, build on CRML's shared runtime and capability-based API so you can focus on your mod's behavior. The [mod development guide](developing.md) starts with readable examples; the [API reference](api.md) describes what is available today.
+
 CRML uses a native XInput proxy to start its runtime, while mod packages contain sandboxed `.wasm` modules. It does not load third-party native mod DLLs. Mod authors use the [versioned host API](api.md) and declared capabilities. Research published here can inform native integrations, but offsets and compatibility findings apply to the recorded game builds, not every Northlight game.
 
 ## Mod format

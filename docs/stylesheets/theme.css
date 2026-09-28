@@ -42,3 +42,19 @@
 }
 .crml-intro { max-width: 44rem; font-size: 1.12rem; line-height: 1.6; }
 .crml-label { color: var(--md-typeset-a-color); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+.crml-framework-note {
+  display: flex; align-items: flex-start; gap: .65rem;
+  margin: 0 0 1.5rem; padding: .75rem;
+  border: 1px solid var(--md-default-fg-color--lightest); border-radius: .3rem;
+  font-size: .7rem; line-height: 1.6;
+}
+.crml-framework-note img { flex: 0 0 32px; }
+.crml-framework-note strong { display: block; }
+.crml-brand-preview {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 1.5rem; padding: 1.25rem; border-radius: .3rem;
+}
+.crml-brand-preview--dark { background: #20252e; }
+.crml-brand-preview--light { background: #edf2f8; }
+.crml-brand-preview img { max-width: 100%; height: auto; display: block; }
+@media print { .crml-framework-note { display: none; } }

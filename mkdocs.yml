@@ -10,8 +10,8 @@ theme:
   custom_dir: overrides
   language: en
   font: false
-  logo: assets/icon.svg
-  favicon: assets/icon.svg
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
   palette:
     - scheme: slate
       primary: custom
@@ -77,3 +77,4 @@ nav:
       - Player fall recovery: fall-recovery.md
   - Physics property trial: physics-trial.md
   - Documentation: documentation.md
+  - Brand assets: brand.md

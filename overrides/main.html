@@ -1,5 +1,18 @@
 {% extends "base.html" %}
 
+{% block content %}
+  {% if page and (page.file.src_uri.startswith("engine-") or page.file.src_uri in ["binlua.md", "pack2.md", "physics-dynamics.md", "physics-trial.md", "entity-inspector.md", "visibility.md", "movement.md", "fall-recovery.md", "gameplay.md"]) %}
+    <aside class="crml-framework-note" aria-label="Build with CRML">
+      <img src="{{ 'assets/brand/favicon.svg' | url }}" width="32" height="32" alt="">
+      <div><strong>Build on this research with CRML.</strong>
+        Use a shared runtime, sandboxed Wasm mods and working examples for supported gameplay operations.
+        <a href="{{ 'developing/' | url }}">Start a mod</a><span aria-hidden="true"> &middot; </span><a href="{{ 'api/' | url }}">Explore the API</a>
+      </div>
+    </aside>
+  {% endif %}
+  {{ super() }}
+{% endblock %}
+
 {% block extrahead %}
   {{ super() }}
   {% if page and page.canonical_url %}
