@@ -20,7 +20,7 @@ class ReleaseTests(unittest.TestCase):
         self.dist = self.root / 'dist'
         self.out = self.root / 'release-output'
         self.version = 'v0.1.0-alpha.1'
-        for name in ('README-runtime.txt', 'README-noclip.txt', 'NEXUS-DESCRIPTION.txt', self.version + '.md'):
+        for name in ('README-runtime.txt', 'README-noclip.txt', self.version + '.md'):
             self.write(self.root / 'release' / name, b'Public instructions')
         self.write(self.root / 'compatibility.json', json.dumps({'profiles': [{'sha256': 'a' * 64}]}).encode())
         self.write(self.root / 'THIRD_PARTY.md', b'Licenses')

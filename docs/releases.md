@@ -65,13 +65,6 @@ the [GitHub release CLI reference](https://cli.github.com/manual/gh_release_crea
 If publishing fails after draft creation, inspect the draft and workflow logs
 before retrying; existing release assets are never silently overwritten.
 
-## Nexus listing
-
-The release directory contains `NEXUS-DESCRIPTION.txt` as plain-text listing copy.
-Upload the noclip archive as a mod requiring CRML from GitHub, or use the bundle
-for a self-contained download. Keep the runtime version requirement, supported
-game fingerprint and control list accurate. Packaging does not publish to Nexus.
-
 Before publishing a gameplay release, check it in a playable save: movement in
 each direction, passage through geometry, return to normal control, Insert while
 flight is active, focus loss, and reload. Automated rendering and lifecycle tests

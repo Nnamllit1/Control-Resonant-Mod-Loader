@@ -139,7 +139,6 @@ def package(dist, output, version, root=ROOT):
             manifest['archives'][name] = {'sha256': digest(data), 'size': len(data), 'files': member_hashes}
         (stage / 'release.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
         (stage / 'SHA256SUMS.txt').write_text(''.join(f"{record['sha256']}  {name}\n" for name, record in manifest['archives'].items()), encoding='utf-8')
-        (stage / 'NEXUS-DESCRIPTION.txt').write_bytes((root / 'release/NEXUS-DESCRIPTION.txt').read_bytes())
         (stage / 'RELEASE-NOTES.md').write_bytes(notes.read_bytes())
         verify(stage, version)
         # Publish only a fully verified set. Copy into a newly created directory:
