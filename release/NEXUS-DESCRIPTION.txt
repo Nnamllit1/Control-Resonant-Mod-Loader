@@ -1,0 +1,37 @@
+Title: CRML - Noclip & Free Flight
+
+Short description:
+Fly through CONTROL Resonant's levels with camera-relative movement, adjustable
+speed and a hideable status panel. Built as a Wasm mod for CRML.
+
+Description:
+Want to see what's behind a wall or get a better look at a level? This mod lets
+you fly the player through geometry and explore at your own pace.
+
+Press F6 to turn flight on. WASD follows the camera's horizontal heading,
+Space and Ctrl move up and down, and Shift makes you fly faster. Press Insert
+to hide the panel without stopping flight. F6 or Esc returns normal control.
+
+You'll need CONTROL Resonant Mod Loader (CRML):
+https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases
+
+Install the matching runtime first, close the game, then copy this mod's crml
+folder beside CONTROLResonant.exe. Launch through Steam normally. The bundled
+download, if provided, already contains the runtime.
+
+This is an experimental release. It moves the character, not a separate camera,
+so the game's camera collision can still get in the way. Return above safe ground
+before turning flight off, and avoid saving outside the playable area. Switching
+away from the game stops flight. Loading and teleports may also switch it off.
+Only the game build recorded in compatibility.json is supported; game updates
+may need a new CRML version. Keyboard flight controls only.
+
+To remove the mod, close the game and delete crml/movement-wasm.enabled and
+crml/mods/movement. You can keep CRML installed for other mods.
+
+For mod authors: the movement code is an example Wasm mod. Its controls and speed
+live in the mod itself, with CRML handling the game-facing calls. The source,
+API docs and Northlight research are available here:
+https://crml.nnamllit.de/
+
+Independent community project, not affiliated with Remedy Entertainment.

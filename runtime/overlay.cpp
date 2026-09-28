@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 #include <cstring>
+#include <string>
 #include <DirectXPackedVector.h>
 
 namespace crml::probe {
@@ -30,6 +31,8 @@ std::atomic<bool> enabled{}, visible{};
 std::atomic<int> status{-1};
 std::atomic<uint64_t> presents{}, frames{}, queue_matches{};
 std::atomic<const char*> diagnostic{"not_started"};
+constexpr unsigned panel_width=440, panel_height=116;
+bool panel_shown=true, toggle_held=false; // Worker-owned UI preference.
 thread_local bool internal{};
 struct Internal { bool before=internal; Internal(){internal=true;} ~Internal(){internal=before;} };
 
@@ -53,7 +56,7 @@ struct State {
     std::array<Frame,8> buffers;
     std::array<Mark,512> marks{};
     UINT count{};
-    std::array<std::vector<unsigned char>,10> text;
+    std::array<std::vector<uint32_t>,10> text;
     bool failed{};
 };
 State& state() { static auto* value=new State; return *value; }
@@ -90,7 +93,7 @@ bool initialize(State& s, IDXGISwapChain* swap) {
         diagnostic="unsupported_backbuffer_format"; return false;
     }
     D3D12_RESOURCE_DESC texture{}; texture.Dimension=D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    texture.Width=510; texture.Height=86; texture.DepthOrArraySize=1; texture.MipLevels=1; texture.Format=format; texture.SampleDesc.Count=1;
+    texture.Width=panel_width; texture.Height=panel_height; texture.DepthOrArraySize=1; texture.MipLevels=1; texture.Format=format; texture.SampleDesc.Count=1;
     UINT64 bytes{}; device->GetCopyableFootprints(&texture,0,1,0,&s.footprint,nullptr,nullptr,&bytes);
     D3D12_RESOURCE_DESC buffer{}; buffer.Dimension=D3D12_RESOURCE_DIMENSION_BUFFER; buffer.Width=bytes;
     buffer.Height=1; buffer.DepthOrArraySize=1; buffer.MipLevels=1; buffer.SampleDesc.Count=1; buffer.Layout=D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
@@ -98,9 +101,9 @@ bool initialize(State& s, IDXGISwapChain* swap) {
     for(size_t n=0;n<s.uploads.size();++n) {
         if(FAILED(device->CreateCommittedResource(&properties,D3D12_HEAP_FLAG_NONE,&buffer,D3D12_RESOURCE_STATE_GENERIC_READ,nullptr,IID_PPV_ARGS(&s.uploads[n])))) return false;
         void* mapped{}; D3D12_RANGE read{0,0}; if(FAILED(s.uploads[n]->Map(0,&read,&mapped))) return false;
-        for(unsigned y=0;y<86;++y) for(unsigned x=0;x<510;++x) {
-            const bool ink=s.text[n][y*510+x]!=0;
-            float r=ink?.82f:.025f, g=ink?.9f:.033f, b=ink?1.f:.045f;
+        for(unsigned y=0;y<panel_height;++y) for(unsigned x=0;x<panel_width;++x) {
+            const auto color=s.text[n][y*panel_width+x];
+            float r=((color>>16)&255)/255.f, g=((color>>8)&255)/255.f, b=(color&255)/255.f;
             auto* dest=static_cast<unsigned char*>(mapped)+y*s.footprint.Footprint.RowPitch+x*(wide?8:4);
             if(wide) {
                 using DirectX::PackedVector::XMConvertFloatToHalf;
@@ -240,13 +243,14 @@ HRESULT STDMETHODCALLTYPE resize1_hook(IDXGISwapChain3* swap,UINT count,UINT wid
 
 bool rasterize(State& s,bool physics_trial,bool guest_physics,bool guest_movement) {
     // GDI creates the font mask once; only native D3D12 commands touch the game image.
-    constexpr int width=510,height=86;
+    constexpr int width=panel_width,height=panel_height;
     BITMAPINFO info{}; info.bmiHeader.biSize=sizeof(BITMAPINFOHEADER); info.bmiHeader.biWidth=width;
     info.bmiHeader.biHeight=-height; info.bmiHeader.biPlanes=1; info.bmiHeader.biBitCount=32; info.bmiHeader.biCompression=BI_RGB;
     auto dc=CreateCompatibleDC(nullptr); void* pixels{};
     auto bitmap=CreateDIBSection(dc,&info,DIB_RGB_COLORS,&pixels,nullptr,0);
-    auto font=CreateFontW(-16,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,NONANTIALIASED_QUALITY,DEFAULT_PITCH,L"Segoe UI");
-    if(!dc || !bitmap || !font) { if(font)DeleteObject(font); if(bitmap)DeleteObject(bitmap); if(dc)DeleteDC(dc); return false; }
+    auto font=CreateFontW(-15,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,ANTIALIASED_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    auto heading=CreateFontW(-18,0,0,0,FW_SEMIBOLD,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,ANTIALIASED_QUALITY,DEFAULT_PITCH,L"Segoe UI");
+    if(!dc || !bitmap || !font || !heading) { if(heading)DeleteObject(heading); if(font)DeleteObject(font); if(bitmap)DeleteObject(bitmap); if(dc)DeleteDC(dc); return false; }
     auto old_bitmap=SelectObject(dc,bitmap); auto old_font=SelectObject(dc,font);
     SetTextColor(dc,RGB(255,255,255)); SetBkMode(dc,TRANSPARENT);
     constexpr const wchar_t* labels[]{
@@ -280,18 +284,31 @@ bool rasterize(State& s,bool physics_trial,bool guest_physics,bool guest_movemen
             L"PHYSICS MOD: SELECTION CHANGED\nStay still while searching\nUse your mod's selection control to retry",
             L"PHYSICS MOD: SEARCH TIMED OUT\nLet the scene finish loading\nUse your mod's selection control to retry"};
         constexpr const wchar_t* movement_labels[]{
-            L"MOVEMENT MOD: UNAVAILABLE\nWaiting for player and mod requests\n[Esc] cancel",
-            L"MOVEMENT MOD: OFF\nUse your mod's activation control\nNormal movement is active",
-            L"MOVEMENT MOD: ACTIVE\nMovement controlled by the mod\n[Esc] cancel",
-            L"MOVEMENT MOD: OFF\nCamera heading unavailable\nUse your mod's activation control",
-            L"MOVEMENT MOD: ACTIVE\nCamera heading unavailable\n[Esc] cancel"};
-        RECT rect{12,9,width-12,height-9}; DrawTextW(dc,guest_movement?movement_labels[state_index<5?state_index:0]:guest_physics?guest_labels[state_index]:physics_trial?trial_labels[state_index]:labels[state_index<5?state_index:0],-1,&rect,DT_LEFT|DT_NOPREFIX); GdiFlush();
+            L"Movement unavailable\nLoad into gameplay to get started.\nWaiting for the player and a mod request.",
+            L"Movement off\nNormal movement is active.\nUse your mod's controls to start flying.",
+            L"Movement active\nYour mod is controlling movement.\nEsc returns control to the game.",
+            L"Movement off\nCamera heading is unavailable.\nYour mod can still request vertical movement.",
+            L"Movement active\nCamera heading is unavailable.\nEsc returns control to the game."};
+        const std::wstring label=guest_movement?movement_labels[state_index<5?state_index:0]:guest_physics?guest_labels[state_index]:physics_trial?trial_labels[state_index]:labels[state_index<5?state_index:0];
+        auto fill=[&](RECT rect,COLORREF color) { auto brush=CreateSolidBrush(color); if(brush){FillRect(dc,&rect,brush);DeleteObject(brush);} };
+        fill({0,0,width,height},RGB(24,28,35));
+        fill({0,0,3,height},RGB(145,178,223));
+        fill({16,85,width-16,86},RGB(48,56,69));
+        const auto split=label.find(L'\n');
+        SelectObject(dc,heading); SetTextColor(dc,RGB(237,242,248));
+        RECT title{16,10,width-76,34}; DrawTextW(dc,label.c_str(),static_cast<int>(split),&title,DT_LEFT|DT_SINGLELINE|DT_END_ELLIPSIS|DT_NOPREFIX);
+        SelectObject(dc,font); SetTextColor(dc,RGB(165,192,229));
+        RECT brand{width-64,12,width-16,32}; DrawTextW(dc,L"CRML",-1,&brand,DT_RIGHT|DT_SINGLELINE);
+        SetTextColor(dc,RGB(178,190,207));
+        RECT detail{16,38,width-16,82}; DrawTextW(dc,label.c_str()+split+1,-1,&detail,DT_LEFT|DT_NOPREFIX);
+        RECT hint{16,92,width-16,112}; DrawTextW(dc,L"Insert  Show / hide panel",-1,&hint,DT_LEFT|DT_SINGLELINE);
+        GdiFlush();
         auto* data=static_cast<const unsigned*>(pixels);
         s.text[state_index].resize(width*height);
         for(int y=0;y<height;++y) for(int x=0;x<width;++x)
-            s.text[state_index][y*width+x]=(data[y*width+x]&0xffffff)?1:0;
+            s.text[state_index][y*width+x]=data[y*width+x]&0xffffff;
     }
-    SelectObject(dc,old_font); SelectObject(dc,old_bitmap); DeleteObject(font); DeleteObject(bitmap); DeleteDC(dc);
+    SelectObject(dc,old_font); SelectObject(dc,old_bitmap); DeleteObject(heading); DeleteObject(font); DeleteObject(bitmap); DeleteDC(dc);
     return true;
 }
 }
@@ -306,7 +323,11 @@ void* overlay_create(bool physics_trial,bool guest_physics,bool guest_movement) 
         const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return nullptr;
         ComPtr<ID3D12Device> device; ComPtr<IDXGIFactory4> factory; ComPtr<ID3D12CommandQueue> queue;
         ComPtr<ID3D12CommandAllocator> allocator; ComPtr<ID3D12GraphicsCommandList> list;
-        if(FAILED(D3D12CreateDevice(nullptr,D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&device))) || FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) return nullptr;
+        if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) return nullptr;
+        if(FAILED(D3D12CreateDevice(nullptr,D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&device)))) {
+            ComPtr<IDXGIAdapter> warp;
+            if(FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(&warp))) || FAILED(D3D12CreateDevice(warp.Get(),D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&device)))) return nullptr;
+        }
         D3D12_COMMAND_QUEUE_DESC queue_desc{}; queue_desc.Type=D3D12_COMMAND_LIST_TYPE_DIRECT;
         if(FAILED(device->CreateCommandQueue(&queue_desc,IID_PPV_ARGS(&queue))) ||
            FAILED(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,IID_PPV_ARGS(&allocator))) ||
@@ -348,7 +369,12 @@ void* overlay_create(bool physics_trial,bool guest_physics,bool guest_movement) 
         enabled=true; diagnostic="waiting_for_present"; return &s;
     } catch(...) { diagnostic="initialization_exception"; return nullptr; }
 }
-void overlay_update(void*,bool show,int value,bool camera_valid) noexcept { status=!camera_valid && (value==0 || value==1)?value+2:value; visible=show; }
+void overlay_update(void*,bool focused,int value,bool camera_valid,bool toggle_down) noexcept {
+    if(focused && toggle_down && !toggle_held) panel_shown=!panel_shown;
+    toggle_held=toggle_down;
+    status=!camera_valid && (value==0 || value==1)?value+2:value;
+    visible=focused && panel_shown;
+}
 void overlay_destroy(void*) noexcept { visible=false; enabled=false; }
 OverlayDiagnostics overlay_diagnostics() noexcept { return {presents.load(),frames.load(),queue_matches.load(),diagnostic.load()}; }
 }

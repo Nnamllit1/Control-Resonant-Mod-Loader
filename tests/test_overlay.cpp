@@ -26,7 +26,11 @@ struct Fixture {
     UINT64 serial{};
     UINT width=640,height=360,stride{};
     Fixture() {
-        check(D3D12CreateDevice(nullptr,D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&device)));
+        if(FAILED(D3D12CreateDevice(nullptr,D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&device)))) {
+            ComPtr<IDXGIFactory4> factory; check(CreateDXGIFactory1(IID_PPV_ARGS(&factory)));
+            ComPtr<IDXGIAdapter> warp; check(factory->EnumWarpAdapter(IID_PPV_ARGS(&warp)));
+            check(D3D12CreateDevice(warp.Get(),D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&device)));
+        }
         D3D12_COMMAND_QUEUE_DESC q{}; q.Type=D3D12_COMMAND_LIST_TYPE_DIRECT;
         check(device->CreateCommandQueue(&q,IID_PPV_ARGS(&queue)));
         check(device->CreateCommandQueue(&q,IID_PPV_ARGS(&unrelated)));
@@ -105,7 +109,7 @@ struct Fixture {
         auto* data=static_cast<const unsigned char*>(mapped);
         auto pixel=[&](UINT x,UINT y){return data+y*footprint.Footprint.RowPitch+x*4;};
         bool outside=pixel(0,0)[0]==51;
-        bool background=panel ? pixel(21,21)[0]<10 : pixel(21,21)[0]==51;
+        bool background=panel ? pixel(24,24)[0]==24 : pixel(24,24)[0]==51;
         unsigned text_pixels=0;
         for(UINT y=30;y<95;++y) for(UINT x=32;x<520;++x) if(pixel(x,y)[0]>180 && pixel(x,y)[2]>180) ++text_pixels;
         if(panel) {
@@ -136,6 +140,17 @@ int main(int argc,char**) {
             crml::probe::overlay_update(overlay,true,state); index=f.draw(); f.verify(index,true);
         }
         crml::probe::overlay_update(overlay,true,1,false); index=f.draw(); f.verify(index,true);
+        crml::probe::overlay_update(overlay,true,0);
+        // A held Insert press toggles once; subsequent gameplay updates do not
+        // reopen the panel. Focus loss and refocus preserve the preference.
+        crml::probe::overlay_update(overlay,true,1,true,true); index=f.draw(); f.verify(index,false);
+        crml::probe::overlay_update(overlay,true,0,true,true); index=f.draw(); f.verify(index,false);
+        crml::probe::overlay_update(overlay,false,0); index=f.draw(); f.verify(index,false);
+        crml::probe::overlay_update(overlay,true,1); index=f.draw(); f.verify(index,false);
+        crml::probe::overlay_update(overlay,true,1,true,true); index=f.draw(); f.verify(index,true);
+        crml::probe::overlay_update(overlay,true,1);
+        crml::probe::overlay_update(overlay,false,1,true,true);
+        crml::probe::overlay_update(overlay,true,1,true,true); index=f.draw(); f.verify(index,true);
         crml::probe::overlay_update(overlay,true,0);
         const auto before=crml::probe::overlay_diagnostics().frames;
         check(f.swap->Present(0,DXGI_PRESENT_TEST));

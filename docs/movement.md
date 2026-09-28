@@ -24,11 +24,12 @@ Omit `--update` for a fresh installation. Copy the example only if the destinati
 
 ## Controls and expected behavior
 
-Start in an open area with solid ground beneath the player. The panel should show **MOVEMENT MOD: OFF** once the player is available.
+Start in an open area with solid ground beneath the player. The panel should show **Movement off** once the player is available.
 
 | Control | Expected behavior |
 | --- | --- |
 | F6 | Toggle movement; starts off |
+| Insert | Show/hide the CRML panel without changing flight; remembered until the game closes |
 | W / S | Move forward/backward along the camera's horizontal heading |
 | A / D | Strafe left/right relative to that heading |
 | Space / Ctrl | Move up/down without normal jump or crouch actions |

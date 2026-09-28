@@ -399,7 +399,7 @@ void Session::poll() {
         Event e{};e.kind=Kind::body;e.edge=4;e.flags=edges;e.qpc=now;e.thread=GetCurrentThreadId();events.push(e);
         request_tick=now;commands.fetch_or(edges);
     }
-    probe::overlay_update(overlay_,focus,ui.load());
+    probe::overlay_update(overlay_,focus,ui.load(),true,down(VK_INSERT));
     if(!log_.is_open() || !log_) return;
     std::array<Event,128> batch{};
     const auto count=events.drain(batch.data(),batch.size());

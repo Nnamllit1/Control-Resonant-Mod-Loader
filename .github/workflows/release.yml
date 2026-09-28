@@ -1,0 +1,58 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Require a version tag
+        shell: pwsh
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          if ($env:RELEASE_REF -notmatch '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9]+(\.[a-z0-9]+)*)?$') { throw 'Run this workflow on a version tag.' }
+      - name: Build, test and package
+        shell: powershell
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: .\release.ps1 -Version $env:RELEASE_TAG -Output .local/release-ci
+      - uses: actions/upload-artifact@v6
+        with:
+          name: release
+          path: .local/release-ci/*
+          include-hidden-files: true
+          if-no-files-found: error
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v6
+        with:
+          name: release
+          path: release-assets
+      - name: Verify package hashes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 tools/package_release.py --verify --version "$RELEASE_TAG" --output release-assets
+      - name: Upload complete draft, then publish prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" release-assets/*.zip release-assets/SHA256SUMS.txt release-assets/release.json --verify-tag --draft --prerelease --title "CRML $RELEASE_TAG" --notes-file release-assets/RELEASE-NOTES.md
+          gh release edit "$RELEASE_TAG" --draft=false

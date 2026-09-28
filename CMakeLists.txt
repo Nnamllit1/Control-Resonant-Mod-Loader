@@ -7,6 +7,8 @@ enable_language(ASM_MASM)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_definitions(UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+# Keep local checkout paths out of distributed PE debug-directory records.
+add_link_options("/PDBALTPATH:%_PDB%")
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/W4> $<$<COMPILE_LANGUAGE:CXX>:/utf-8> $<$<COMPILE_LANGUAGE:CXX>:/EHsc>)
 set(WASMTIME_ROOT "${CMAKE_SOURCE_DIR}/build/deps/wasmtime-v49.0.0-x86_64-windows-c-api" CACHE PATH "Wasmtime C API")
 if(NOT EXISTS "${WASMTIME_ROOT}/include/wasmtime.h")

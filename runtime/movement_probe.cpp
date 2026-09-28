@@ -255,7 +255,7 @@ void Recorder::poll() {
                           (!motion_ && !flight.enabled && !fall::available({latest.world,latest.entity})) ? -1 : flight.enabled ? 1 : 0;
         const bool camera_valid=latest.camera.valid;
         ReleaseSRWLockExclusive(&sample_lock);
-        overlay_update(overlay_, foreground, state, camera_valid);
+        overlay_update(overlay_, foreground, state, camera_valid, down(VK_INSERT));
     }
     if (!output_.is_open() || ++polls_ % (motion_?100:10)) return;
     if(fall_output_.is_open()) {
