@@ -8,6 +8,9 @@
 #include "fall_guard.h"
 #include "fall_observer.h"
 #include "boundary_guard.h"
+#include "lua_lifetime.h"
+#include "lua_probe.h"
+#include "lua_session.h"
 #include <Windows.h>
 #include <bcrypt.h>
 #include <MinHook.h>
@@ -260,7 +263,7 @@ void Recorder::poll() {
     if (!output_.is_open() || ++polls_ % (motion_?100:10)) return;
     if(fall_output_.is_open()) {
         fall_trace::write(fall_output_);boundary::write(fall_output_);fall_output_.flush();
-        if(!fall_output_) {fall_trace::stop();fall_output_.close();}
+        if(!fall_output_) {lua::stop();lua::lifetime::stop();fall_trace::stop();fall_output_.close();}
     }
     Sample sample{};
     DWORD thread{};
@@ -330,7 +333,9 @@ void Recorder::poll() {
         if(!visibility_) recording.store(false);
         inspecting.store(false); entity_output_.close();
         output_.close();
-        fall_trace::stop();fall_output_.close();
+        lua::stop();lua::lifetime::stop();fall_trace::stop();
+        if(fall_output_) {lua::lifetime::write(fall_output_);lua::session::write(fall_output_);fall_output_.flush();}
+        fall_output_.close();
     }
 }
 
@@ -427,7 +432,7 @@ void Recorder::release(uint64_t owner) noexcept {
 Recorder::~Recorder() {
     boundary::stop();
     fall_trace::stop();
-    if(fall_output_.is_open()) {fall_trace::write(fall_output_);fall_output_.flush();}
+    if(fall_output_.is_open()) {fall_trace::write(fall_output_);boundary::write(fall_output_);fall_output_.flush();}
     visibility::stop();
     inspecting.store(false);
     recording.store(false); gameplay_enabled.store(false);

@@ -1,4 +1,5 @@
 #include "lua_probe.h"
+#include "lua_session.h"
 #include <array>
 #include <cstring>
 #include <cstdlib>
@@ -22,6 +23,10 @@ bool in_body{};
 using Cell=std::array<unsigned char,24>;
 std::map<uint64_t,std::map<std::string,Cell>> tables;
 uint64_t next_table{};
+bool persistent_loading{},persistent_error{};
+uint64_t persistent_environment{};
+int persistent_counter{},retains{},fetches{},releases{};
+std::map<int,Cell> registry;
 constexpr uint64_t owner_id=0x200000001;
 Owner owner() {return {reinterpret_cast<uintptr_t>(world.data()),owner_id};}
 template<class T> void put(void* p,size_t offset,T value) {std::memcpy(static_cast<unsigned char*>(p)+offset,&value,sizeof(value));}
@@ -69,6 +74,13 @@ int raw_field(void*,int index,const char* key) {
     push_cell(value);return get<int>(value.data(),16);
 }
 int load(void* l,const char* label,const char* bytes,size_t size,int env) {
+    if(std::strstr(label,"crml_persistent")) {
+        require(l==vm.data() && env==2 && size>2 && bytes[0]==6 && bytes[1]==3,"persistent loader environment and bytecode");
+        persistent_loading=true;persistent_error=std::strstr(label,"error")!=nullptr;
+        persistent_environment=get<uint64_t>(cell(env).data(),0);persistent_counter=0;
+        require(get<uint64_t>(tables[persistent_environment]["self"].data(),0)==owner_id,"persistent owner in private environment");
+        push(7);return 0;
+    }
     require(l==vm.data() && env==(loads==4?2:0) && size>2 && bytes[0]==6 && bytes[1]==3,"loader ABI/bytecode");
     if(env) {
         require(get<uint64_t>(cell(env).data(),0)==2 && get<uint64_t>(tables[2]["_ENV"].data(),0)==2,"rooted private environment");
@@ -81,6 +93,14 @@ int load(void* l,const char* label,const char* bytes,size_t size,int env) {
     push(7);return 0;
 }
 int call(void* l,int args,int results,int err) {
+    if(persistent_loading || !registry.empty()) {
+        require(l==vm.data() && args==0 && results==1 && err==0,"persistent call ABI");
+        put(vm.data(),8,get<uintptr_t>(vm.data(),8)-24);
+        if(persistent_loading) {persistent_loading=false;push(7);return 0;}
+        ++persistent_counter;
+        if(persistent_error && persistent_counter==3) {push_error("crml_persistent_error:8: attempt to call a nil value");return 2;}
+        push(3,persistent_counter);return 0;
+    }
     require(l==vm.data() && args==(calls==4?1:0) && results==(calls==4?2:1) && err==0,"protected call ABI");
     ++calls;
     if(calls==5 && mode!=10) {
@@ -136,10 +156,27 @@ void push_entity(void* l,uint64_t id,int tag) {
     auto top=get<uintptr_t>(l,8);push(2);
     put(reinterpret_cast<void*>(top),0,id);put(reinterpret_cast<void*>(top),8,tag);
 }
+int retain(void*,int index) {
+    require(index==-1 && get<int>(cell(index).data(),16)==7,"retain returned callback");
+    if(mode==13) throw 4;
+    registry[++retains]=cell(index);return retains;
+}
+int fetch(void*,int index,int reference) {
+    require(index==-10000 && registry.contains(reference),"fetch only owned live registry reference");
+    ++fetches;
+    if(mode==15) {push(3);return 3;}
+    push_cell(registry.at(reference));return 7;
+}
+void release(void*,int reference) {
+    require(registry.contains(reference),"reference released exactly once");
+    ++releases;registry.erase(reference);
+    if(mode==14) throw 4; // Even an ambiguous release may have recycled the slot.
+}
 void reset(int m=0) {
     vm={};context={};global={};stack={};moved={};ci={};world={};generations={0,2};
     calls=loads=protects=restores=0;mode=m;deliberate=false;
     in_body=false;tables.clear();next_table=1;
+    persistent_loading=persistent_error=false;persistent_environment=0;persistent_counter=retains=fetches=releases=0;registry.clear();
     auto ptr=[](auto& a) {return reinterpret_cast<uintptr_t>(a.data());};
     put(vm.data(),8,ptr(stack)+48);put(vm.data(),0x10,ptr(stack)+24);
     put(vm.data(),0x18,ptr(global));put(vm.data(),0x20,ptr(ci));
@@ -148,7 +185,7 @@ void reset(int m=0) {
     put(vm.data(),0x78,ptr(context));put(context.data(),0,ptr(world));
     put(world.data(),0x584e8,ptr(generations));put(world.data(),0x58510,uint64_t{2});
     put(ci.data(),0,ptr(stack)+24);put(stack.data(),24+16,uint32_t{7});
-    configure({&load,&protect,&settop,&call,&push_entity,&new_table,&push_value,&set_field,&readonly,&set_metatable,&raw_field},image);
+    configure({&load,&protect,&settop,&call,&push_entity,&new_table,&push_value,&set_field,&readonly,&set_metatable,&raw_field,&retain,&fetch,&release},image);
 }
 std::string output() {std::ostringstream out;write(out);return out.str();}
 void invoke() {after_call(vm.data(),site,1,0,1,0,owner());}
@@ -203,5 +240,23 @@ int main() {
     put(stack.data(),72+8,uint32_t{1});generations[1]=3;
     require(before_call(vm.data(),site,1,0,1).entity==0,"stale incoming owner rejected");
     reset();stop();invoke();require(loads==0,"stopped probe stays passive");
+    reset();invoke();configure_persistent();
+    session::Context session_context{vm.data(),reinterpret_cast<uintptr_t>(global.data()),owner().world,owner_id};
+    const auto original_stack=stack;
+    for(uint64_t time=0;time<=2500;time+=250) session::tick(session_context,time);
+    require(retains==3 && fetches==6 && releases==2 && registry.size()==1,"real provider retains across calls and releases explicit/error sessions");
+    require(stack[24]==original_stack[24] && get<uintptr_t>(vm.data(),8)==reinterpret_cast<uintptr_t>(stack.data()+48),"persistent operations restore original stack");
+    std::ostringstream persistent_report;session::write(persistent_report);
+    require(persistent_report.str().find("\"expected_errors\":1")!=std::string::npos && persistent_report.str().find("\"failures\":0")!=std::string::npos,"delayed error is contained and next session loads");
+    session::cleanup_begin(session_context.global,owner_id);session::cleanup_end();
+    session_context.revision=session::revision();session::tick(session_context,2750);
+    require(releases==3 && registry.empty(),"retired owner callback released on later valid context");
+    session::stop();
+    reset();invoke();configure_persistent();session_context.revision=session::revision();mode=13;session::tick(session_context,0);
+    require(registry.empty() && retains==0 && get<uintptr_t>(vm.data(),8)==reinterpret_cast<uintptr_t>(stack.data()+48),"retain allocation error contained and stack restored");
+    reset();invoke();configure_persistent();session::tick(session_context,0);mode=15;session::tick(session_context,250);mode=0;session::tick(session_context,500);
+    require(fetches==1 && releases==1 && registry.empty(),"wrong registry value rejected and owned reference retired");
+    reset();invoke();configure_persistent();session::tick(session_context,0);mode=14;session::stop();session::tick(session_context,250);session::tick(session_context,500);
+    require(releases==1 && registry.empty(),"ambiguous native release is not repeated");
     std::cout<<"Lua probe checks passed\n";
 }

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "title": "Engine Lua execution, registry references and entity cleanup",
+  "title": "Engine Lua execution, registry references, entity cleanup and VM destruction",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
   "status": "Static call references; see engine-lua.md for ABI interpretations and evidence limits.",
   "checks": [
@@ -62,6 +62,14 @@
     {"kind":"call_rel32","rva":"0x1a07aea","target":"0x19aaf20","label":"event registration owner-chain insertion"},
     {"kind":"call_rel32","rva":"0x1a095d6","target":"0x19a93b0","label":"event cleanup owner-chain lookup"},
     {"kind":"call_rel32","rva":"0x1a09643","target":"0x2c508d0","label":"event owner cleanup releases callback"},
-    {"kind":"call_rel32","rva":"0x1a09821","target":"0x19ac8e0","label":"event cleanup erases owner-chain map entry"}
+    {"kind":"call_rel32","rva":"0x1a09821","target":"0x19ac8e0","label":"event cleanup erases owner-chain map entry"},
+    {"kind":"call_rel32","rva":"0x19afea7","target":"0x2c3be80","label":"script-state initialization failure closes VM"},
+    {"kind":"call_rel32","rva":"0x19b01ad","target":"0x2c3be80","label":"script-state destructor closes VM before context cleanup"},
+    {"kind":"call_rel32","rva":"0x2c3be98","target":"0x2c42bf0","label":"VM close releases main-thread upvalues"},
+    {"kind":"jump_rel32","rva":"0x2c3bea5","target":"0x2c3c1a0","label":"VM close tail-calls state destruction"},
+    {"kind":"call_rel32","rva":"0x2c3c1bd","target":"0x2c41200","label":"state destruction frees GC objects"},
+    {"kind":"call_rel32","rva":"0x2c3c1d7","target":"0x2c3da60","label":"state destruction frees string hash storage"},
+    {"kind":"call_rel32","rva":"0x2c3c1f4","target":"0x2c3da60","label":"state destruction frees call frames"},
+    {"kind":"call_rel32","rva":"0x2c3c211","target":"0x2c3da60","label":"state destruction frees stack storage"}
   ]
 }

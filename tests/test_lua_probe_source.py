@@ -10,6 +10,44 @@ VM = None
 
 
 class SourceTests(unittest.TestCase):
+    def test_persistent_closures(self):
+        if VM is None:
+            self.skipTest("supply --vm for standalone Lua behavior checks")
+        for name in ("persistent", "persistent_error"):
+            source = (ROOT / "examples/lua-probe" / (name + ".luau")).read_text(encoding="utf-8")
+            host = '''
+local environment = { self = {} }
+environment._ENV = environment
+setmetatable(environment, {__index = getfenv(0)})
+local chunk = function()
+%s
+end
+setfenv(chunk, environment)
+local callback = chunk()
+assert(type(callback) == 'function')
+assert(callback() == 1 and callback() == 2)
+local ok, value = pcall(callback)
+if %s then assert(not ok and type(value) == 'string')
+else assert(ok and value == 3 and callback() == 4) end
+assert(rawget(getfenv(0), '__crml_persistent_counter') == nil)
+assert(environment.__crml_persistent_counter == %d)
+-- Reloading the source into another environment must start at one.
+local replacement = {self = {}}
+replacement._ENV = replacement
+setmetatable(replacement, {__index = getfenv(0)})
+setfenv(chunk, replacement)
+local nextCallback = chunk()
+assert(nextCallback() == 1)
+assert(environment.__crml_persistent_counter == %d)
+print('persistent passed')
+''' % (source, 'true' if name.endswith('error') else 'false',
+       3 if name.endswith('error') else 4, 3 if name.endswith('error') else 4)
+            with self.subTest(script=name), tempfile.TemporaryDirectory() as tmp:
+                script = Path(tmp) / "persistent.luau"
+                script.write_text(host, encoding="utf-8")
+                result = subprocess.run([str(VM), str(script)], capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_event_cleanup_and_environment(self):
         if VM is None:
             self.skipTest("supply --vm for standalone Lua behavior checks")

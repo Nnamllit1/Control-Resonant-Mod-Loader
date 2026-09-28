@@ -24,7 +24,7 @@ The loader receives bytecode **without** the resource envelope. An environment i
 
 The protected callback saves call-frame position and native-call depth. Its error path closes pending upvalues, places an error object at the saved stack position, and restores the frame base. Stack positions are offsets because VM allocation can relocate the stack. The callback receives `(state, userData)`. This barrier covers loading as well as execution in the CRML probe; protecting only the later Lua call would leave loader allocation outside that barrier.
 
-The engine's fixed script update makes a protected call at `0x1a0aada` with one argument, zero results and error handler index 1. The probe uses the return from that exact call after success. It shares the existing boundary-guard hook, runs synchronously on the engine thread, and does not retain a VM, world or entity pointer afterward. A suspended VM, non-root call frame, missing context, insufficient stack space or installed protected-error debugger callback prevents execution.
+The engine's fixed script update makes a protected call at `0x1a0aada` with one argument, zero results and error handler index 1. The one-shot probe uses the return from that exact call after success. It shares the existing boundary-guard hook, runs synchronously on the engine thread, and does not retain a VM, world or entity pointer afterward. The separate persistent diagnostic below retains a registry reference with explicit lifecycle ownership. A suspended VM, non-root call frame, missing context, insufficient stack space or installed protected-error debugger callback prevents execution.
 
 The arithmetic/error/recovery test confirms this loading and protected-execution path for the embedded compiler output. Other ABI interpretations still come from instruction and data-flow inspection. Encoded-reference checks and native mock tests do not establish behavior of additional engine operations.
 
@@ -67,7 +67,7 @@ Event registration at `0x1a07910` maintains separate target and script-owner ind
 
 The script-removal worker calls entity cleanup at `0x19b43d9` and `0x19b4571` on separate branches. Within entity cleanup, references in three entity-keyed maps at script-state `+0x78`, `+0xa8` and `+0xd8` are released and their entries erased. Callback cleanup follows at `0x19c730e`. The routine then clears entries in `external_script_wrappers` and releases the entity's environment reference from the map at VM-context `+0x18`.
 
-This establishes a static cleanup path from script removal to event references and environment ownership. It does not yet establish when that path runs relative to save reload, VM destruction or CRML shutdown. A persistent integration must distinguish its own retained references from engine-owned listener references, retire each reference once, and invalidate ownership before VM replacement. Pointer equality and an old reference number are insufficient proof that a callback is still valid.
+This establishes a static cleanup path from script removal to event references and environment ownership. A gameplay capture observed selected-owner cleanup followed by new owner updates without a VM-close call during the recording window. Cleanup ran on threads distinct from the sampled update thread. Reload handling therefore cannot rely solely on VM destruction or assume that teardown runs on the callback thread. This does not establish every transition or process-exit path. A persistent integration must distinguish its own retained references from engine-owned listener references, retire each reference once, and invalidate ownership before VM replacement. Pointer equality and an old reference number are insufficient proof that a callback is still valid.
 
 ## Developer smoke test
 
@@ -87,7 +87,7 @@ The harness checks that the event script's marker is present only in its private
 
 A schema-4 gameplay capture passed all five stages: arithmetic **42**, protected error status **2**, recovery **42**, binding mask **15**, and event result **127**. Every stage restored its stack; the final stage reported both environment creation and namespace verification. This confirms the bounded, same-call event sequence. It does not demonstrate callbacks surviving across updates or cleanup during reload and unload.
 
-The event script attempts to remove its own listener even if sending raises an error. It writes only to its private environment and local state. The harness keeps no registry references and runs at most once per process. The engine retains a function while the listener is registered; removal releases that reference. Temporary closures then become eligible for ordinary VM garbage collection. This bounded register/send/remove operation is not general mod unload support.
+The event script attempts to remove its own listener even if sending raises an error. It writes only to its private environment and local state. This one-shot sequence keeps no registry references and runs at most once per process. The engine retains a function while the listener is registered; removal releases that reference. Temporary closures then become eligible for ordinary VM garbage collection. This bounded register/send/remove operation is not general mod unload support.
 
 Build with the explicit opt-in switch:
 
@@ -143,6 +143,81 @@ python tools/compile_lua_probe.py --compiler "$compiler" --check
 Omit `--check` to regenerate `runtime/lua_probe_bytecode.h`. The header contains only CRML-authored scripts, compiled at optimization level 0 with debug level 2. Matching a bytecode header alone does not establish compatibility with the engine VM.
 
 The native CTest suite covers stack cleanup, owner generation checks and hook routing. `python tests/test_lua_probe_source.py --vm <luau-executable>` additionally exercises the event script against a standalone mock host, including dispatch failure and cleanup. Those mocks do not substitute for the engine's event dispatch and deferred removal behavior.
+
+## Script and VM lifetime diagnostics
+
+The recovered script-state destructor at RVA `0x19b0190` closes its VM before releasing its context. The close entry at `0x2c3be80` obtains the main thread from the shared global state, closes its upvalues and enters state destruction at `0x2c3c1a0`. That path releases GC objects, string storage, call frames, the stack and finally the VM allocation. Registry references cannot be used after this boundary. These are static contracts for the fingerprint in [the execution map](research/lua-execution-map.json); they do not establish which save or menu transitions destroy a VM.
+
+With `-LuaProbe`, CRML also observes the close entry and entity-script cleanup at `0x19c70e0`. Both hooks forward their original arguments unchanged. The observer invokes no Lua functions, retains no registry references and changes no engine state. These hooks also notify the persistent diagnostic described below; the one-shot script probe still runs as described above.
+
+The observer tracks up to 16 shared Lua global states and one selected script owner per observed world. It emits anonymous, process-local epochs for the VM, world and owner; they are diagnostic identities, not API handles. Closing a VM retires its identity before forwarding to the engine. Matching owner cleanup retires the selected owner; a subsequent eligible update can select another. World address changes also retire the selected owner. Post-call records use copied metadata and never read freed state. Reuse of a world address without an observed teardown cannot independently prove world continuity.
+
+Records are written to `crml/fall-recovery.jsonl`:
+
+| Record or field | Meaning |
+| --- | --- |
+| `lua_lifetime` | Observer state and cumulative counters |
+| `enabled` | Both fingerprint-gated lifetime hooks were installed and recording is enabled |
+| `incomplete`, `missed`, `read_failures` | Loss, contention, capacity exhaustion or unreadable state; any such loss stops further epoch assignment |
+| `cleanup_calls`, `close_calls` | Calls observed while recording, including owners or VMs outside the selected sample |
+| `lua_lifetime_event` | Ordered event with sequence, timestamp, thread ID and anonymous epochs |
+| `vm_observed`, `world_observed`, `owner_observed` | First observation of an identity; not a creation hook |
+| `world_changed` | A tracked VM supplied a different world address |
+| `owner_cleanup_begin`, `owner_cleanup_end` | The selected owner's script cleanup was entered and returned |
+| `vm_close_begin`, `vm_close_end` | A tracked VM's destruction was entered and returned |
+| `update`, `updates` | Sparse samples and cumulative eligible script-call count; multiple calls can occur within a frame |
+| `observer_stop` | Recording stopped; this does not mean the VM was destroyed |
+
+Each batch holds at most 256 events. The worker drains the batch before writing, without file I/O on engine threads. The enclosing movement recorder limits capture to approximately ten minutes. Hook trampolines remain pinned and forward normally after recording stops. Process termination may end recording before a final close event is flushed; a missing exit event is not proof that destruction did not run. These observations do not yet establish persistent mod callback cleanup or general Lua reload support.
+
+To capture reload ordering:
+
+1. Install a diagnostic build made with `-LuaProbe` in movement mode and launch normally.
+2. Load a playable save and walk for ten seconds.
+3. Reload the same save and wait ten seconds after gameplay returns.
+4. Return to the main menu, wait ten seconds, then load the save again and wait another ten seconds.
+5. Exit the game and retain `crml/fall-recovery.jsonl` before launching again.
+
+No diagnostic hotkey is required. Movement, saving, loading and menu transitions should behave normally; no visible effect is expected. Interpret a capture only when lifetime recording was enabled and `incomplete` remained false. Compare observed cleanup and close events with subsequent update epochs; a save reload is not assumed to destroy the entire VM. Native tests cover forwarding, identity reuse, freed-state handling, bounded recording and passive stopped hooks. Engine transition ordering still requires a gameplay capture.
+
+## Persistent callback diagnostic
+
+Diagnostic builds also contain `examples/lua-probe/persistent.luau` and `persistent_error.luau`. Each returns a closure that increments a counter in its private environment. The host retains that closure in the VM registry and invokes it on later eligible updates, at least 250 ms apart. The closure keeps its environment reachable. It performs no gameplay operation and registers no engine event listener or update callback.
+
+After the one-shot sequence succeeds, the diagnostic runs these stages:
+
+1. Initialize a counter, obtain results 1, 2 and 3, then explicitly release its reference.
+2. Initialize another counter, obtain 1 and 2, contain its deliberate nil-call error on the third invocation, then release that reference.
+3. Initialize a fresh counter and keep invoking it until owner cleanup, world replacement, VM destruction or recording shutdown. After owner retirement and reference cleanup, a later eligible owner can start a fresh counter. At most eight sessions are initialized per process.
+
+All allocating operations, invocation and registry access run inside the recovered native error barrier. The original stack and frame are checked and restored after each operation. A reference is fetched only from its recorded global state. A failed or ambiguous release is never retried, because the engine can recycle the reference number.
+
+An ownership gate prevents the bounded arithmetic operation from overlapping observed script cleanup or VM destruction. Teardown first waits for an in-flight diagnostic operation, retires matching ownership and marks cleanup in progress, then enters the original engine routine without holding the gate. Updates skip while teardown is active. A revision copied before the original script call rejects a stale update even if cleanup completed before its return and the entity generation still matches.
+
+Teardown threads perform no Lua calls. Owner retirement queues reference release for a subsequent eligible update in the same VM; the old callback is not invoked again. If that VM closes first, the diagnostic discards its reference number before destruction and leaves reclamation to the VM. On recording shutdown, new initialization and invocation stop; pending release can still drain through the pinned update hook. If no eligible update follows, reclamation waits for VM destruction. The host retains identity values for comparison, but never saves a VM pointer to dereference from a worker thread.
+
+This gate is specific to the embedded arithmetic callbacks. It is not a scheduler for arbitrary scripts that may reenter engine teardown, block or run indefinitely. The diagnostic does not establish arbitrary Lua file loading, engine-event persistence, comprehensive hot reload, or sandboxing.
+
+`lua_session` records accompany the lifetime records in `crml/fall-recovery.jsonl`:
+
+| Field | Meaning |
+| --- | --- |
+| `armed` | Cleanup hooks and registry entry checks allowed this diagnostic to start |
+| `sessions`, `initialized` | Attempted and successful session initializations |
+| `invocations`, `current_calls` | Total callback invocations and calls in the current session |
+| `explicit_unloads`, `expected_errors` | Completed first-stage unload requests and contained second-stage errors |
+| `active_reference`, `retired` | A reference remains owned, and whether invocation has been retired pending release |
+| `released`, `vm_reclaimed` | References explicitly released, or handed to VM destruction without another Lua call |
+| `owner_retirements`, `world_retirements` | Ownership retirement triggered by script cleanup or changed world identity |
+| `failures`, `halted` | Unexpected results or unsafe state; a halted session performs no further registry access |
+| `rejected` | Unsuitable execution frames; no operation was attempted |
+| `last_status` | Last VM/host status, including protected error 2 or diagnostic errors -301 through -306 |
+| `callback_thread`, `cleanup_thread` | Last execution and matching owner-retirement threads |
+| `teardown_depth`, `stop_requested` | Active cleanup nesting and a request to cease execution |
+
+Errors -301 through -306 mean: registry value is not a closure, callback result is not numeric, shared counter already exists, private metatable installation failed, initialization returned no closure, or retaining the closure returned no positive reference.
+
+Use the reload sequence above, allowing ten seconds of gameplay before each transition. The expected initial result is at least three initialized sessions, one explicit unload, one contained error, and zero unexpected failures. Reload cleanup should increase owner retirements and releases, followed by a fresh session if an eligible owner resumes. No visible effect or hotkey is required. Native and standalone source tests cover these contracts; persistent callback behavior in the engine remains subject to gameplay testing.
 
 ## Lua and Wasm mod interfaces
 

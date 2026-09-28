@@ -1,4 +1,6 @@
 #include "lua_probe.h"
+#include "lua_lifetime.h"
+#include "lua_session.h"
 #include "lua_probe_bytecode.h"
 #include <Windows.h>
 #include <array>
@@ -174,6 +176,64 @@ void run(void* vm,const Frame& initial,Owner owner) {
         if(!result.passed) {report.passed=false;break;}
     }
 }
+struct PersistentWork {
+    session::Context context;
+    session::Action action;
+    int reference{};
+    session::Result result;
+};
+void persistent_body(void* vm,void* user) {
+    auto& w=*static_cast<PersistentWork*>(user);
+    auto& result=w.result;
+    const auto l=reinterpret_cast<uintptr_t>(vm);
+    const int saved=static_cast<int>((read<uintptr_t>(l+8)-read<uintptr_t>(l+0x10))/24);
+    if(w.action==session::Action::release) {
+        api.release(vm,w.reference);result.released=true;return;
+    }
+    if(w.action==session::Action::invoke) {
+        if(api.fetch(vm,-10000,w.reference)!=7) {result.status=-301;return;}
+        result.status=api.call(vm,0,1,0);
+        if(result.status) return;
+        const auto value=read<uintptr_t>(l+8)-24;
+        if(read<uint32_t>(value+16)!=3) {result.status=-302;return;}
+        result.value=read<double>(value);return;
+    }
+    constexpr const char* marker="__crml_persistent_counter";
+    if(api.raw_field(vm,-10002,marker)!=0) {result.status=-303;return;}
+    api.settop(vm,saved);
+    api.new_table(vm,0,3);const int env=saved+1;
+    api.new_table(vm,0,1);
+    api.push_value(vm,-10002);api.set_field(vm,-2,"__index");
+    api.readonly(vm,-1,1);
+    if(!api.set_metatable(vm,env)) {result.status=-304;return;}
+    api.push_value(vm,env);api.set_field(vm,env,"_ENV");
+    api.push_entity(vm,w.context.owner,1);api.set_field(vm,env,"self");
+    const bool error=w.action==session::Action::initialize_error;
+    result.status=api.load(vm,error?"=crml_persistent_error":"=crml_persistent",
+        reinterpret_cast<const char*>(error?bytecode::persistent_error:bytecode::persistent),
+        error?sizeof(bytecode::persistent_error):sizeof(bytecode::persistent),env);
+    if(result.status) return;
+    result.status=api.call(vm,0,1,0);
+    if(result.status) return;
+    if(read<uint32_t>(read<uintptr_t>(l+8)-8)!=7) {result.status=-305;return;}
+    result.reference=api.retain(vm,-1); // Copies without popping; stack stays rooted.
+    if(result.reference<=0) result.status=-306;
+}
+session::Result persistent_execute(session::Context context,session::Action action,int reference) {
+    Frame initial;
+    if(!capture(context.vm,initial) || initial.global!=context.global || initial.world!=context.world ||
+       !valid_owner({context.world,context.owner})) return {};
+    PersistentWork work{context,action,reference,{}};work.result.attempted=true;
+    const int status=api.protect(context.vm,&persistent_body,&work,initial.top,0);
+    if(status) work.result.status=status;
+    Frame before_cleanup;
+    if(capture(context.vm,before_cleanup,0) && same_frame(initial,before_cleanup,false) && before_cleanup.top>=initial.top) {
+        api.settop(context.vm,static_cast<int>((initial.top-initial.base)/24));
+        Frame after;
+        work.result.restored=capture(context.vm,after) && same_frame(initial,after,true);
+    }
+    return work.result;
+}
 }
 bool start(uintptr_t image,Call original) noexcept {
 #if defined(CRML_LUA_PROBE) || defined(CRML_LUA_PROBE_TESTING)
@@ -210,9 +270,28 @@ bool start(uintptr_t image,Call original) noexcept {
     (void)image;(void)original;return false;
 #endif
 }
+bool start_persistent(uintptr_t image) noexcept {
+#ifdef CRML_LUA_PROBE
+    if(!enabled.load() || !image) return false;
+    constexpr unsigned char retain[]{0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7c,0x24,0x20};
+    constexpr unsigned char fetch[]{0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x74,0x24,0x10};
+    constexpr unsigned char release[]{0x85,0xd2,0x7e,0x46,0x57,0x48,0x83,0xec,0x20};
+    if(std::memcmp(reinterpret_cast<void*>(image+0x2c507a0),retain,sizeof(retain)) ||
+       std::memcmp(reinterpret_cast<void*>(image+0x2c4f1d0),fetch,sizeof(fetch)) ||
+       std::memcmp(reinterpret_cast<void*>(image+0x2c508d0),release,sizeof(release))) return false;
+    api.retain=reinterpret_cast<decltype(api.retain)>(image+0x2c507a0);
+    api.fetch=reinterpret_cast<decltype(api.fetch)>(image+0x2c4f1d0);
+    api.release=reinterpret_cast<decltype(api.release)>(image+0x2c508d0);
+    session::start(&persistent_execute);return true;
+#else
+    (void)image;return false;
+#endif
+}
 Owner before_call(void* vm,uintptr_t caller,int nargs,int results,int error) noexcept {
-    if(!enabled.load(std::memory_order_acquire) || state.load()!=0 ||
+    const auto revision=session::revision();
+    if((!enabled.load(std::memory_order_acquire) && !session::needs_calls()) || state.load()==1 ||
        caller!=image_base+0x1a0aadf || nargs!=1 || results!=0 || error!=1) return {};
+    if(state.load()!=0 && !lifetime::active() && !session::needs_calls()) return {};
     Frame frame;
     if(!capture(vm,frame) || frame.size<72) return {};
     // Copy only the value of the non-GC entity argument while it is still rooted
@@ -220,18 +299,24 @@ Owner before_call(void* vm,uintptr_t caller,int nargs,int results,int error) noe
     uint32_t tag{},kind{};uint64_t entity{};
     const auto* argument=frame.values.data()+frame.size-24;
     std::memcpy(&entity,argument,8);std::memcpy(&kind,argument+8,4);std::memcpy(&tag,argument+16,4);
-    Owner owner{frame.world,entity};
-    return tag==2 && kind==1 && valid_owner(owner)?owner:Owner{};
+    Owner owner{frame.world,entity,revision};
+    if(tag!=2 || kind!=1 || !valid_owner(owner)) return {};
+    lifetime::observe(vm,owner.world,owner.entity);
+    return owner;
 }
 void after_call(void* vm,uintptr_t caller,int nargs,int results,int error,int status,Owner owner) {
-    if(!enabled.load(std::memory_order_acquire) || state.load()!=0 || status ||
+    if((!enabled.load(std::memory_order_acquire) && !session::needs_calls()) || state.load()==1 || status ||
        caller!=image_base+0x1a0aadf || nargs!=1 || results!=0 || error!=1) return;
     Frame frame;
     if(!capture(vm,frame) || frame.size>60*24 || frame.world!=owner.world || !valid_owner(owner)) {++rejected;return;}
-    unsigned expected=0;
-    if(!state.compare_exchange_strong(expected,1)) return;
-    run(vm,frame,owner);
-    state.store(2,std::memory_order_release);
+    if(state.load()==0) {
+        unsigned expected=0;
+        if(!state.compare_exchange_strong(expected,1)) return;
+        run(vm,frame,owner);
+        state.store(2,std::memory_order_release);
+        return;
+    }
+    if(report.passed && session::needs_calls()) session::tick({vm,frame.global,frame.world,owner.entity,owner.revision},GetTickCount64());
 }
 void write(std::ostream& out) {
     const auto s=state.load(std::memory_order_acquire);
@@ -252,10 +337,17 @@ void write(std::ostream& out) {
     }
     out<<"}\n";
 }
-void stop() noexcept {enabled.store(false,std::memory_order_release);}
+void stop() noexcept {enabled.store(false,std::memory_order_release);session::stop();}
 #ifdef CRML_LUA_PROBE_TESTING
 void configure(Api functions,uintptr_t image) {
     enabled=false;api=functions;image_base=image;report={};state=0;rejected=0;enabled=true;
+}
+void configure_persistent() {
+#ifdef CRML_LUA_SESSION_TESTING
+    session::reset_for_test(&persistent_execute);
+#else
+    session::start(&persistent_execute);
+#endif
 }
 #endif
 }

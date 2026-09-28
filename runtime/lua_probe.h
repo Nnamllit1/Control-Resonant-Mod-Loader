@@ -18,15 +18,20 @@ struct Api {
     void(*readonly)(void*,int,int){};
     int(*set_metatable)(void*,int){};
     int(*raw_field)(void*,int,const char*){};
+    int(*retain)(void*,int){};
+    int(*fetch)(void*,int,int){};
+    void(*release)(void*,int){};
 };
-struct Owner { uintptr_t world{};uint64_t entity{}; };
+struct Owner { uintptr_t world{};uint64_t entity{},revision{}; };
 // Only the fingerprint-gated boundary hook may provide this engine-thread call.
 bool start(uintptr_t image,Call original) noexcept;
+bool start_persistent(uintptr_t image) noexcept;
 Owner before_call(void* vm,uintptr_t caller,int nargs,int results,int error) noexcept;
 void after_call(void* vm,uintptr_t caller,int nargs,int results,int error,int status,Owner owner={});
 void write(std::ostream& out);
 void stop() noexcept;
 #ifdef CRML_LUA_PROBE_TESTING
 void configure(Api api,uintptr_t image);
+void configure_persistent();
 #endif
 }

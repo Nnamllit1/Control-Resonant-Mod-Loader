@@ -10,7 +10,7 @@ def generate(compiler, root):
     lines = ["// Generated from examples/lua-probe with Luau 0.650, -O0 -g2.",
              "// Contains only CRML-authored code. Regenerate with tools/compile_lua_probe.py.",
              "#pragma once", "namespace crml::probe::lua::bytecode {"]
-    for name in ("arithmetic", "error", "bindings", "events"):
+    for name in ("arithmetic", "error", "bindings", "events", "persistent", "persistent_error"):
         source = root / "examples" / "lua-probe" / (name + ".luau")
         code = subprocess.run([str(compiler), "--binary", "-O0", "-g2", str(source)],
                               check=True, capture_output=True).stdout
