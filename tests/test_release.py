@@ -34,6 +34,9 @@ class ReleaseTests(unittest.TestCase):
                      'licenses/wasmtime/LICENSE', 'licenses/minhook/LICENSE.txt'):
             self.write(self.dist / name, b'a' * 64)
         self.features(False)
+        dependency = mock.patch.object(release, 'WASMTIME_SHA256', release.digest(b'a' * 64))
+        dependency.start()
+        self.addCleanup(dependency.stop)
 
     @staticmethod
     def write(path, data):
@@ -94,6 +97,15 @@ class ReleaseTests(unittest.TestCase):
         for version in ('../release', 'v1.2.3/other', 'v1.2.3\n', '--help'):
             with self.assertRaises(ValueError):
                 release.checked_version(version)
+
+    def test_upstream_paths_require_exact_dependency_hash(self):
+        upstream = str(self.root).encode() + b'upstream build diagnostics'
+        self.write(self.dist / 'crml/wasmtime.dll', upstream)
+        with self.assertRaisesRegex(ValueError, 'pinned upstream binary'):
+            self.package()
+        with mock.patch.object(release, 'WASMTIME_SHA256', release.digest(upstream)):
+            self.package()
+        release.verify(self.out, self.version)
 
 
 if __name__ == '__main__':

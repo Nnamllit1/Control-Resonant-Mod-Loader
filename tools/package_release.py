@@ -11,6 +11,9 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = re.compile(r"v\d+\.\d+\.\d+(?:-[a-z0-9]+(?:\.[a-z0-9]+)*)?", re.ASCII)
+# Exact DLL from the archive pinned by fetch-deps.py. Upstream Rust diagnostics
+# contain public build-runner paths; retain the unmodified, verified dependency.
+WASMTIME_SHA256 = 'fed9c7984a8fc0d4bf3a11356b4ce6bc9f7b2317a13c233b0eaf08d8a9fca9df'
 
 
 def digest(data):
@@ -130,7 +133,10 @@ def package(dist, output, version, root=ROOT):
             with zipfile.ZipFile(stage / name, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
                 for member, source in sorted(mapping.items()):
                     data = source if isinstance(source, bytes) else source.read_bytes()
-                    if any(value in data.lower() for value in private):
+                    upstream = member in ('crml/wasmtime.dll', 'tools/wasmtime.dll')
+                    if upstream and digest(data) != WASMTIME_SHA256:
+                        raise ValueError('Wasmtime DLL differs from the pinned upstream binary')
+                    if not upstream and any(value in data.lower() for value in private):
                         raise ValueError(f'Private build path found in {member}; rebuild with portable debug records')
                     info = zipfile.ZipInfo(member, (2026, 1, 1, 0, 0, 0))
                     info.compress_type = zipfile.ZIP_DEFLATED
