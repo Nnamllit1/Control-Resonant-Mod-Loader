@@ -2,6 +2,8 @@
 description: Download CONTROL Resonant Mod Loader, install compatible mods, create Wasm mods, and explore Northlight engine research.
 ---
 
+![CRML logo](assets/logo.svg){ width="112" height="112" }
+
 # CONTROL Resonant Mod Loader
 
 <p class="crml-label">Windows x64 · Experimental release</p>
