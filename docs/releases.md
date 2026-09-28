@@ -8,12 +8,12 @@ Run the release CLI from a Windows x64 checkout with Visual Studio C++ tools and
 Python installed:
 
 ```powershell
-.\release.bat -Version v0.1.0-alpha.1
+.\release.bat -Version v0.1.0-alpha.2
 ```
 
 The command builds gameplay support with Lua diagnostics disabled, runs the test
 suites, checks public text for local paths, and packages the release into
-`.local/releases/v0.1.0-alpha.1/`. Use `-Output <directory>` to choose a new output
+`.local/releases/v0.1.0-alpha.2/`. Use `-Output <directory>` to choose a new output
 location. Existing release directories are preserved; packaging refuses to
 overwrite them.
 
@@ -40,7 +40,7 @@ It also rejects embedded paths to the local checkout or user profile.
 Verify an existing set without rebuilding:
 
 ```powershell
-python tools/package_release.py --verify --version v0.1.0-alpha.1
+python tools/package_release.py --verify --version v0.1.0-alpha.2
 ```
 
 ## Publishing to GitHub
@@ -49,7 +49,7 @@ Add release notes under `release/<version>.md`, commit the reviewed source, and
 push that commit to `origin/main`. Then run:
 
 ```powershell
-.\release.bat -Version v0.1.0-alpha.1 -Output .local/publish-v0.1.0-alpha.1 -Publish
+.\release.bat -Version v0.1.0-alpha.2 -Output .local/publish-v0.1.0-alpha.2 -Publish
 ```
 
 `-Publish` requires a clean checkout matching `origin/main` and an unused version

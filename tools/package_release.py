@@ -117,7 +117,9 @@ def package(dist, output, version, root=ROOT):
     # A local build must not publish personal checkout or home paths, including PE
     # CodeView records. Third-party notices are preserved as supplied upstream.
     private = []
-    for path in (root.resolve(), Path.home()):
+    # Windows temp paths can use an 8.3 alias (for example a shortened account
+    # directory). Check both supplied and resolved spellings, in both encodings.
+    for path in (root.absolute(), root.resolve(), Path.home(), Path.home().resolve()):
         for form in (str(path), path.as_posix()):
             private.extend((form.encode().lower(), form.encode('utf-16le').lower()))
     output.parent.mkdir(parents=True, exist_ok=True)

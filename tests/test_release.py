@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -78,6 +79,15 @@ class ReleaseTests(unittest.TestCase):
         self.write(self.dist / 'crml/crml_host.exe', str(self.root).encode('utf-16le'))
         with self.assertRaisesRegex(ValueError, 'Private build path'):
             self.package()
+        self.assertFalse(self.out.exists())
+        # Reproduce hosted Windows runners: the supplied temp directory spelling
+        # differs from resolve(), and the account directory can be abbreviated.
+        original_resolve = Path.resolve
+        def expanded(path, *args, **kwargs):
+            return path.parent / 'expanded-account-path' if path == self.root else original_resolve(path, *args, **kwargs)
+        with mock.patch.object(Path, 'resolve', expanded), mock.patch.object(Path, 'home', return_value=self.root.parent / 'full-account-name'):
+            with self.assertRaisesRegex(ValueError, 'Private build path'):
+                self.package()
         self.assertFalse(self.out.exists())
 
     def test_version_cannot_escape_output(self):
