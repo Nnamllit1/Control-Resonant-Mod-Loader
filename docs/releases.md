@@ -4,6 +4,8 @@ description: Build CRML release archives locally and publish tested Windows pack
 
 # Building releases
 
+Looking to install CRML? Use the [ready-to-use downloads and installation guide](installation.md). The commands below are for contributors building release packages.
+
 Run the release CLI from a Windows x64 checkout with Visual Studio C++ tools and
 Python installed:
 

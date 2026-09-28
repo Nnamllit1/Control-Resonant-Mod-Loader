@@ -12,7 +12,18 @@ The isolated [Wasm physics service](docs/api.md#experimental-prop-damping) suppo
 
 The [movement example](docs/movement.md) implements controls and camera-relative velocity in Wasm using the experimental `player.motion` API. Its separate mode leaves fall/reset behavior under game control.
 
-## Build and try it
+## Download and install
+
+No compiling or developer tools needed. Open [Releases](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases) and expand **Assets**:
+
+- **Mod loader:** download `crml-runtime-<version>-windows-x64.zip`.
+- **Noclip & Free Flight, including the loader:** download `crml-noclip-bundle-<version>-windows-x64.zip`.
+
+Close the game, extract the ZIP, then copy **the extracted folder's contents** beside `CONTROLResonant.exe`. Find that folder through Steam: right-click the game, then **Manage > Browse local files**. Start through Steam as usual, or double-click `CONTROLResonant.exe` with Steam running. With the flight bundle, load a save and press **F6**.
+
+The **SDK** and **Source code** downloads are for developers. See [installation, updates and removal](docs/installation.md) for the folder layout and full instructions.
+
+## Build from source
 
 Requires Python 3.10+, Visual Studio 2022/2026 with Desktop development with C++, and CMake 3.24+ (the Visual Studio component is supported).
 

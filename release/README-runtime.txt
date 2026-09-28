@@ -1,19 +1,41 @@
 CONTROL Resonant Mod Loader (CRML)
 Experimental preview - Windows x64
 
-Install
+Install - no compiling or developer tools needed
 1. Close CONTROL Resonant.
-2. Open the game's installation folder through Steam: Manage > Browse local files.
-3. Copy xinput1_4.dll and the crml folder beside CONTROLResonant.exe.
-4. Start the game normally through Steam.
+2. Right-click the downloaded ZIP in Windows and choose Extract All.
+3. In your Steam Library, right-click CONTROL Resonant, then choose
+   Manage > Browse local files. Find the folder containing CONTROLResonant.exe.
+4. Open the extracted ZIP folder. Copy its contents into that game folder.
+   Copy the contents, not the outer folder named after the download.
+5. Start CONTROL Resonant through Steam as usual, or double-click
+   CONTROLResonant.exe in that folder. Keep Steam running.
+
+The files should look like this after copying:
+
+  CONTROLResonant.exe       (already there - the game)
+  xinput1_4.dll             (from this download)
+  crml/
+    crml_runtime.dll
+    wasmtime.dll
+    mods/
+
+Do not put these files in Documents, your save folder, or another folder inside
+the game folder. CRML loads automatically when the game starts; there is no
+separate CRML application to open. The runtime alone does not add a flight panel.
 
 This package includes the runtime and a small hello mod. Install the separate
 Noclip & Free Flight package to enable flight. The SDK archive is for mod authors;
 its tools and examples do not need to be copied into the game directory.
 
-If xinput1_4.dll or a crml folder already exists, do not overwrite it blindly.
-Keep a backup of your existing CRML installation and custom mods. Do not combine
-this proxy with another mod loader that uses the same DLL filename.
+Updating an existing CRML installation
+Close the game and back up xinput1_4.dll and the crml folder. Copy the new runtime
+contents into the same game folder, merge the crml folders and replace the CRML
+files when Windows asks. Keep your other mod folders. Use matching runtime and
+mod releases. A manually copied installation does not need the Python installer.
+
+If an existing xinput1_4.dll belongs to another loader, do not replace it with
+CRML. Two loaders using that same filename cannot be installed together this way.
 
 Compatibility
 The gameplay bridge checks the exact executable fingerprint in compatibility.json.

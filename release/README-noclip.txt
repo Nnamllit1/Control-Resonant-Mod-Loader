@@ -5,11 +5,23 @@ Fly around the level, pass through geometry, and look at places the normal camer
 doesn't show you. This moves the player; it is not a detached free camera.
 
 Install
-1. Install the matching CRML runtime from GitHub, unless using the bundled archive.
-2. Close the game. Copy this package's crml folder into the game installation
-   folder, beside CONTROLResonant.exe. For the bundled archive, also copy
-   xinput1_4.dll there. Start through Steam as usual.
-3. Load a playable save. Press F6 to start flying.
+No compiling or developer tools needed. For a first installation, download the
+crml-noclip-bundle ZIP: it includes both the mod and the required runtime.
+The smaller crml-noclip ZIP needs the matching crml-runtime ZIP installed first.
+
+1. Close the game. Right-click the downloaded ZIP and choose Extract All.
+2. In your Steam Library, right-click CONTROL Resonant, then choose
+   Manage > Browse local files. Find CONTROLResonant.exe.
+3. Copy the extracted folder's contents into that game folder, not the outer
+   download folder. Merge the crml folder with an existing CRML installation.
+   The bundle also puts xinput1_4.dll beside CONTROLResonant.exe.
+4. Start the game through Steam as usual, or double-click CONTROLResonant.exe
+   with Steam running. Load a playable save and press F6 to start flying.
+
+After installation, crml/mods/movement/movement.wasm and
+crml/movement-wasm.enabled should be inside the game folder. The folder is named
+movement because that is the included Noclip & Free Flight mod's package name.
+For runtime updates and removal, see README-CRML.txt in the runtime or bundle.
 
 Use this with ordinary CRML startup, not the separate physics/observer trial modes.
 If upgrading a development installation, remove its conflicting diagnostic markers

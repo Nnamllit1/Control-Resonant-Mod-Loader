@@ -54,11 +54,20 @@ end
 local missing = string.match(mode, '^missing_(.+)$')
 -- Emulate the native loader supplying a rooted environment table, even when
 -- all environment helper globals are absent from the guest's shared library.
-local shared = table.clone(getfenv(0))
-shared.getfenv, shared.setfenv, shared.setmetatable, shared.rawget, shared.assert = nil, nil, nil, nil, nil
-if missing then shared[missing] = nil end
+local original = getfenv(0)
+local disabled = { getfenv = true, setfenv = true, setmetatable = true,
+    rawget = true, assert = true }
+if missing then disabled[missing] = true end
+-- The CLI environment inherits builtins. A shallow clone loses those entries;
+-- resolve through the original environment while hiding only selected names.
+local shared = setmetatable({}, { __index = function(_, key)
+    if disabled[key] then return nil end
+    return original[key]
+end })
 local env = setmetatable({ self = owner }, { __index = shared })
 env._ENV = env
+for key in disabled do assert(env[key] == nil, 'guest helper must be absent') end
+assert(env.type == type, 'inherited builtins must remain available')
 if mode == 'bad_environment' then env.self = nil end
 setfenv(probe, env)
 local ok, result, detail = pcall(probe, owner)
@@ -94,9 +103,10 @@ print('passed', mode)
                 # keep the host independent of CLI argument convention changes.
                 script = Path(tmp) / "probe.luau"
                 script.write_text(host.replace("local mode = ...", f"local mode = '{mode}'"), encoding="utf-8")
-                result = subprocess.run([str(VM), str(script)], capture_output=True, text=True)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertIn("passed", result.stdout)
+                with self.subTest(mode=mode):
+                    result = subprocess.run([str(VM), str(script)], capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn("passed", result.stdout)
 
 
 if __name__ == "__main__":

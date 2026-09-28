@@ -13,7 +13,7 @@ description: Build sandboxed Wasm mods for CONTROL Resonant and explore public N
 
 ## Start here
 
-- **Try a package:** [build and run the example](installation.md).
+- **Install and play:** [download a release and copy it into the game folder](installation.md). No compiling needed.
 - **Write a mod:** [getting started](developing.md) and [API reference](api.md).
 - **Understand the boundary:** [sandbox limits](sandbox.md) and [architecture](architecture.md).
 - **Use noclip:** [gameplay and noclip](gameplay.md).

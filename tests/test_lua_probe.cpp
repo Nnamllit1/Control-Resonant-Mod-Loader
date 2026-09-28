@@ -166,6 +166,9 @@ int main() {
     invoke();require(loads==5,"once per process");
     reset();put(vm.data(),0x28,reinterpret_cast<uintptr_t>(stack.data()+144));invoke();
     require(loads==5 && restores==5 && output().find("\"passed\":true")!=std::string::npos,"cleanup accepts results occupying reserved stack slots");
+    reset();for(int i=0;i<60;++i) push(0);
+    const auto crowded=stack;
+    invoke();require(loads==0 && protects==0 && stack==crowded,"reserve snapshot capacity for environment and results before execution");
     reset(1);invoke();require(loads==1 && calls==0 && restores==1,"load error cleaned, remaining phases stopped");
     require(output().find("\"passed\":false")!=std::string::npos,"load failure report");
     reset(2);invoke();require(loads==1 && restores==1,"allocation exception contained and cleaned");

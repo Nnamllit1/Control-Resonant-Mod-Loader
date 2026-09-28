@@ -74,7 +74,7 @@ bool capture(void* vm,Frame& f,uintptr_t spare=96) noexcept {
         const auto top=read<uintptr_t>(l+8),last=read<uintptr_t>(l+0x28);
         const auto ci=read<uintptr_t>(l+0x20),baseci=read<uintptr_t>(l+0x40);
         if(!stack || base<stack || top<=base || last<top || last-top<spare ||
-           top-base>f.values.size() || (top-stack)%24 || (base-stack)%24 ||
+           spare>f.values.size() || top-base>f.values.size()-spare || (top-stack)%24 || (base-stack)%24 ||
            !ci || ci!=baseci || read<uintptr_t>(ci)!=base) return false;
         if(read<uint32_t>(base+0x10)!=7) return false; // Existing engine error handler.
         f.context=read<uintptr_t>(l+0x78);

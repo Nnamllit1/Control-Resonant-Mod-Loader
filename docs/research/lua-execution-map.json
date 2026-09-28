@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "title": "Engine Lua load, protected execution and error cleanup",
+  "title": "Engine Lua execution, registry references and entity cleanup",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
   "status": "Static call references; see engine-lua.md for ABI interpretations and evidence limits.",
   "checks": [
@@ -35,6 +35,33 @@
     {"kind":"call_rel32","rva":"0x1a08f51","target":"0x3f5710","label":"grow deferred event removal array"},
     {"kind":"call_rel32","rva":"0x1a15e88","target":"0x1a0a390","label":"custom event sender owner resolution"},
     {"kind":"call_rel32","rva":"0x1a160a7","target":"0x2c4fc90","label":"synchronous custom event invocation"},
-    {"kind":"call_rel32","rva":"0x1a160ec","target":"0x2c508d0","label":"release failed event function"}
+    {"kind":"call_rel32","rva":"0x1a160ec","target":"0x2c508d0","label":"release failed event function"},
+    {"kind":"call_rel32","rva":"0x2c507f8","target":"0x2c50cd0","label":"reference creation pseudo-index resolution"},
+    {"kind":"call_rel32","rva":"0x2c5083e","target":"0x2c36110","label":"reference creation registry integer slot"},
+    {"kind":"call_rel32","rva":"0x2c50889","target":"0x2c416e0","label":"retained value GC barrier"},
+    {"kind":"call_rel32","rva":"0x2c508ee","target":"0x2c36110","label":"released registry slot free-list insertion"},
+    {"kind":"call_rel32","rva":"0x2c4f23f","target":"0x2c50cd0","label":"integer fetch pseudo-index resolution"},
+    {"kind":"call_rel32","rva":"0x2c4f24d","target":"0x2c36010","label":"integer table value lookup"},
+    {"kind":"call_rel32","rva":"0x19bd722","target":"0x19b4270","label":"script-removal dispatcher worker"},
+    {"kind":"call_rel32","rva":"0x19b43d9","target":"0x19c70e0","label":"script-removal first entity-cleanup branch"},
+    {"kind":"call_rel32","rva":"0x19b4571","target":"0x19c70e0","label":"script-removal deferred entity-cleanup branch"},
+    {"kind":"call_rel32","rva":"0x19c720d","target":"0x2c508d0","label":"entity cleanup releases map at script-state plus 0x78"},
+    {"kind":"call_rel32","rva":"0x19c7274","target":"0x2c508d0","label":"entity cleanup releases map at script-state plus 0xa8"},
+    {"kind":"call_rel32","rva":"0x19c72dd","target":"0x2c508d0","label":"entity cleanup releases map at script-state plus 0xd8"},
+    {"kind":"call_rel32","rva":"0x19c730e","target":"0x1a02180","label":"entity cleanup invokes callback cleanup"},
+    {"kind":"call_rel32","rva":"0x19c7434","target":"0x2c508d0","label":"entity cleanup releases retained environment"},
+    {"kind":"call_rel32","rva":"0x1a021e8","target":"0x2c508d0","label":"callback cleanup releases first matching queued reference"},
+    {"kind":"call_rel32","rva":"0x1a0223a","target":"0x2c508d0","label":"callback cleanup releases compact entity reference entry"},
+    {"kind":"call_rel32","rva":"0x1a02317","target":"0x2c508d0","label":"callback cleanup releases paired reference one"},
+    {"kind":"call_rel32","rva":"0x1a02329","target":"0x2c508d0","label":"callback cleanup releases paired reference two"},
+    {"kind":"call_rel32","rva":"0x1a02394","target":"0x1a09580","label":"callback cleanup event container one"},
+    {"kind":"call_rel32","rva":"0x1a023a3","target":"0x1a09580","label":"callback cleanup event container two"},
+    {"kind":"call_rel32","rva":"0x1a023b2","target":"0x1a09580","label":"callback cleanup event container three"},
+    {"kind":"call_rel32","rva":"0x1a023c1","target":"0x1a09580","label":"callback cleanup event container four"},
+    {"kind":"call_rel32","rva":"0x1a07aaf","target":"0x19a93b0","label":"event registration owner-chain lookup"},
+    {"kind":"call_rel32","rva":"0x1a07aea","target":"0x19aaf20","label":"event registration owner-chain insertion"},
+    {"kind":"call_rel32","rva":"0x1a095d6","target":"0x19a93b0","label":"event cleanup owner-chain lookup"},
+    {"kind":"call_rel32","rva":"0x1a09643","target":"0x2c508d0","label":"event owner cleanup releases callback"},
+    {"kind":"call_rel32","rva":"0x1a09821","target":"0x19ac8e0","label":"event cleanup erases owner-chain map entry"}
   ]
 }
