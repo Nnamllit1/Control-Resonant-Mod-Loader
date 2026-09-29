@@ -4,7 +4,7 @@
 
 namespace crml::probe::lua::session {
 struct Context {void* vm{};uintptr_t global{},world{};uint64_t owner{},revision{};};
-enum class Action {initialize, initialize_error, invoke, release, unload};
+enum class Action {initialize, initialize_error, invoke, release, unload, initialize_listener_error};
 struct Result {
     bool attempted{},restored{},released{};
     int reference{},status{};

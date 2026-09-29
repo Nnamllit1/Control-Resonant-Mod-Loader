@@ -27,6 +27,7 @@ uint64_t next_table{};
 bool persistent_loading{},persistent_error{};
 bool persistent_event_mode{};
 int listener_shutdowns{};
+int listener_error_initializations{};
 uint64_t persistent_environment{};
 int persistent_counter{},retains{},fetches{},releases{};
 std::map<int,Cell> registry;
@@ -98,10 +99,14 @@ int load(void* l,const char* label,const char* bytes,size_t size,int env) {
 }
 int call(void* l,int args,int results,int err) {
     if(persistent_loading || !registry.empty()) {
-        require(l==vm.data() && (args==0 || (persistent_event_mode && args==1)) && results==1 && err==0,"persistent call ABI");
+        require(l==vm.data() && (args==0 || (persistent_event_mode && (args==1 || (persistent_loading && args==2)))) && results==1 && err==0,"persistent call ABI");
         if(persistent_loading && persistent_event_mode) {
             persistent_error=args==1;
             if(args) require(get<int>(cell(-1).data(),16)==6,"error-stage constructor flag is a rooted table");
+            if(args==2) {
+                ++listener_error_initializations;
+                require(get<int>(cell(-2).data(),16)==6 && cell(-1)==cell(-2),"listener-error flags are the same rooted environment");
+            }
         } else if(args) require(get<int>(cell(-1).data(),16)==7,"shutdown argument is rooted closure duplicate");
         put(vm.data(),8,get<uintptr_t>(vm.data(),8)-(args+1)*24);
         if(persistent_loading) {persistent_loading=false;push(7);return 0;}
@@ -190,7 +195,7 @@ void reset(int m=0) {
     calls=loads=protects=restores=0;mode=m;deliberate=false;
     in_body=false;tables.clear();next_table=1;
     persistent_loading=persistent_error=false;persistent_environment=0;persistent_counter=retains=fetches=releases=0;registry.clear();
-    persistent_event_mode=false;listener_shutdowns=0;
+    persistent_event_mode=false;listener_shutdowns=listener_error_initializations=0;
     auto ptr=[](auto& a) {return reinterpret_cast<uintptr_t>(a.data());};
     put(vm.data(),8,ptr(stack)+48);put(vm.data(),0x10,ptr(stack)+24);
     put(vm.data(),0x18,ptr(global));put(vm.data(),0x20,ptr(ci));
@@ -281,5 +286,10 @@ int main() {
     reset();invoke();configure_persistent(true);session_context.revision=session::revision();session::tick(session_context,0);
     mode=16;session::stop();session::tick(session_context,250);session::tick(session_context,500);
     require(releases==1 && registry.empty() && listener_shutdowns==1,"failed event-removal verification releases root and stops without retry");
+    reset();invoke();configure_persistent(true);session_context.revision=session::revision();
+    for(uint64_t time=0;time<=4000;time+=250) session::tick(session_context,time);
+    require(listener_error_initializations==1 && retains==4 && releases==3 && listener_shutdowns==3 && registry.size()==1,"listener-error source mode completes before fresh session");
+    std::ostringstream listener_report;session::write(listener_report);
+    require(listener_report.str().find("\"listener_error_checks\":1")!=std::string::npos && listener_report.str().find("\"failures\":0")!=std::string::npos,"listener sequence records check without treating dispatch as controller error");
     std::cout<<"Lua probe checks passed\n";
 }

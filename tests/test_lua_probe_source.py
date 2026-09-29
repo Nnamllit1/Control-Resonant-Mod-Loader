@@ -10,6 +10,74 @@ VM = None
 
 
 class SourceTests(unittest.TestCase):
+    def test_listener_error_cleanup(self):
+        if VM is None:
+            self.skipTest("supply --vm for standalone Lua behavior checks")
+        source = (ROOT / "examples/lua-probe/persistent_events.luau").read_text(encoding="utf-8")
+        host = '''
+local mode = MODE
+local owner, handler = {}, nil
+local explicit, errors, sent = 0, 0, 0
+local env = {self = owner}
+env._ENV = env
+setmetatable(env, {__index = getfenv(0)})
+env.nl_add_event_handler = function(target, name, receive)
+    assert(target == owner and name == 'lua.crml_persistent_f90c7812_own_event')
+    handler = receive
+    return 91
+end
+env.nl_remove_event_handler = function(handle)
+    -- A record retired by the engine must never be removed a second time.
+    assert(handle == 91 and handler ~= nil and errors == 0)
+    explicit += 1
+    handler = nil
+end
+env.nl_send_custom_event = function(name, value)
+    assert(name == 'crml_persistent_f90c7812_own_event')
+    sent += 1
+    if handler then
+        local ok, err = pcall(handler, owner, value)
+        if not ok then
+            assert(type(err) == 'string')
+            errors += 1
+            if mode ~= 'stuck' then handler = nil end
+            if mode == 'propagated' then error(err) end
+        end
+    end
+end
+local chunk = function(...)
+SOURCE
+end
+setfenv(chunk, env)
+local callback = chunk(true, true)
+assert(callback() == 1 and callback() == 2)
+if mode == 'early_shutdown' then
+    assert(callback(callback) == 2 and explicit == 1 and errors == 0)
+    return
+end
+local ok, result = pcall(callback)
+if mode == 'propagated' then
+    assert(not ok and callback(callback) == 3 and explicit == 0 and errors == 1)
+    return
+end
+assert(ok and result == 3 and errors == 1 and explicit == 0)
+local fourth = callback()
+if mode == 'stuck' then
+    assert(fourth == -402 and callback(callback) == -401 and explicit == 0)
+else
+    assert(fourth == 4 and callback(callback) == 4 and handler == nil)
+    assert(errors == 1 and explicit == 0 and sent == 5)
+end
+print('listener error cleanup passed')
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            script = Path(tmp) / "listener_error.luau"
+            for mode in ("success", "stuck", "early_shutdown", "propagated"):
+                with self.subTest(mode=mode):
+                    script.write_text(host.replace('MODE', repr(mode)).replace('SOURCE', source), encoding="utf-8")
+                    result = subprocess.run([str(VM), str(script)], capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_persistent_events(self):
         if VM is None:
             self.skipTest("supply --vm for standalone Lua behavior checks")

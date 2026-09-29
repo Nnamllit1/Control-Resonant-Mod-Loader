@@ -14,6 +14,7 @@ struct State {
     uintptr_t global{},world{};
     uint64_t owner{},next_tick{},calls{},sessions{},initialized{},invocations{},released{},vm_reclaimed{};
     uint64_t owner_retirements{},world_retirements{},explicit_unloads{},expected_errors{},failures{},rejected{};
+    uint64_t listener_error_checks{};
     uint32_t teardown_depth{};
     DWORD callback_thread{},cleanup_thread{};
     int reference{},last_status{};
@@ -68,7 +69,8 @@ void tick(Context context,uint64_t now) {
     if(requested_stop.load() || now<state.next_tick) {ReleaseSRWLockExclusive(&gate);return;}
     if(!state.reference) {
         if(state.sessions>=8) {ReleaseSRWLockExclusive(&gate);return;}
-        const auto action=state.sessions==1?Action::initialize_error:Action::initialize;
+        const auto action=state.sessions==1?Action::initialize_error:
+            state.events && state.sessions==2?Action::initialize_listener_error:Action::initialize;
         const auto result=execute(context,action,0);
         if(!result.attempted) {++state.rejected;ReleaseSRWLockExclusive(&gate);return;}
         ++state.sessions;state.global=context.global;state.world=context.world;state.owner=context.owner;
@@ -86,6 +88,7 @@ void tick(Context context,uint64_t now) {
         } else if(result.status || !result.restored || !std::isfinite(result.value) || result.value!=double(state.calls)) {
             failed(result);requested_stop=true;retire();if(!result.restored) state.halted=true;
         } else if(state.sessions==1 && state.calls==3) {++state.explicit_unloads;retire();}
+        else if(state.events && state.sessions==3 && state.calls==4) {++state.listener_error_checks;retire();}
     }
     ReleaseSRWLockExclusive(&gate);
 }
@@ -120,7 +123,7 @@ void stop() noexcept {requested_stop=true;}
 void write(std::ostream& out) {
     State copy;
     AcquireSRWLockShared(&gate);copy=state;ReleaseSRWLockShared(&gate);
-    out<<"{\"type\":\"lua_session\",\"schema\":2,\"armed\":"<<(armed.load()?"true":"false")
+    out<<"{\"type\":\"lua_session\",\"schema\":3,\"armed\":"<<(armed.load()?"true":"false")
        <<",\"event_mode\":"<<(copy.events?"true":"false")
        <<",\"stop_requested\":"<<(requested_stop.load()?"true":"false")
        <<",\"active_reference\":"<<(copy.reference>0?"true":"false")<<",\"retired\":"<<(copy.retired?"true":"false")
@@ -129,6 +132,7 @@ void write(std::ostream& out) {
        <<",\"vm_reclaimed\":"<<copy.vm_reclaimed<<",\"owner_retirements\":"<<copy.owner_retirements
        <<",\"world_retirements\":"<<copy.world_retirements<<",\"explicit_unloads\":"<<copy.explicit_unloads
        <<",\"expected_errors\":"<<copy.expected_errors<<",\"failures\":"<<copy.failures<<",\"rejected\":"<<copy.rejected
+       <<",\"listener_error_checks\":"<<copy.listener_error_checks
        <<",\"last_status\":"<<copy.last_status<<",\"teardown_depth\":"<<copy.teardown_depth
        <<",\"failure_status\":"<<copy.failure_status<<",\"failure_line\":"<<copy.failure_line<<",\"failure_value\":";
     if(std::isfinite(copy.failure_value)) out<<copy.failure_value;else out<<"null";

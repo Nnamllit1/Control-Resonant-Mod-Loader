@@ -19,7 +19,7 @@ void require(bool ok,const char* message) {if(!ok) {std::cerr<<message<<'\n';std
 Result execute(Context c,Action action,int reference) {
     calls.push_back({c,action,reference});
     if(mode==1) return {}; // Unsuitable frame must not consume ownership.
-    if(action==Action::initialize || action==Action::initialize_error) {
+    if(action==Action::initialize || action==Action::initialize_error || action==Action::initialize_listener_error) {
         counter=0;deliberate=action==Action::initialize_error;
         return {true,true,false,++next_ref,mode==2?4:0,0};
     }
@@ -101,5 +101,13 @@ int main() {
     reset();reset_for_test(execute,true);mode=5;
     for(uint64_t time=0;time<=2000;time+=250) tick(context,time);
     field("expected_errors",0);field("failures",1);
+    reset();reset_for_test(execute,true);
+    for(uint64_t time=0;time<=4000;time+=250) tick(context,time);
+    require(calls[10].action==Action::initialize_listener_error,"third event session requests listener-error source mode");
+    require(calls[15].action==Action::unload && calls[16].action==Action::initialize,"listener-error check shuts down before fresh persistent session");
+    field("listener_error_checks",1);field("initialized",4);field("released",3);field("failures",0);
+    reset();stage_three();
+    for(uint64_t time=2750;time<=4000;time+=250) tick(context,time);
+    field("listener_error_checks",0);field("initialized",3);
     std::cout<<"Lua session checks passed\n";
 }

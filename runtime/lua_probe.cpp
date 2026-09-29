@@ -230,13 +230,17 @@ void persistent_body(void* vm,void* user) {
     api.push_value(vm,env);api.set_field(vm,env,"_ENV");
     api.push_entity(vm,w.context.owner,1);api.set_field(vm,env,"self");
     const bool error=w.action==session::Action::initialize_error;
+    const bool listener_error=w.action==session::Action::initialize_listener_error;
     const auto* code=events_probe?bytecode::persistent_events:error?bytecode::persistent_error:bytecode::persistent;
     const auto size=events_probe?sizeof(bytecode::persistent_events):error?sizeof(bytecode::persistent_error):sizeof(bytecode::persistent);
     result.status=api.load(vm,events_probe?"=crml_persistent_events":error?"=crml_persistent_error":"=crml_persistent",
         reinterpret_cast<const char*>(code),size,env);
     if(result.status) return;
-    if(events_probe && error) api.push_value(vm,env);
-    result.status=api.call(vm,events_probe && error?1:0,1,0);
+    // Two truthy arguments select a listener error; one selects a controller
+    // error. Both are existing rooted values, so no additional VM API is used.
+    const int arguments=events_probe?(listener_error?2:error?1:0):0;
+    for(int i=0;i<arguments;++i) api.push_value(vm,env);
+    result.status=api.call(vm,arguments,1,0);
     if(result.status) return;
     if(read<uint32_t>(read<uintptr_t>(l+8)-8)!=7) {result.status=-305;return;}
     result.reference=api.retain(vm,-1); // Copies without popping; stack stays rooted.

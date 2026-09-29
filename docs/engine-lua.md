@@ -5,7 +5,7 @@ description: CONTROL Resonant engine Lua loading, protected execution, script en
 
 # Engine Lua integration
 
-CRML's engine Lua integration is experimental. Self-authored Luau 0.650 bytecode has executed in the game's VM, including arithmetic, a contained runtime error, successful execution afterward and stack restoration. A private script environment and a synchronous custom-event registration, delivery and removal sequence have also passed in gameplay. A fixed smoke test is available in developer builds. Loading arbitrary `.lua` mod packages, persistent callback ownership, hot reload and unloading are not supported yet. The existing [Wasm API](api.md) remains the supported mod interface.
+CRML's engine Lua integration is experimental. Self-authored Luau 0.650 bytecode has executed in the game's VM, including arithmetic, a contained runtime error, successful execution afterward and stack restoration. Private script environments, persistent custom-event delivery, explicit listener removal and engine-owned listener cleanup have also passed in gameplay for the embedded examples. Developer builds include diagnostics for these contracts. Arbitrary `.lua` mod packages, general callback scheduling and hot reload are not supported yet. The existing [Wasm API](api.md) remains the supported mod interface.
 
 ## Execution path
 
@@ -168,7 +168,7 @@ Records are written to `crml/fall-recovery.jsonl`:
 | `update`, `updates` | Sparse samples and cumulative eligible script-call count; multiple calls can occur within a frame |
 | `observer_stop` | Recording stopped; this does not mean the VM was destroyed |
 
-Each batch holds at most 256 events. The worker drains the batch before writing, without file I/O on engine threads. The enclosing movement recorder limits capture to approximately ten minutes. Hook trampolines remain pinned and forward normally after recording stops. Process termination may end recording before a final close event is flushed; a missing exit event is not proof that destruction did not run. These observations do not yet establish persistent mod callback cleanup or general Lua reload support.
+Each batch holds at most 256 events. The worker drains the batch before writing, without file I/O on engine threads. The enclosing movement recorder limits capture to approximately ten minutes. Hook trampolines remain pinned and forward normally after recording stops. Process termination may end recording before a final close event is flushed; a missing exit event is not proof that destruction did not run. Lifetime observations alone do not establish reference cleanup; combine them with the session and listener-reference records below.
 
 To capture reload ordering:
 
@@ -184,13 +184,16 @@ No diagnostic hotkey is required. Movement, saving, loading and menu transitions
 
 The arithmetic examples, `examples/lua-probe/persistent.luau` and `persistent_error.luau`, return closures that increment counters in private environments. The host retains a closure in the VM registry and invokes it on later eligible updates, at least 250 ms apart. A gameplay capture confirmed persistent state, explicit release, recovery after a deliberate callback error, and two owner-retirement/reinitialization transitions with no unexpected failures. These results cover the bounded self-authored callbacks, not arbitrary Lua mods or every teardown path.
 
-Current diagnostic builds extend this sequence with `examples/lua-probe/persistent_events.luau`. It registers one privately named custom-event listener whose only action is to count and check deliveries. The retained controller sends that event on later updates and checks that each payload is delivered exactly once. It never replaces the game's update callback or changes gameplay properties.
+The event example, `examples/lua-probe/persistent_events.luau`, registers one privately named custom-event listener that counts and checks deliveries. The retained controller sends that event on later updates and checks that each payload is delivered exactly once while the listener is active. It never replaces the game's update callback or changes gameplay properties.
+
+Gameplay evidence confirms persistent delivery, explicit removal, recovery from a controller error, and removal of the listener by owner cleanup. The listener ledger balanced four retained references with four releases: two explicit removals and two owner removals, with no lost observations or unexpected failures. A fresh controller and listener initialized after the first owner retirement. The final controller root remained retired pending another eligible update; this capture does not prove final reclamation of that root or destruction of its VM. Close calls for unrelated VMs are not evidence of the selected VM's destruction.
 
 After the one-shot sequence succeeds, the diagnostic runs these stages:
 
 1. Initialize a listener and controller, obtain results 1, 2 and 3, then request script shutdown and release the controller reference. Shutdown removes the listener and sends again to verify that delivery has stopped.
 2. Initialize another pair, obtain 1 and 2, contain the controller's deliberate nil-call error on the third invocation, then run shutdown and release the controller. The expected error must match the self-authored chunk and generated source-line marker; an unrelated error status is a failure.
-3. Initialize a fresh counter and keep invoking it until owner cleanup, world replacement, VM destruction or recording shutdown. After owner retirement and reference cleanup, a later eligible owner can start a fresh counter. At most eight sessions are initialized per process.
+3. Initialize a listener that deliberately fails during the third delivery. Before raising the error it discards its local handle; the engine's dispatch-error path owns removal. The controller checks that a fourth event on a later update is not delivered, then shuts down without reusing the retired handle. This stage requires both the behavioral check and an observed engine dispatch-error release to establish cleanup.
+4. Initialize a fresh counter and keep invoking it until owner cleanup, world replacement, VM destruction or recording shutdown. After owner retirement and reference cleanup, a later eligible owner can start a fresh counter. At most eight sessions are initialized per process.
 
 All allocating operations, invocation and registry access run inside the recovered native error barrier. The original stack and frame are checked and restored after each operation. A reference is fetched only from its recorded global state. A failed or ambiguous release is never retried, because the engine can recycle the reference number.
 
@@ -205,10 +208,11 @@ This gate is specific to the embedded arithmetic callbacks and their private cou
 | Field | Meaning |
 | --- | --- |
 | `armed` | Cleanup hooks and registry entry checks allowed this diagnostic to start |
-| `schema`, `event_mode` | Schema 2 supports the persistent event sequence; schema 1 records the earlier arithmetic sequence |
+| `schema`, `event_mode` | Schema 3 adds listener-error checks; schema 2 covers persistent events and schema 1 the earlier arithmetic sequence |
 | `sessions`, `initialized` | Attempted and successful session initializations |
 | `invocations`, `current_calls` | Total callback invocations and calls in the current session |
 | `explicit_unloads`, `expected_errors` | Completed first-stage unload requests and contained second-stage errors |
+| `listener_error_checks` | Completed third-stage delivery checks; confirm engine removal separately with `lua_listener_refs.error_removals` |
 | `active_reference`, `retired` | A reference remains owned, and whether invocation has been retired pending release |
 | `released`, `vm_reclaimed` | References explicitly released, or handed to VM destruction without another Lua call |
 | `owner_retirements`, `world_retirements` | Ownership retirement triggered by script cleanup or changed world identity |
@@ -219,13 +223,13 @@ This gate is specific to the embedded arithmetic callbacks and their private cou
 | `callback_thread`, `cleanup_thread` | Last execution and matching owner-retirement threads |
 | `teardown_depth`, `stop_requested` | Active cleanup nesting and a request to cease execution |
 
-Errors -301 through -307 mean: registry value is not a closure, callback result is not numeric, shared counter already exists, private metatable installation failed, initialization returned no closure, retaining the closure returned no positive reference, or shutdown returned no numeric result. Script result -401 means delivery continued after removal; -402 means delivery count, sender or payload differed from expectations.
+Errors -301 through -307 mean: registry value is not a closure, callback result is not numeric, shared counter already exists, private metatable installation failed, initialization returned no closure, retaining the closure returned no positive reference, or shutdown returned no numeric result. Script result -401 means delivery continued after removal; -402 means delivery count, sender or payload differed from expectations; -403 means the deliberate listener-error branch did not execute.
 
 An additional read-only observer identifies listener references created at the engine's event-registration call site by the exact self-authored chunk label. It watches registry release without invoking Lua, changing arguments, or retaining Lua values. The ledger has 16 slots and logs counters rather than addresses or reference numbers. A release is classified only after the original function returns; an interrupted release remains pending. Reused reference numbers and closed VM identities are handled separately.
 
 `lua_listener_refs` reports `retained`, `released`, `active`, `explicit_removals`, `owner_removals`, `error_removals`, `other_removals`, `vm_reclaimed`, `pending`, `lost` and `read_failures`. The removal categories use the mapped call sites for explicit removal, owner cleanup and dispatch-error cleanup. `vm_reclaimed` means ownership was handed to VM destruction, not an observed individual unref. Unexpected categories, lost observations or read failures prevent a complete cleanup conclusion.
 
-Use the reload sequence above, allowing ten seconds of gameplay before each transition. The expected initial result is at least three initialized sessions, one explicit unload, one contained error, two explicit listener removals, and zero unexpected failures. Reload cleanup should increase both the session's owner retirements and the listener observer's owner removals, followed by a fresh session if an eligible owner resumes. A currently active session normally owns one controller reference and one listener reference. No visible effect or hotkey is required. Native and standalone source tests cover these contracts; the persistent engine-event sequence still requires a gameplay capture.
+Use the reload sequence above, allowing ten seconds of gameplay before each transition. For schema 3, the expected initial result is at least four initialized sessions, one explicit unload, one contained controller error, one listener-error check, two explicit listener removals, one dispatch-error removal, and zero unexpected failures. Reload cleanup should increase both the session's owner retirements and the listener observer's owner removals, followed by a fresh session if an eligible owner resumes. A currently active ordinary session owns one controller reference and one listener reference; during the deliberate listener-error stage the controller temporarily remains active without a listener. No visible effect or hotkey is required. Native and standalone source tests cover the extended sequence; engine dispatch-error removal still requires a gameplay capture.
 
 ## Lua and Wasm mod interfaces
 
