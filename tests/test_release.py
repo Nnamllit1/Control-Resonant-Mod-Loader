@@ -2,6 +2,8 @@
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -21,6 +23,8 @@ class ReleaseTests(unittest.TestCase):
         self.dist = self.root / 'dist'
         self.out = self.root / 'release-output'
         self.version = 'v0.1.0-alpha.1'
+        for name in ('compile_lua.py', 'binlua.py', 'binlua_source.py', 'engine_research.py'):
+            self.write(self.root / 'tools' / name, (ROOT / 'tools' / name).read_bytes())
         for name in ('README-runtime.txt', 'README-noclip.txt', self.version + '.md'):
             self.write(self.root / 'release' / name, b'Public instructions')
         self.write(self.root / 'compatibility.json', json.dumps({'profiles': [{'sha256': 'a' * 64}]}).encode())
@@ -83,6 +87,15 @@ class ReleaseTests(unittest.TestCase):
             self.assertIn('examples/hello/mod.ini', sdk.namelist())
             self.assertIn('tools/crml_host.exe', sdk.namelist())
             self.assertIn('tools/crml_wat.exe', sdk.namelist())
+            self.assertIn('README-LUA.txt', sdk.namelist())
+            for name in ('compile_lua.py', 'binlua.py', 'binlua_source.py', 'engine_research.py'):
+                self.assertEqual(sdk.read('tools/' + name), (ROOT / 'tools' / name).read_bytes())
+            extracted = self.root / 'sdk-extracted'
+            sdk.extractall(extracted)
+            help_result = subprocess.run([sys.executable, str(extracted / 'tools/compile_lua.py'), '--help'],
+                                         cwd=extracted, capture_output=True, text=True, timeout=10)
+            self.assertEqual(help_result.returncode, 0, help_result.stderr)
+            self.assertIn('--compiler', help_result.stdout)
         archive = self.out / release.archive_names(self.version)[0]
         archive.write_bytes(archive.read_bytes() + b'tamper')
         with self.assertRaisesRegex(ValueError, 'hash/size'):

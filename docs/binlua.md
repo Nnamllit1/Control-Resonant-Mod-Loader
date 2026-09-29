@@ -42,6 +42,21 @@ Checks include input and aggregate item limits, truncation, string/constant/prot
 
 Inputs are limited to 16 MiB and one million aggregate counted items. TOC inspection uses the existing Pack2 bounds. This is a resource ceiling, not a fixed memory or execution-time guarantee for every report size.
 
+## Compile self-authored source
+
+`tools/compile_lua.py` compiles a UTF-8 `.luau` or `.lua` file with a trusted local **Luau 0.650** compiler, using the `-O0 -g2` settings exercised by the embedded engine examples. The compiler is not bundled or downloaded automatically. Python 3.10 or later is required. The same compilation function regenerates CRML's embedded examples.
+
+```powershell
+$compiler = Read-Host 'Path to Luau 0.650 luau-compile.exe'
+python tools/compile_lua.py examples/lua-probe/arithmetic.luau --compiler "$compiler" --output .local/arithmetic.bytecode
+python tools/compile_lua.py examples/lua-probe/arithmetic.luau --compiler "$compiler" --output .local/arithmetic.bytecode --check
+python tools/binlua.py .local/arithmetic.bytecode --raw-bytecode --format disasm
+```
+
+The output is raw compiler bytecode, without the game's resource envelope. Compilation checks the observed bytecode/type profile and structure before replacing output, and refuses to overwrite the input or compiler. `--check` compares an existing file without writing it. A compiler error, timeout, changed source or unsupported output leaves existing bytecode untouched. Matching format headers do not identify the compiler version or establish that a particular engine binding is safe to call.
+
+This is an offline authoring tool, not an installation command. General Lua source packages are not yet loaded from `crml/mods`; placing the output there does not run it. Direct engine Lua remains trusted scripting, separate from the Wasm sandbox. See [engine Lua integration](engine-lua.md) for supported behavior and calling-context limits. SDK builds include these Python tools and their supporting modules; players do not need them.
+
 ## Readable source fragments
 
 Select the prototype index from the JSON or disassembly:

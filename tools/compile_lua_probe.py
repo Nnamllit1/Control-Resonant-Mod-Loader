@@ -2,8 +2,7 @@
 import argparse
 import hashlib
 from pathlib import Path
-import subprocess
-from binlua import parse
+from compile_lua import compile_source
 
 
 def generate(compiler, root):
@@ -12,9 +11,7 @@ def generate(compiler, root):
              "#pragma once", "namespace crml::probe::lua::bytecode {"]
     for name in ("arithmetic", "error", "bindings", "events", "persistent", "persistent_error", "persistent_events"):
         source = root / "examples" / "lua-probe" / (name + ".luau")
-        code = subprocess.run([str(compiler), "--binary", "-O0", "-g2", str(source)],
-                              check=True, capture_output=True).stdout
-        parse(code, envelope=False)
+        code = compile_source(compiler, source)
         lines.append("// Source SHA256 (LF): " + hashlib.sha256(source.read_text(encoding="utf-8").encode()).hexdigest())
         lines.append(f"inline constexpr unsigned char {name}[]{{")
         for start in range(0, len(code), 16):

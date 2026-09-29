@@ -35,6 +35,53 @@ constexpr unsigned panel_width=440, panel_height=116;
 bool panel_shown=true, toggle_held=false; // Worker-owned UI preference.
 thread_local bool internal{};
 struct Internal { bool before=internal; Internal(){internal=true;} ~Internal(){internal=before;} };
+std::atomic_flag attaching=ATOMIC_FLAG_INIT;
+std::atomic<void*> attached_present{};
+using EnginePresent=void(*)(void*);
+EnginePresent original_engine_present{};
+
+// Streamline's documented native-interface query. Keep its returned COM reference
+// scoped; rendering resources belong to the existing device, never a second one.
+template<class T> ComPtr<T> native_interface(T* incoming) {
+    constexpr GUID native_id{0xadec44e2,0x61f0,0x45c3,{0xad,0x9f,0x1b,0x37,0x37,0x92,0x84,0xff}};
+    ComPtr<IUnknown> native;
+    ComPtr<T> result;
+    if(SUCCEEDED(incoming->QueryInterface(native_id,reinterpret_cast<void**>(native.GetAddressOf()))) && native) {
+        if(FAILED(native.As(&result))) return {};
+    } else result=incoming;
+    return result;
+}
+
+IDXGISwapChain* engine_swap(void* owner) noexcept {
+    // Executed at the engine's present entry, where it uses this same owner and
+    // swapchain. Do not sample the renderer's globals from the loader worker.
+    __try {
+        if(!owner) return nullptr;
+        const auto implementation=*static_cast<uintptr_t*>(owner);
+        return implementation?*reinterpret_cast<IDXGISwapChain**>(implementation+8):nullptr;
+    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return nullptr; }
+}
+void engine_present_hook(void* owner) {
+    if(enabled && !internal) overlay_attach(engine_swap(owner));
+    // Preserve all engine pacing, fullscreen recovery and presentation behavior.
+    original_engine_present(owner);
+}
+bool bind_engine_present(void* target) noexcept {
+    if(original_engine_present) return false;
+    if(MH_CreateHook(target,reinterpret_cast<void*>(&engine_present_hook),reinterpret_cast<void**>(&original_engine_present))!=MH_OK) return false;
+    if(MH_EnableHook(target)==MH_OK) return true;
+    MH_RemoveHook(target); original_engine_present=nullptr;
+    return false;
+}
+bool bind_engine(uintptr_t image) noexcept {
+    // Executable SHA256 is checked by both production callers before this entry.
+    // Additional bytes refuse modified entries, including competing detours.
+    constexpr unsigned char signature[]{0x4c,0x8b,0xdc,0x53,0x56,0x57,0x48,0x83,0xec,0x60,0x48,0x8b,0x01,0x49,0x8d,0x53,0x08,0x48,0x8b,0xf9};
+    const auto target=reinterpret_cast<void*>(image+0x1cfead0);
+    unsigned char bytes[sizeof(signature)]{}; SIZE_T read{};
+    if(!ReadProcessMemory(GetCurrentProcess(),target,bytes,sizeof(bytes),&read) || read!=sizeof(bytes) || std::memcmp(bytes,signature,sizeof(bytes))) return false;
+    return bind_engine_present(target);
+}
 
 struct Frame {
     ComPtr<ID3D12Resource> buffer;
@@ -85,6 +132,8 @@ bool initialize(State& s, IDXGISwapChain* swap) {
     ComPtr<ID3D12Device> device;
     if(FAILED(swap->GetDevice(IID_PPV_ARGS(&device)))) { diagnostic="requires_dx12"; return false; }
     if(!release_buffers(s)) return false;
+    device=native_interface(device.Get());
+    if(!device) { diagnostic="native_device_unavailable"; return false; }
     s.device=device; s.count=desc.BufferCount;
     DXGI_FORMAT format=desc.BufferDesc.Format;
     const bool wide=format==DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -313,7 +362,7 @@ bool rasterize(State& s,bool physics_trial,bool guest_physics,bool guest_movemen
 }
 }
 
-void* overlay_create(bool physics_trial,bool guest_physics,bool guest_movement) noexcept {
+void* overlay_create(uintptr_t verified_image,bool physics_trial,bool guest_physics,bool guest_movement) noexcept {
     try {
         Internal guard;
         auto& s=state();
@@ -321,28 +370,48 @@ void* overlay_create(bool physics_trial,bool guest_physics,bool guest_movement) 
         diagnostic="hook_initialization_failed";
         if(!rasterize(s,physics_trial,guest_physics,guest_movement)) return nullptr;
         const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return nullptr;
-        ComPtr<ID3D12Device> device; ComPtr<IDXGIFactory4> factory; ComPtr<ID3D12CommandQueue> queue;
-        ComPtr<ID3D12CommandAllocator> allocator; ComPtr<ID3D12GraphicsCommandList> list;
-        if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) return nullptr;
-        if(FAILED(D3D12CreateDevice(nullptr,D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&device)))) {
-            ComPtr<IDXGIAdapter> warp;
-            if(FAILED(factory->EnumWarpAdapter(IID_PPV_ARGS(&warp))) || FAILED(D3D12CreateDevice(warp.Get(),D3D_FEATURE_LEVEL_11_0,IID_PPV_ARGS(&device)))) return nullptr;
+        diagnostic="waiting_for_game_swapchain";
+        enabled=true;
+        if(verified_image && !bind_engine(verified_image)) {
+            enabled=false; diagnostic="engine_present_hook_unavailable"; return nullptr;
         }
+        return &s;
+    } catch(...) { enabled=false; diagnostic="initialization_exception"; return nullptr; }
+}
+
+bool overlay_attach(IDXGISwapChain* incoming) noexcept {
+    if(!incoming || !enabled || internal) return false;
+    if(attaching.test_and_set(std::memory_order_acquire)) return false;
+    struct Done { ~Done(){attaching.clear(std::memory_order_release);} } done;
+    try {
+        Internal guard;
+        auto native=native_interface(incoming);
+        ComPtr<IDXGISwapChain3> swap;
+        if(!native || FAILED(native.As(&swap))) { diagnostic="requires_swapchain3"; return false; }
+        auto** sv=*reinterpret_cast<void***>(swap.Get());
+        if(const auto attached=attached_present.load(std::memory_order_acquire)) {
+            if(attached==sv[8]) return true;
+            diagnostic="unsupported_swapchain_implementation"; return false;
+        }
+        DXGI_SWAP_CHAIN_DESC desc{}; DWORD pid{};
+        if(FAILED(swap->GetDesc(&desc)) || !desc.OutputWindow) return false;
+        GetWindowThreadProcessId(desc.OutputWindow,&pid);
+        if(pid!=GetCurrentProcessId()) return false;
+        diagnostic="graphics_attachment_failed";
+        ComPtr<ID3D12Device> device; ComPtr<ID3D12CommandQueue> queue;
+        ComPtr<ID3D12CommandAllocator> allocator; ComPtr<ID3D12GraphicsCommandList> list;
+        if(FAILED(swap->GetDevice(IID_PPV_ARGS(&device)))) { diagnostic="requires_dx12"; return false; }
+        device=native_interface(device.Get());
+        if(!device) { diagnostic="native_device_unavailable"; return false; }
+        // Use the existing device only to obtain command implementation addresses.
+        // This queue is never submitted to; render() still requires the game's
+        // observed backbuffer transition on its real direct queue.
         D3D12_COMMAND_QUEUE_DESC queue_desc{}; queue_desc.Type=D3D12_COMMAND_LIST_TYPE_DIRECT;
         if(FAILED(device->CreateCommandQueue(&queue_desc,IID_PPV_ARGS(&queue))) ||
            FAILED(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,IID_PPV_ARGS(&allocator))) ||
-           FAILED(device->CreateCommandList(0,D3D12_COMMAND_LIST_TYPE_DIRECT,allocator.Get(),nullptr,IID_PPV_ARGS(&list)))) return nullptr;
-        list->Close();
-        auto window=CreateWindowExW(WS_EX_NOACTIVATE,L"STATIC",L"CRML graphics probe",WS_POPUP,0,0,8,8,nullptr,nullptr,GetModuleHandleW(nullptr),nullptr);
-        if(!window) return nullptr;
-        DXGI_SWAP_CHAIN_DESC1 desc{}; desc.Width=8; desc.Height=8; desc.Format=DXGI_FORMAT_R8G8B8A8_UNORM;
-        desc.SampleDesc.Count=1; desc.BufferUsage=DXGI_USAGE_RENDER_TARGET_OUTPUT; desc.BufferCount=2; desc.SwapEffect=DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        ComPtr<IDXGISwapChain1> swap;
-        const auto created=factory->CreateSwapChainForHwnd(queue.Get(),window,&desc,nullptr,nullptr,&swap);
-        DestroyWindow(window);
-        if(FAILED(created)) return nullptr;
-        ComPtr<IDXGISwapChain3> swap3; if(FAILED(swap.As(&swap3))) return nullptr;
-        auto** sv=*reinterpret_cast<void***>(swap3.Get()); auto** qv=*reinterpret_cast<void***>(queue.Get()); auto** lv=*reinterpret_cast<void***>(list.Get());
+           FAILED(device->CreateCommandList(0,D3D12_COMMAND_LIST_TYPE_DIRECT,allocator.Get(),nullptr,IID_PPV_ARGS(&list))) ||
+           FAILED(list->Close())) return false;
+        auto** qv=*reinterpret_cast<void***>(queue.Get()); auto** lv=*reinterpret_cast<void***>(list.Get());
         struct Hook {void* target; void* hook; void** original;};
         std::vector<Hook> hooks{
             {sv[8],reinterpret_cast<void*>(&present_hook),reinterpret_cast<void**>(&original_present)},
@@ -359,16 +428,20 @@ void* overlay_create(bool physics_trial,bool guest_physics,bool guest_movement) 
             if(MH_CreateHook(h.target,h.hook,h.original)!=MH_OK) break;
             ++installed;
         }
-        if(installed!=hooks.size()) { for(size_t i=0;i<installed;++i) MH_RemoveHook(hooks[i].target); return nullptr; }
+        if(installed!=hooks.size()) { for(size_t i=0;i<installed;++i) MH_RemoveHook(hooks[i].target); return false; }
         for(const auto& h:hooks) MH_QueueEnableHook(h.target);
         if(MH_ApplyQueued()!=MH_OK) {
             for(const auto& h:hooks) MH_DisableHook(h.target);
             for(const auto& h:hooks) MH_RemoveHook(h.target);
-            return nullptr;
+            return false;
         }
-        enabled=true; diagnostic="waiting_for_present"; return &s;
-    } catch(...) { diagnostic="initialization_exception"; return nullptr; }
+        attached_present.store(sv[8],std::memory_order_release);
+        diagnostic="waiting_for_present"; return true;
+    } catch(...) { diagnostic="attachment_exception"; return false; }
 }
+#ifdef CRML_OVERLAY_TESTING
+bool overlay_test_bind_present(void* target) noexcept { return bind_engine_present(target); }
+#endif
 void overlay_update(void*,bool focused,int value,bool camera_valid,bool toggle_down) noexcept {
     if(focused && toggle_down && !toggle_held) panel_shown=!panel_shown;
     toggle_held=toggle_down;

@@ -12,15 +12,16 @@ namespace {
 struct Call {Context context;Action action;int reference;};
 std::vector<Call> calls;
 int next_ref{},counter{},mode{};
-bool deliberate{};
+bool deliberate{},rollback{};
 HANDLE entered{},resume{};
 Context context{reinterpret_cast<void*>(1),0xabc123456,20,30};
 void require(bool ok,const char* message) {if(!ok) {std::cerr<<message<<'\n';std::exit(1);}}
 Result execute(Context c,Action action,int reference) {
     calls.push_back({c,action,reference});
     if(mode==1) return {}; // Unsuitable frame must not consume ownership.
-    if(action==Action::initialize || action==Action::initialize_error || action==Action::initialize_listener_error) {
+    if(action==Action::initialize || action==Action::initialize_error || action==Action::initialize_listener_error || action==Action::initialize_rollback) {
         counter=0;deliberate=action==Action::initialize_error;
+        rollback=action==Action::initialize_rollback;
         return {true,true,false,++next_ref,mode==2?4:0,0};
     }
     if(action==Action::release || action==Action::unload) return {true,true,mode!=3,0,mode==3?4:0,double(counter),action==Action::unload};
@@ -29,6 +30,8 @@ Result execute(Context c,Action action,int reference) {
         require(WaitForSingleObject(resume,5000)==WAIT_OBJECT_0,"resume blocked operation");
     }
     ++counter;
+    if(rollback && counter==1) return {true,true,false,0,0,mode==6?1.0:mode==7?-405.0:-410.0};
+    if(rollback && counter==2 && mode==8) return {true,true,false,0,0,-404};
     return {true,mode!=4,false,0,deliberate && counter==3?2:0,double(counter),false,mode!=5 && deliberate && counter==3};
 }
 void reset() {calls.clear();next_ref=counter=mode=0;deliberate=false;entered=resume=nullptr;reset_for_test(execute);}
@@ -45,6 +48,28 @@ int main() {
     tick(context,500);tick(context,750);tick(context,751);
     field("explicit_unloads",1);field("released",1);field("invocations",3);
     require(calls.back().action==Action::release,"explicit unload releases reference");
+    auto transient=context;transient.owner=99;
+    const auto between_stages=calls.size();tick(transient,1000);
+    require(calls.size()==between_stages,"unrelated script cannot take over next stage after controller release");
+    field("owner_waits",1);tick(context,1001);
+    require(calls.back().action==Action::initialize_error && calls.back().context.owner==context.owner,"next stage keeps selected owner");
+    reset();reset_for_test(execute,true);
+    for(uint64_t time=0;time<=6000;time+=250) {
+        tick(context,time);
+        tick(transient,time+1); // Transient scripts also update between every stage.
+    }
+    field("initialized",5);field("initialization_rollbacks",1);field("initialization_recoveries",1);field("failures",0);
+    for(const auto& call:calls) require(call.context.owner==context.owner,"all stages use the same owner despite interleaved callbacks");
+    reset();for(uint64_t time=0;time<=1000;time+=250) tick(context,time);
+    field("released",1);cleanup_begin(context.global,context.owner);cleanup_end();
+    current_tick(transient,1250);
+    require(calls.back().action==Action::initialize_error && calls.back().context.owner==transient.owner,"owner cleanup between roots permits replacement owner");
+    field("owner_retirements",1);
+    reset();for(uint64_t time=0;time<=1000;time+=250) tick(context,time);
+    auto replacement_world=transient;replacement_world.world++;
+    tick(replacement_world,1250);
+    require(calls.back().context.world==replacement_world.world && calls.back().action==Action::initialize_error,"world change between roots permits fresh selection");
+    field("world_retirements",1);
     reset();stage_three();field("initialized",3);field("expected_errors",1);field("released",2);field("failures",0);
     const auto before=calls.size();cleanup_begin(context.global,context.owner);
     tick(context,3000);require(calls.size()==before,"no execution inside engine cleanup");
@@ -104,8 +129,18 @@ int main() {
     reset();reset_for_test(execute,true);
     for(uint64_t time=0;time<=4000;time+=250) tick(context,time);
     require(calls[10].action==Action::initialize_listener_error,"third event session requests listener-error source mode");
-    require(calls[15].action==Action::unload && calls[16].action==Action::initialize,"listener-error check shuts down before fresh persistent session");
+    require(calls[15].action==Action::unload && calls[16].action==Action::initialize_rollback,"listener-error check shuts down before rollback session");
     field("listener_error_checks",1);field("initialized",4);field("released",3);field("failures",0);
+    for(uint64_t time=4250;time<=5250;time+=250) tick(context,time);
+    require(calls[20].action==Action::unload && calls[21].action==Action::initialize,"recovered initializer shuts down before final persistent session");
+    field("initialization_rollbacks",1);field("initialization_recoveries",1);field("initialized",5);field("released",4);field("failures",0);
+    for(int failure_mode:{6,7,8}) {
+        reset();reset_for_test(execute,true);mode=failure_mode;
+        for(uint64_t time=0;time<=5500;time+=250) tick(context,time);
+        field("failures",1);field("initialization_recoveries",0);
+        field("initialization_rollbacks",failure_mode==8?1:0);
+        require(!needs_calls(),"missing rollback evidence or failed retry stops sequence");
+    }
     reset();stage_three();
     for(uint64_t time=2750;time<=4000;time+=250) tick(context,time);
     field("listener_error_checks",0);field("initialized",3);

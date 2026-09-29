@@ -231,7 +231,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
         }
         if(!fall_observer) fall_output_.close();
     }
-    if (gameplay_) overlay_ = overlay_create(false,false,motion_);
+    if (gameplay_) overlay_ = overlay_create(image_base,false,false,motion_);
     output_ << "{\"schema\":7,\"mode\":\"" << (motion_?"wasm-movement":visibility_ ? "experimental-visibility" : gameplay_ ? "experimental-noclip" : "observe-only") << "\",\"pid\":" << GetCurrentProcessId() << "}\n";
     output_.flush();
     if(motion_requested) return motion_ ? (boundary_guard ?

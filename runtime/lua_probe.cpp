@@ -231,24 +231,27 @@ void persistent_body(void* vm,void* user) {
     api.push_entity(vm,w.context.owner,1);api.set_field(vm,env,"self");
     const bool error=w.action==session::Action::initialize_error;
     const bool listener_error=w.action==session::Action::initialize_listener_error;
+    const bool rollback=w.action==session::Action::initialize_rollback;
     const auto* code=events_probe?bytecode::persistent_events:error?bytecode::persistent_error:bytecode::persistent;
     const auto size=events_probe?sizeof(bytecode::persistent_events):error?sizeof(bytecode::persistent_error):sizeof(bytecode::persistent);
     result.status=api.load(vm,events_probe?"=crml_persistent_events":error?"=crml_persistent_error":"=crml_persistent",
         reinterpret_cast<const char*>(code),size,env);
     if(result.status) return;
-    // Two truthy arguments select a listener error; one selects a controller
-    // error. Both are existing rooted values, so no additional VM API is used.
-    const int arguments=events_probe?(listener_error?2:error?1:0):0;
+    // Three truthy arguments select initialization rollback; two select a
+    // listener error; one selects a controller error. Reuse rooted values.
+    const int arguments=events_probe?(rollback?3:listener_error?2:error?1:0):0;
     for(int i=0;i<arguments;++i) api.push_value(vm,env);
     result.status=api.call(vm,arguments,1,0);
     if(result.status) return;
     if(read<uint32_t>(read<uintptr_t>(l+8)-8)!=7) {result.status=-305;return;}
+    // Event construction has no engine side effects. Register only when this
+    // retained controller is invoked, so a failed retain cannot strand a listener.
     result.reference=api.retain(vm,-1); // Copies without popping; stack stays rooted.
     if(result.reference<=0) result.status=-306;
 }
 session::Result persistent_execute(session::Context context,session::Action action,int reference) {
     Frame initial;
-    if(!capture(context.vm,initial) || initial.global!=context.global || initial.world!=context.world ||
+    if(!capture(context.vm,initial,144) || initial.global!=context.global || initial.world!=context.world ||
        !valid_owner({context.world,context.owner})) return {};
     PersistentWork work{context,action,reference,{}};work.result.attempted=true;
     const int status=api.protect(context.vm,&persistent_body,&work,initial.top,0);

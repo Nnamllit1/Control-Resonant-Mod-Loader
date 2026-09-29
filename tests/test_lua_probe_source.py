@@ -10,6 +10,95 @@ VM = None
 
 
 class SourceTests(unittest.TestCase):
+    def test_initialization_rollback(self):
+        if VM is None:
+            self.skipTest("supply --vm for standalone Lua behavior checks")
+        source = (ROOT / "examples/lua-probe/persistent_events.luau").read_text(encoding="utf-8")
+        host = '''
+local mode = MODE
+local owner, handler = {}, nil
+local added, removed, sent, nextHandle, currentHandle = 0, 0, 0, 0, nil
+local env = {self = owner}
+env._ENV = env
+setmetatable(env, {__index = getfenv(0)})
+env.nl_add_event_handler = function(target, name, receive)
+    assert(target == owner and name == 'lua.crml_persistent_f90c7812_own_event')
+    assert(handler == nil, 'previous registration must have been cleaned up')
+    if mode == 'add_error' or (mode == 'retry_error' and added == 1) then error('add failed') end
+    added += 1
+    nextHandle += 1
+    currentHandle, handler = nextHandle, receive
+    return currentHandle
+end
+env.nl_remove_event_handler = function(handle)
+    assert(handle == currentHandle and handler ~= nil, 'never retry retired handle')
+    removed += 1
+    if mode == 'remove_error' then error('remove failed') end
+    if mode ~= 'stuck' then currentHandle, handler = nil, nil end
+    if mode == 'remove_then_error' then error('failed after release') end
+end
+env.nl_send_custom_event = function(name, value)
+    assert(name == 'crml_persistent_f90c7812_own_event')
+    sent += 1
+    if handler then handler(owner, value) end
+end
+local chunk = function(...)
+SOURCE
+end
+setfenv(chunk, env)
+if mode == 'missing_pcall' then env.pcall = false; assert(chunk() == nil and added == 0); return end
+local callback = chunk(true, true, true)
+assert(type(callback) == 'function' and added == 0 and removed == 0 and sent == 0)
+-- This is also the retain-allocation failure boundary: construction owns no
+-- engine resources, so dropping the unretained closure needs no engine cleanup.
+if mode == 'unstarted_shutdown' then
+    assert(callback(callback) == 0 and added == 0 and removed == 0)
+    assert(callback() == -406 and added == 0)
+    return
+end
+local first = callback()
+if mode == 'remove_error' or mode == 'remove_then_error' then
+    assert(first == -405 and removed == 1 and sent == 0)
+    assert(callback(callback) == -405 and callback(callback) == -405 and removed == 1)
+    assert(callback() == -406)
+    return
+end
+if mode == 'stuck' then
+    assert(first == -401 and added == 1 and removed == 1)
+    assert(callback(callback) == -401 and removed == 1)
+    return
+end
+if mode == 'add_error' then
+    assert(first == -404 and added == 0 and removed == 0)
+    assert(callback(callback) == 1)
+    return
+end
+assert(first == -410 and added == 1 and removed == 1 and handler == nil and sent == 1)
+if mode == 'shutdown_after_rollback' then
+    assert(callback(callback) == 1 and removed == 1 and added == 1)
+    assert(callback() == -406)
+    return
+end
+local second = callback()
+if mode == 'retry_error' then
+    assert(second == -404 and added == 1 and removed == 1 and handler == nil)
+    assert(callback(callback) == 2 and removed == 1)
+    return
+end
+assert(second == 2 and callback() == 3 and added == 2 and removed == 1)
+assert(callback(callback) == 3 and removed == 2 and handler == nil)
+assert(callback(callback) == 3 and removed == 2, 'shutdown must be idempotent')
+assert(callback() == -406 and added == 2, 'stopped controller must never register again')
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            script = Path(tmp) / "initialization.luau"
+            for mode in ("success", "add_error", "retry_error", "remove_error", "remove_then_error",
+                         "stuck", "unstarted_shutdown", "shutdown_after_rollback", "missing_pcall"):
+                with self.subTest(mode=mode):
+                    script.write_text(host.replace('MODE', repr(mode)).replace('SOURCE', source), encoding="utf-8")
+                    result = subprocess.run([str(VM), str(script)], capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_listener_error_cleanup(self):
         if VM is None:
             self.skipTest("supply --vm for standalone Lua behavior checks")
@@ -112,8 +201,9 @@ end
 setfenv(chunk, env)
 if mode == 'bad_environment' then env._ENV = {}; assert(chunk() == nil and added == 0); return end
 local callback = chunk(mode == 'error')
-assert(type(callback) == 'function' and added == 1 and removed == 0)
+assert(type(callback) == 'function' and added == 0 and removed == 0)
 assert(callback() == 1 and callback() == 2 and removed == 0)
+assert(added == 1)
 local ok, result = pcall(callback)
 if mode == 'error' then assert(not ok and type(result) == 'string')
 else assert(ok and result == 3) end

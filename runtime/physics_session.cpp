@@ -336,7 +336,7 @@ std::string Session::start(const std::filesystem::path& root,bool wasm) {
     header<<"{\"type\":\"header\",\"schema\":1,\"mode\":\"native-physics-trial\",\"sha256\":\""<<game_sha<<"\",\"physx_sha256\":\""<<backend_sha<<"\",\"mods_suspended\":"<<(wasm?"false":"true")<<"}\n";
     const auto header_text=header.str();log_<<header_text;bytes_=header_text.size();
     log_.flush(); if(!log_) return "Physics trial refused: cannot write log";
-    overlay_=probe::overlay_create(true,wasm);
+    overlay_=probe::overlay_create(image,true,wasm);
     if(!overlay_) return "Physics trial refused: overlay unavailable";
     events.open();
     for(const auto& hook:hooks) if(MH_EnableHook(reinterpret_cast<void*>(image+hook.rva))!=MH_OK) return "Physics trial refused: hook enable";

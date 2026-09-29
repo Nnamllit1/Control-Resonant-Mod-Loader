@@ -102,6 +102,17 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
     }
     for path in (root / 'sdk').rglob('*.h'):
         sdk[path.relative_to(root).as_posix()] = path
+    for name in ('compile_lua.py', 'binlua.py', 'binlua_source.py', 'engine_research.py'):
+        sdk['tools/' + name] = root / 'tools' / name
+    sdk['README-LUA.txt'] = (
+        b'Offline Luau tools\n\nRequires Python 3.10+ and a trusted local Luau 0.650 compiler.\n'
+        b'python tools/compile_lua.py example.luau --compiler <luau-compile.exe> --output example.bytecode\n'
+        b'python tools/binlua.py example.bytecode --raw-bytecode --format disasm\n\n'
+        b'These tools do not install or run Lua mods. General Lua source packages are not\n'
+        b'yet supported by the game runtime. Direct engine Lua is trusted scripting,\n'
+        b'not the Wasm sandbox. The compiler and extracted game scripts are not bundled.\n\n'
+        b'https://crml.nnamllit.de/engine-lua/\n'
+    )
     for example in ('hello', 'movement', 'visibility', 'physics-damping'):
         for path in (root / 'examples' / example).iterdir():
             if path.suffix in ('.c', '.wat', '.ini', '.md'):

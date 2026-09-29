@@ -14,7 +14,8 @@ struct State {
     uintptr_t global{},world{};
     uint64_t owner{},next_tick{},calls{},sessions{},initialized{},invocations{},released{},vm_reclaimed{};
     uint64_t owner_retirements{},world_retirements{},explicit_unloads{},expected_errors{},failures{},rejected{};
-    uint64_t listener_error_checks{};
+    uint64_t listener_error_checks{},initialization_rollbacks{},initialization_recoveries{};
+    uint64_t eligible_updates{},owner_waits{},vm_waits{},revision_waits{},teardown_waits{};
     uint32_t teardown_depth{};
     DWORD callback_thread{},cleanup_thread{};
     int reference{},last_status{};
@@ -54,23 +55,36 @@ void tick(Context context,uint64_t now) {
     // Hold this short gate through the bounded protected operation. Cleanup
     // waits for it before retiring ownership, then releases the gate before
     // entering engine code. Updates never wait for engine cleanup to finish.
-    if(context.revision!=generation.load() || state.teardown_depth || state.halted || (state.global && state.global!=context.global)) {
+    ++state.eligible_updates;
+    if(context.revision!=generation.load()) {++state.revision_waits;ReleaseSRWLockExclusive(&gate);return;}
+    if(state.teardown_depth) {++state.teardown_waits;ReleaseSRWLockExclusive(&gate);return;}
+    if(state.halted) {ReleaseSRWLockExclusive(&gate);return;}
+    if(state.global && state.global!=context.global) {
+        ++state.vm_waits;
         ReleaseSRWLockExclusive(&gate);return;
     }
     if(requested_stop.load()) retire();
-    if(state.reference && state.world!=context.world) {++state.world_retirements;state.engine_retired=true;retire();}
+    if(!state.engine_retired && state.world && state.world!=context.world) {++state.world_retirements;state.engine_retired=true;retire();}
     if(state.retired) {
         // An explicit Lua shutdown needs the still-live owner. After engine
         // teardown, only release our root; never remove an already-dead handle.
-        if(state.events && !state.engine_retired && context.owner!=state.owner) {ReleaseSRWLockExclusive(&gate);return;}
+        if(state.events && !state.engine_retired && context.owner!=state.owner) {++state.owner_waits;ReleaseSRWLockExclusive(&gate);return;}
         finish_reference(context);
         ReleaseSRWLockExclusive(&gate);return;
     }
     if(requested_stop.load() || now<state.next_tick) {ReleaseSRWLockExclusive(&gate);return;}
+    // Keep the selected owner between stages as well as during invocation.
+    // Otherwise whichever unrelated script updates immediately after a release
+    // can take over the next stage, even if it never updates again afterward.
+    // Only observed retirement/world replacement permits selecting another owner.
+    if(state.owner && !state.engine_retired && state.owner!=context.owner) {
+        ++state.owner_waits;ReleaseSRWLockExclusive(&gate);return;
+    }
     if(!state.reference) {
         if(state.sessions>=8) {ReleaseSRWLockExclusive(&gate);return;}
         const auto action=state.sessions==1?Action::initialize_error:
-            state.events && state.sessions==2?Action::initialize_listener_error:Action::initialize;
+            state.events && state.sessions==2?Action::initialize_listener_error:
+            state.events && state.sessions==3?Action::initialize_rollback:Action::initialize;
         const auto result=execute(context,action,0);
         if(!result.attempted) {++state.rejected;ReleaseSRWLockExclusive(&gate);return;}
         ++state.sessions;state.global=context.global;state.world=context.world;state.owner=context.owner;
@@ -85,10 +99,16 @@ void tick(Context context,uint64_t now) {
         state.callback_thread=GetCurrentThreadId();
         if(state.sessions==2 && state.calls==3 && result.status==2 && result.restored && (!state.events || result.deliberate_error)) {
             ++state.expected_errors;retire();
-        } else if(result.status || !result.restored || !std::isfinite(result.value) || result.value!=double(state.calls)) {
+        } else if(state.events && state.sessions==4 && state.calls==1 && !result.status && result.restored && result.value==-410) {
+            // This marker is returned only after the deliberately failed
+            // initializer removes its listener and checks that delivery stopped.
+            ++state.initialization_rollbacks;
+        } else if(result.status || !result.restored || !std::isfinite(result.value) || result.value!=double(state.calls) ||
+                  (state.events && state.sessions==4 && state.calls==1)) {
             failed(result);requested_stop=true;retire();if(!result.restored) state.halted=true;
         } else if(state.sessions==1 && state.calls==3) {++state.explicit_unloads;retire();}
         else if(state.events && state.sessions==3 && state.calls==4) {++state.listener_error_checks;retire();}
+        else if(state.events && state.sessions==4 && state.calls==3) {++state.initialization_recoveries;retire();}
     }
     ReleaseSRWLockExclusive(&gate);
 }
@@ -97,7 +117,7 @@ void cleanup_begin(uintptr_t global,uint64_t owner) noexcept {
     ++state.teardown_depth;
     ++generation;
     if(!global && armed.load()) {requested_stop=true;state.halted=true;++state.failures;}
-    if(armed.load() && state.reference && state.global==global && state.owner==owner && !state.engine_retired) {
+    if(armed.load() && state.owner && state.global==global && state.owner==owner && !state.engine_retired) {
         ++state.owner_retirements;state.engine_retired=true;state.cleanup_thread=GetCurrentThreadId();retire();
     }
     ReleaseSRWLockExclusive(&gate);
@@ -123,7 +143,7 @@ void stop() noexcept {requested_stop=true;}
 void write(std::ostream& out) {
     State copy;
     AcquireSRWLockShared(&gate);copy=state;ReleaseSRWLockShared(&gate);
-    out<<"{\"type\":\"lua_session\",\"schema\":3,\"armed\":"<<(armed.load()?"true":"false")
+    out<<"{\"type\":\"lua_session\",\"schema\":4,\"armed\":"<<(armed.load()?"true":"false")
        <<",\"event_mode\":"<<(copy.events?"true":"false")
        <<",\"stop_requested\":"<<(requested_stop.load()?"true":"false")
        <<",\"active_reference\":"<<(copy.reference>0?"true":"false")<<",\"retired\":"<<(copy.retired?"true":"false")
@@ -133,6 +153,11 @@ void write(std::ostream& out) {
        <<",\"world_retirements\":"<<copy.world_retirements<<",\"explicit_unloads\":"<<copy.explicit_unloads
        <<",\"expected_errors\":"<<copy.expected_errors<<",\"failures\":"<<copy.failures<<",\"rejected\":"<<copy.rejected
        <<",\"listener_error_checks\":"<<copy.listener_error_checks
+       <<",\"initialization_rollbacks\":"<<copy.initialization_rollbacks
+       <<",\"initialization_recoveries\":"<<copy.initialization_recoveries
+       <<",\"eligible_updates\":"<<copy.eligible_updates<<",\"owner_waits\":"<<copy.owner_waits
+       <<",\"vm_waits\":"<<copy.vm_waits<<",\"revision_waits\":"<<copy.revision_waits
+       <<",\"teardown_waits\":"<<copy.teardown_waits
        <<",\"last_status\":"<<copy.last_status<<",\"teardown_depth\":"<<copy.teardown_depth
        <<",\"failure_status\":"<<copy.failure_status<<",\"failure_line\":"<<copy.failure_line<<",\"failure_value\":";
     if(std::isfinite(copy.failure_value)) out<<copy.failure_value;else out<<"null";
