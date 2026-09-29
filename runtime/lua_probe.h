@@ -32,6 +32,6 @@ void write(std::ostream& out);
 void stop() noexcept;
 #ifdef CRML_LUA_PROBE_TESTING
 void configure(Api api,uintptr_t image);
-void configure_persistent();
+void configure_persistent(bool events=false);
 #endif
 }

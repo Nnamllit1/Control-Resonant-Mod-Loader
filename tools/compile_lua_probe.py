@@ -10,7 +10,7 @@ def generate(compiler, root):
     lines = ["// Generated from examples/lua-probe with Luau 0.650, -O0 -g2.",
              "// Contains only CRML-authored code. Regenerate with tools/compile_lua_probe.py.",
              "#pragma once", "namespace crml::probe::lua::bytecode {"]
-    for name in ("arithmetic", "error", "bindings", "events", "persistent", "persistent_error"):
+    for name in ("arithmetic", "error", "bindings", "events", "persistent", "persistent_error", "persistent_events"):
         source = root / "examples" / "lua-probe" / (name + ".luau")
         code = subprocess.run([str(compiler), "--binary", "-O0", "-g2", str(source)],
                               check=True, capture_output=True).stdout
@@ -20,6 +20,12 @@ def generate(compiler, root):
         for start in range(0, len(code), 16):
             lines.append("    " + ",".join(f"0x{b:02x}" for b in code[start:start+16]) + ",")
         lines.append("};")
+        if name in ("persistent_error", "persistent_events"):
+            error_lines = [i for i, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1)
+                           if line.strip() == "missing()"]
+            if len(error_lines) != 1:
+                raise ValueError(f"Expected exactly one deliberate nil call in {name}")
+            lines.append(f"inline constexpr unsigned {name}_error_line = {error_lines[0]};")
     lines.append("}")
     return "\n".join(lines) + "\n"
 

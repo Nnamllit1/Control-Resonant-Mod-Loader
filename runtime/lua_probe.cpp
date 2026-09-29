@@ -1,6 +1,7 @@
 #include "lua_probe.h"
 #include "lua_lifetime.h"
 #include "lua_session.h"
+#include "lua_references.h"
 #include "lua_probe_bytecode.h"
 #include <Windows.h>
 #include <array>
@@ -13,6 +14,7 @@ namespace crml::probe::lua {
 namespace {
 Api api{};
 uintptr_t image_base{};
+bool events_probe{};
 std::atomic<bool> enabled{};
 std::atomic<unsigned> state{}; // 0 waiting, 1 executing, 2 report available
 std::atomic<uint64_t> rejected{};
@@ -187,13 +189,32 @@ void persistent_body(void* vm,void* user) {
     auto& result=w.result;
     const auto l=reinterpret_cast<uintptr_t>(vm);
     const int saved=static_cast<int>((read<uintptr_t>(l+8)-read<uintptr_t>(l+0x10))/24);
-    if(w.action==session::Action::release) {
+    if(w.action==session::Action::release || w.action==session::Action::unload) {
+        if(w.action==session::Action::unload) {
+            if(api.fetch(vm,-10000,w.reference)!=7) result.status=-301;
+            else {
+                api.push_value(vm,-1); // A non-nil command; no new push API needed.
+                result.status=api.call(vm,1,1,0);
+                if(!result.status) {
+                    const auto value=read<uintptr_t>(l+8)-24;
+                    if(read<uint32_t>(value+16)!=3) result.status=-307;
+                    else {result.value=read<double>(value);result.shutdown=true;}
+                }
+            }
+        }
         api.release(vm,w.reference);result.released=true;return;
     }
     if(w.action==session::Action::invoke) {
         if(api.fetch(vm,-10000,w.reference)!=7) {result.status=-301;return;}
         result.status=api.call(vm,0,1,0);
-        if(result.status) return;
+        if(result.status) {
+            Result diagnostic;
+            error_details(vm,events_probe?"=crml_persistent_events":"=crml_persistent_error",diagnostic);
+            result.error_line=diagnostic.error_line;
+            result.deliberate_error=std::strcmp(diagnostic.error_kind,"nil_call")==0 &&
+                diagnostic.error_line==(events_probe?bytecode::persistent_events_error_line:bytecode::persistent_error_error_line);
+            return;
+        }
         const auto value=read<uintptr_t>(l+8)-24;
         if(read<uint32_t>(value+16)!=3) {result.status=-302;return;}
         result.value=read<double>(value);return;
@@ -209,11 +230,13 @@ void persistent_body(void* vm,void* user) {
     api.push_value(vm,env);api.set_field(vm,env,"_ENV");
     api.push_entity(vm,w.context.owner,1);api.set_field(vm,env,"self");
     const bool error=w.action==session::Action::initialize_error;
-    result.status=api.load(vm,error?"=crml_persistent_error":"=crml_persistent",
-        reinterpret_cast<const char*>(error?bytecode::persistent_error:bytecode::persistent),
-        error?sizeof(bytecode::persistent_error):sizeof(bytecode::persistent),env);
+    const auto* code=events_probe?bytecode::persistent_events:error?bytecode::persistent_error:bytecode::persistent;
+    const auto size=events_probe?sizeof(bytecode::persistent_events):error?sizeof(bytecode::persistent_error):sizeof(bytecode::persistent);
+    result.status=api.load(vm,events_probe?"=crml_persistent_events":error?"=crml_persistent_error":"=crml_persistent",
+        reinterpret_cast<const char*>(code),size,env);
     if(result.status) return;
-    result.status=api.call(vm,0,1,0);
+    if(events_probe && error) api.push_value(vm,env);
+    result.status=api.call(vm,events_probe && error?1:0,1,0);
     if(result.status) return;
     if(read<uint32_t>(read<uintptr_t>(l+8)-8)!=7) {result.status=-305;return;}
     result.reference=api.retain(vm,-1); // Copies without popping; stack stays rooted.
@@ -282,7 +305,9 @@ bool start_persistent(uintptr_t image) noexcept {
     api.retain=reinterpret_cast<decltype(api.retain)>(image+0x2c507a0);
     api.fetch=reinterpret_cast<decltype(api.fetch)>(image+0x2c4f1d0);
     api.release=reinterpret_cast<decltype(api.release)>(image+0x2c508d0);
-    session::start(&persistent_execute);return true;
+    if(!references::start(image)) return false;
+    events_probe=true;
+    session::start(&persistent_execute,true);return true;
 #else
     (void)image;return false;
 #endif
@@ -342,11 +367,12 @@ void stop() noexcept {enabled.store(false,std::memory_order_release);session::st
 void configure(Api functions,uintptr_t image) {
     enabled=false;api=functions;image_base=image;report={};state=0;rejected=0;enabled=true;
 }
-void configure_persistent() {
+void configure_persistent(bool events) {
+    events_probe=events;
 #ifdef CRML_LUA_SESSION_TESTING
-    session::reset_for_test(&persistent_execute);
+    session::reset_for_test(&persistent_execute,events);
 #else
-    session::start(&persistent_execute);
+    session::start(&persistent_execute,events);
 #endif
 }
 #endif

@@ -3,6 +3,7 @@
 #include "lua_probe.h"
 #include "lua_lifetime.h"
 #include "lua_session.h"
+#include "lua_references.h"
 #include <MinHook.h>
 #include <intrin.h>
 #include <atomic>
@@ -97,6 +98,7 @@ void write(std::ostream& out) {
     lua::write(out);
     lua::lifetime::write(out);
     lua::session::write(out);
+    lua::references::write(out);
 }
 void stop() noexcept {ready.store(false,std::memory_order_release);lua::stop();lua::lifetime::stop();}
 #ifdef CRML_FALL_TRACE_TESTING

@@ -10,6 +10,60 @@ VM = None
 
 
 class SourceTests(unittest.TestCase):
+    def test_persistent_events(self):
+        if VM is None:
+            self.skipTest("supply --vm for standalone Lua behavior checks")
+        source = (ROOT / "examples/lua-probe/persistent_events.luau").read_text(encoding="utf-8")
+        host = '''
+local mode = MODE
+local owner, handler = {}, nil
+local added, removed, sent = 0, 0, 0
+local env = {self = owner}
+env._ENV = env
+setmetatable(env, {__index = getfenv(0)})
+env.nl_add_event_handler = function(target, name, receive)
+    assert(target == owner and name == 'lua.crml_persistent_f90c7812_own_event')
+    assert(getfenv(receive).self == owner)
+    added += 1
+    handler = receive
+    return 91
+end
+env.nl_remove_event_handler = function(handle)
+    assert(handle == 91)
+    removed += 1
+    if mode ~= 'stuck_removal' then handler = nil end
+end
+env.nl_send_custom_event = function(name, value)
+    assert(name == 'crml_persistent_f90c7812_own_event')
+    sent += 1
+    if handler then handler(owner, value) end
+end
+local chunk = function(...)
+SOURCE
+end
+setfenv(chunk, env)
+if mode == 'bad_environment' then env._ENV = {}; assert(chunk() == nil and added == 0); return end
+local callback = chunk(mode == 'error')
+assert(type(callback) == 'function' and added == 1 and removed == 0)
+assert(callback() == 1 and callback() == 2 and removed == 0)
+local ok, result = pcall(callback)
+if mode == 'error' then assert(not ok and type(result) == 'string')
+else assert(ok and result == 3) end
+-- The native host supplies a non-nil command to request explicit shutdown.
+local stopped = callback(callback)
+assert(removed == 1 and sent == 4)
+if mode == 'stuck_removal' then assert(stopped == -401)
+else assert(stopped == 3 and handler == nil) end
+print('event lifecycle passed')
+'''
+        with tempfile.TemporaryDirectory() as tmp:
+            script = Path(tmp) / "persistent_events.luau"
+            for mode in ("success", "error", "stuck_removal", "bad_environment"):
+                with self.subTest(mode=mode):
+                    script.write_text(host.replace('MODE', repr(mode)).replace('SOURCE', source), encoding="utf-8")
+                    result = subprocess.run([str(VM), str(script)], capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_persistent_closures(self):
         if VM is None:
             self.skipTest("supply --vm for standalone Lua behavior checks")

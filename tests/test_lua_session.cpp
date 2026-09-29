@@ -23,13 +23,13 @@ Result execute(Context c,Action action,int reference) {
         counter=0;deliberate=action==Action::initialize_error;
         return {true,true,false,++next_ref,mode==2?4:0,0};
     }
-    if(action==Action::release) return {true,true,mode!=3,0,mode==3?4:0,0};
+    if(action==Action::release || action==Action::unload) return {true,true,mode!=3,0,mode==3?4:0,double(counter),action==Action::unload};
     if(entered) {
         SetEvent(entered);
         require(WaitForSingleObject(resume,5000)==WAIT_OBJECT_0,"resume blocked operation");
     }
     ++counter;
-    return {true,mode!=4,false,0,deliberate && counter==3?2:0,double(counter)};
+    return {true,mode!=4,false,0,deliberate && counter==3?2:0,double(counter),false,mode!=5 && deliberate && counter==3};
 }
 void reset() {calls.clear();next_ref=counter=mode=0;deliberate=false;entered=resume=nullptr;reset_for_test(execute);}
 std::string report() {std::ostringstream out;write(out);return out.str();}
@@ -89,5 +89,17 @@ int main() {
     cleanup_end();current_tick(context,501);field("owner_retirements",1);field("released",1);
     for(auto handle:{entered,resume,retiring,retired}) CloseHandle(handle);
     require(report().find(std::to_string(context.global))==std::string::npos,"no raw global identity serialized");
+    reset();reset_for_test(execute,true);stage_three();
+    require(calls[4].action==Action::unload && calls[9].action==Action::unload,"live-owner explicit and error cleanup invoke Lua shutdown");
+    cleanup_begin(context.global,context.owner);cleanup_end();current_tick(context,3000);
+    require(calls.back().action==Action::release,"engine owner cleanup skips Lua shutdown");
+    reset();reset_for_test(execute,true);tick(context,0);stop();
+    auto other_owner=context;other_owner.owner++;
+    tick(other_owner,250);require(calls.size()==1,"live shutdown waits for original owner context");
+    cleanup_begin(context.global,context.owner);cleanup_end();current_tick(other_owner,251);
+    require(calls.back().action==Action::release,"owner teardown supersedes pending explicit unload");
+    reset();reset_for_test(execute,true);mode=5;
+    for(uint64_t time=0;time<=2000;time+=250) tick(context,time);
+    field("expected_errors",0);field("failures",1);
     std::cout<<"Lua session checks passed\n";
 }

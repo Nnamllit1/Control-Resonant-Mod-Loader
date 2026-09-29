@@ -4,16 +4,20 @@
 
 namespace crml::probe::lua::session {
 struct Context {void* vm{};uintptr_t global{},world{};uint64_t owner{},revision{};};
-enum class Action {initialize, initialize_error, invoke, release};
+enum class Action {initialize, initialize_error, invoke, release, unload};
 struct Result {
     bool attempted{},restored{},released{};
     int reference{},status{};
     double value{};
+    bool shutdown{};
+    bool deliberate_error{};
+    unsigned error_line{};
 };
 using Execute=Result(*)(Context,Action,int);
 // A bounded diagnostic, not an arbitrary-script scheduler. The embedded
-// callbacks perform arithmetic only and cannot enter engine teardown.
-void start(Execute execute) noexcept;
+// callbacks perform arithmetic or dispatch their own bounded counting listener.
+// They never initiate engine teardown; this gate is not an arbitrary-script API.
+void start(Execute execute,bool events=false) noexcept;
 bool configured() noexcept;
 uint64_t revision() noexcept;
 bool needs_calls() noexcept;
@@ -27,6 +31,6 @@ void close_end() noexcept;
 void stop() noexcept;
 void write(std::ostream& out);
 #ifdef CRML_LUA_SESSION_TESTING
-void reset_for_test(Execute execute);
+void reset_for_test(Execute execute,bool events=false);
 #endif
 }

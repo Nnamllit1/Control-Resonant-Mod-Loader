@@ -182,27 +182,30 @@ No diagnostic hotkey is required. Movement, saving, loading and menu transitions
 
 ## Persistent callback diagnostic
 
-Diagnostic builds also contain `examples/lua-probe/persistent.luau` and `persistent_error.luau`. Each returns a closure that increments a counter in its private environment. The host retains that closure in the VM registry and invokes it on later eligible updates, at least 250 ms apart. The closure keeps its environment reachable. It performs no gameplay operation and registers no engine event listener or update callback.
+The arithmetic examples, `examples/lua-probe/persistent.luau` and `persistent_error.luau`, return closures that increment counters in private environments. The host retains a closure in the VM registry and invokes it on later eligible updates, at least 250 ms apart. A gameplay capture confirmed persistent state, explicit release, recovery after a deliberate callback error, and two owner-retirement/reinitialization transitions with no unexpected failures. These results cover the bounded self-authored callbacks, not arbitrary Lua mods or every teardown path.
+
+Current diagnostic builds extend this sequence with `examples/lua-probe/persistent_events.luau`. It registers one privately named custom-event listener whose only action is to count and check deliveries. The retained controller sends that event on later updates and checks that each payload is delivered exactly once. It never replaces the game's update callback or changes gameplay properties.
 
 After the one-shot sequence succeeds, the diagnostic runs these stages:
 
-1. Initialize a counter, obtain results 1, 2 and 3, then explicitly release its reference.
-2. Initialize another counter, obtain 1 and 2, contain its deliberate nil-call error on the third invocation, then release that reference.
+1. Initialize a listener and controller, obtain results 1, 2 and 3, then request script shutdown and release the controller reference. Shutdown removes the listener and sends again to verify that delivery has stopped.
+2. Initialize another pair, obtain 1 and 2, contain the controller's deliberate nil-call error on the third invocation, then run shutdown and release the controller. The expected error must match the self-authored chunk and generated source-line marker; an unrelated error status is a failure.
 3. Initialize a fresh counter and keep invoking it until owner cleanup, world replacement, VM destruction or recording shutdown. After owner retirement and reference cleanup, a later eligible owner can start a fresh counter. At most eight sessions are initialized per process.
 
 All allocating operations, invocation and registry access run inside the recovered native error barrier. The original stack and frame are checked and restored after each operation. A reference is fetched only from its recorded global state. A failed or ambiguous release is never retried, because the engine can recycle the reference number.
 
-An ownership gate prevents the bounded arithmetic operation from overlapping observed script cleanup or VM destruction. Teardown first waits for an in-flight diagnostic operation, retires matching ownership and marks cleanup in progress, then enters the original engine routine without holding the gate. Updates skip while teardown is active. A revision copied before the original script call rejects a stale update even if cleanup completed before its return and the entity generation still matches.
+An ownership gate prevents the bounded diagnostic operation from overlapping observed script cleanup or VM destruction. Teardown first waits for an in-flight diagnostic operation, retires matching ownership and marks cleanup in progress, then enters the original engine routine without holding the gate. Updates skip while teardown is active. A revision copied before the original script call rejects a stale update even if cleanup completed before its return and the entity generation still matches.
 
-Teardown threads perform no Lua calls. Owner retirement queues reference release for a subsequent eligible update in the same VM; the old callback is not invoked again. If that VM closes first, the diagnostic discards its reference number before destruction and leaves reclamation to the VM. On recording shutdown, new initialization and invocation stop; pending release can still drain through the pinned update hook. If no eligible update follows, reclamation waits for VM destruction. The host retains identity values for comparison, but never saves a VM pointer to dereference from a worker thread.
+Teardown notifications perform no Lua calls. Owner retirement queues release of CRML's controller reference for a subsequent eligible update in the same VM; the old callback is not invoked again. The engine owns the listener reference and performs its removal through its own cleanup routine. CRML does not call script shutdown with a retired listener handle. An explicit unload waits for the still-live owner; owner cleanup supersedes a pending explicit unload. If the VM closes first, the diagnostic discards its reference number before destruction and leaves reclamation to the VM. On recording shutdown, new initialization and invocation stop; pending cleanup can still drain through the pinned update hook. If no eligible update follows, reclamation waits for engine cleanup or VM destruction. The host retains identity values for comparison, but never saves a VM pointer to dereference from a worker thread.
 
-This gate is specific to the embedded arithmetic callbacks. It is not a scheduler for arbitrary scripts that may reenter engine teardown, block or run indefinitely. The diagnostic does not establish arbitrary Lua file loading, engine-event persistence, comprehensive hot reload, or sandboxing.
+This gate is specific to the embedded arithmetic callbacks and their private counting listener. It is not a scheduler for arbitrary scripts that may reenter engine teardown, block or run indefinitely. The diagnostic does not establish arbitrary Lua file loading, comprehensive hot reload, initialization rollback for arbitrary engine bindings, or sandboxing.
 
 `lua_session` records accompany the lifetime records in `crml/fall-recovery.jsonl`:
 
 | Field | Meaning |
 | --- | --- |
 | `armed` | Cleanup hooks and registry entry checks allowed this diagnostic to start |
+| `schema`, `event_mode` | Schema 2 supports the persistent event sequence; schema 1 records the earlier arithmetic sequence |
 | `sessions`, `initialized` | Attempted and successful session initializations |
 | `invocations`, `current_calls` | Total callback invocations and calls in the current session |
 | `explicit_unloads`, `expected_errors` | Completed first-stage unload requests and contained second-stage errors |
@@ -212,12 +215,17 @@ This gate is specific to the embedded arithmetic callbacks. It is not a schedule
 | `failures`, `halted` | Unexpected results or unsafe state; a halted session performs no further registry access |
 | `rejected` | Unsuitable execution frames; no operation was attempted |
 | `last_status` | Last VM/host status, including protected error 2 or diagnostic errors -301 through -306 |
+| `failure_status`, `failure_line`, `failure_value` | First unexpected operation result, retained across later cleanup; no arbitrary error text is logged |
 | `callback_thread`, `cleanup_thread` | Last execution and matching owner-retirement threads |
 | `teardown_depth`, `stop_requested` | Active cleanup nesting and a request to cease execution |
 
-Errors -301 through -306 mean: registry value is not a closure, callback result is not numeric, shared counter already exists, private metatable installation failed, initialization returned no closure, or retaining the closure returned no positive reference.
+Errors -301 through -307 mean: registry value is not a closure, callback result is not numeric, shared counter already exists, private metatable installation failed, initialization returned no closure, retaining the closure returned no positive reference, or shutdown returned no numeric result. Script result -401 means delivery continued after removal; -402 means delivery count, sender or payload differed from expectations.
 
-Use the reload sequence above, allowing ten seconds of gameplay before each transition. The expected initial result is at least three initialized sessions, one explicit unload, one contained error, and zero unexpected failures. Reload cleanup should increase owner retirements and releases, followed by a fresh session if an eligible owner resumes. No visible effect or hotkey is required. Native and standalone source tests cover these contracts; persistent callback behavior in the engine remains subject to gameplay testing.
+An additional read-only observer identifies listener references created at the engine's event-registration call site by the exact self-authored chunk label. It watches registry release without invoking Lua, changing arguments, or retaining Lua values. The ledger has 16 slots and logs counters rather than addresses or reference numbers. A release is classified only after the original function returns; an interrupted release remains pending. Reused reference numbers and closed VM identities are handled separately.
+
+`lua_listener_refs` reports `retained`, `released`, `active`, `explicit_removals`, `owner_removals`, `error_removals`, `other_removals`, `vm_reclaimed`, `pending`, `lost` and `read_failures`. The removal categories use the mapped call sites for explicit removal, owner cleanup and dispatch-error cleanup. `vm_reclaimed` means ownership was handed to VM destruction, not an observed individual unref. Unexpected categories, lost observations or read failures prevent a complete cleanup conclusion.
+
+Use the reload sequence above, allowing ten seconds of gameplay before each transition. The expected initial result is at least three initialized sessions, one explicit unload, one contained error, two explicit listener removals, and zero unexpected failures. Reload cleanup should increase both the session's owner retirements and the listener observer's owner removals, followed by a fresh session if an eligible owner resumes. A currently active session normally owns one controller reference and one listener reference. No visible effect or hotkey is required. Native and standalone source tests cover these contracts; the persistent engine-event sequence still requires a gameplay capture.
 
 ## Lua and Wasm mod interfaces
 

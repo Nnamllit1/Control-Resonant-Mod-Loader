@@ -1,5 +1,6 @@
 #include "lua_lifetime.h"
 #include "lua_session.h"
+#include "lua_references.h"
 #include <Windows.h>
 #include <MinHook.h>
 #include <algorithm>
@@ -78,6 +79,7 @@ void close_hook(void* vm) {
     const bool recording=enabled.load(std::memory_order_acquire) && !incomplete.load();
     const auto global=(tracked || recording)?global_of(vm):0;
     if(tracked) session::close_begin(global);
+    if(tracked) references::close(global);
     if(recording) {
         ++close_calls;
         if(enter()) {

@@ -1,5 +1,6 @@
 #include "lua_probe.h"
 #include "lua_session.h"
+#include "lua_probe_bytecode.h"
 #include <array>
 #include <cstring>
 #include <cstdlib>
@@ -24,6 +25,8 @@ using Cell=std::array<unsigned char,24>;
 std::map<uint64_t,std::map<std::string,Cell>> tables;
 uint64_t next_table{};
 bool persistent_loading{},persistent_error{};
+bool persistent_event_mode{};
+int listener_shutdowns{};
 uint64_t persistent_environment{};
 int persistent_counter{},retains{},fetches{},releases{};
 std::map<int,Cell> registry;
@@ -77,6 +80,7 @@ int load(void* l,const char* label,const char* bytes,size_t size,int env) {
     if(std::strstr(label,"crml_persistent")) {
         require(l==vm.data() && env==2 && size>2 && bytes[0]==6 && bytes[1]==3,"persistent loader environment and bytecode");
         persistent_loading=true;persistent_error=std::strstr(label,"error")!=nullptr;
+        persistent_event_mode=std::strstr(label,"_events")!=nullptr;
         persistent_environment=get<uint64_t>(cell(env).data(),0);persistent_counter=0;
         require(get<uint64_t>(tables[persistent_environment]["self"].data(),0)==owner_id,"persistent owner in private environment");
         push(7);return 0;
@@ -94,11 +98,20 @@ int load(void* l,const char* label,const char* bytes,size_t size,int env) {
 }
 int call(void* l,int args,int results,int err) {
     if(persistent_loading || !registry.empty()) {
-        require(l==vm.data() && args==0 && results==1 && err==0,"persistent call ABI");
-        put(vm.data(),8,get<uintptr_t>(vm.data(),8)-24);
+        require(l==vm.data() && (args==0 || (persistent_event_mode && args==1)) && results==1 && err==0,"persistent call ABI");
+        if(persistent_loading && persistent_event_mode) {
+            persistent_error=args==1;
+            if(args) require(get<int>(cell(-1).data(),16)==6,"error-stage constructor flag is a rooted table");
+        } else if(args) require(get<int>(cell(-1).data(),16)==7,"shutdown argument is rooted closure duplicate");
+        put(vm.data(),8,get<uintptr_t>(vm.data(),8)-(args+1)*24);
         if(persistent_loading) {persistent_loading=false;push(7);return 0;}
+        if(args) {++listener_shutdowns;push(3,mode==16?-401:persistent_counter);return 0;}
         ++persistent_counter;
-        if(persistent_error && persistent_counter==3) {push_error("crml_persistent_error:8: attempt to call a nil value");return 2;}
+        if(persistent_error && persistent_counter==3) {
+            const auto message=std::string(persistent_event_mode?"crml_persistent_events:":"crml_persistent_error:")+
+                std::to_string(persistent_event_mode?bytecode::persistent_events_error_line:bytecode::persistent_error_error_line)+": attempt to call a nil value";
+            push_error(message.c_str());return 2;
+        }
         push(3,persistent_counter);return 0;
     }
     require(l==vm.data() && args==(calls==4?1:0) && results==(calls==4?2:1) && err==0,"protected call ABI");
@@ -177,6 +190,7 @@ void reset(int m=0) {
     calls=loads=protects=restores=0;mode=m;deliberate=false;
     in_body=false;tables.clear();next_table=1;
     persistent_loading=persistent_error=false;persistent_environment=0;persistent_counter=retains=fetches=releases=0;registry.clear();
+    persistent_event_mode=false;listener_shutdowns=0;
     auto ptr=[](auto& a) {return reinterpret_cast<uintptr_t>(a.data());};
     put(vm.data(),8,ptr(stack)+48);put(vm.data(),0x10,ptr(stack)+24);
     put(vm.data(),0x18,ptr(global));put(vm.data(),0x20,ptr(ci));
@@ -258,5 +272,14 @@ int main() {
     require(fetches==1 && releases==1 && registry.empty(),"wrong registry value rejected and owned reference retired");
     reset();invoke();configure_persistent();session::tick(session_context,0);mode=14;session::stop();session::tick(session_context,250);session::tick(session_context,500);
     require(releases==1 && registry.empty(),"ambiguous native release is not repeated");
+    reset();invoke();configure_persistent(true);session_context.revision=session::revision();
+    for(uint64_t time=0;time<=2500;time+=250) session::tick(session_context,time);
+    require(retains==3 && fetches==8 && releases==2 && listener_shutdowns==2,"event provider shuts down explicit and failed sessions before releasing root");
+    session::cleanup_begin(session_context.global,owner_id);session::cleanup_end();session_context.revision=session::revision();
+    session::tick(session_context,2750);
+    require(releases==3 && listener_shutdowns==2 && registry.empty(),"engine-owned retirement never calls shutdown with invalid listener handle");
+    reset();invoke();configure_persistent(true);session_context.revision=session::revision();session::tick(session_context,0);
+    mode=16;session::stop();session::tick(session_context,250);session::tick(session_context,500);
+    require(releases==1 && registry.empty() && listener_shutdowns==1,"failed event-removal verification releases root and stops without retry");
     std::cout<<"Lua probe checks passed\n";
 }
