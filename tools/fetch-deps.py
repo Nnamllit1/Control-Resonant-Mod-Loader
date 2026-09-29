@@ -13,11 +13,15 @@ URL = f'https://github.com/bytecodealliance/wasmtime/releases/download/v49.0.0/{
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--movement-probe', action='store_true')
+    parser.add_argument('--lua-source', action='store_true')
     args = parser.parse_args()
     fetch(NAME, URL, SHA256, 'wasmtime.zip')
     if args.movement_probe:
         fetch('MinHook 1.3.4', 'https://codeload.github.com/TsudaKageyu/minhook/zip/refs/tags/v1.3.4',
               '172708123daa0c98d20d3a980b16a50be14af243dc95dee6f79c24193ad010e4', 'minhook.zip')
+    if args.lua_source:
+        fetch('Luau 0.650', 'https://codeload.github.com/luau-lang/luau/zip/refs/tags/0.650',
+              'd394251cbd0816ef04ad9ca648fbd786986655e22a55a97eef0a1612d41e3d06', 'luau-0.650.zip')
 
 def fetch(name, url, sha256, filename):
     deps = ROOT / 'build' / 'deps'

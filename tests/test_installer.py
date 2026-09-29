@@ -13,6 +13,37 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def test_trusted_lua_opt_in_build_gate_and_removal(self):
+        installer.install(self.game, self.dist, self.profiles, True)
+        features = self.dist / 'crml/build-features.json'
+        features.write_text('{"movement_wasm":true,"lua_source":false}')
+        with self.assertRaisesRegex(ValueError, '-LuaSource'):
+            installer.sources_for(self.dist, movement_wasm=True, lua_source=True)
+        features.write_text('{"movement_wasm":true,"lua_source":true}')
+        with self.assertRaisesRegex(ValueError, '--movement-wasm'):
+            installer.sources_for(self.dist, lua_source=True)
+        for name in ('movement-wasm.enabled', 'engine-lua.enabled'):
+            (self.dist / 'crml' / name).write_text('')
+        license = self.dist / 'licenses/luau/LICENSE.txt'
+        license.parent.mkdir(parents=True)
+        license.write_text('Luau license fixture')
+        installer.update(self.game, self.dist, self.profiles, True, movement_wasm=True, lua_source=True)
+        self.assertIn('crml/engine-lua.enabled', installer.read_receipt(self.game)['files'])
+        self.assertEqual((self.game / 'crml/licenses/luau.txt').read_text(), 'Luau license fixture')
+        source = self.game / 'crml/lua-mods/custom/main.luau'
+        source.parent.mkdir(parents=True)
+        source.write_text('user-authored source')
+        installer.update(self.game, self.dist, self.profiles, True, disable_lua_source=True)
+        self.assertFalse((self.game / 'crml/engine-lua.enabled').exists())
+        self.assertTrue((self.game / 'crml/movement-wasm.enabled').exists())
+        self.assertEqual(source.read_text(), 'user-authored source')
+        installer.update(self.game, self.dist, self.profiles, True, movement_wasm=True, lua_source=True)
+        installer.update(self.game, self.dist, self.profiles, True, disable_movement_wasm=True)
+        self.assertFalse((self.game / 'crml/engine-lua.enabled').exists())
+        (self.game / 'crml/engine-lua.enabled').write_text('unowned')
+        with self.assertRaisesRegex(ValueError, 'unowned'):
+            installer.update(self.game, self.dist, self.profiles, True, disable_lua_source=True)
+
     def test_movement_wasm_switch_and_build_gate(self):
         installer.install(self.game,self.dist,self.profiles,True)
         features=self.dist/'crml/build-features.json'

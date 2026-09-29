@@ -98,7 +98,7 @@ __declspec(noinline) void release_hook(void* vm,int reference) {
 }
 }
 bool start(uintptr_t image) noexcept {
-#ifdef CRML_LUA_PROBE
+#if defined(CRML_LUA_PROBE) || defined(CRML_LUA_SOURCE)
     if(!image || original_retain || original_release) return false;
     constexpr unsigned char a[]{0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7c,0x24,0x20};
     constexpr unsigned char b[]{0x85,0xd2,0x7e,0x46,0x57,0x48,0x83,0xec,0x20};

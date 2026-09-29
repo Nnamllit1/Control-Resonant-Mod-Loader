@@ -18,7 +18,9 @@ OBSERVER_FILES = {'crml/engine-observer.enabled': 'crml/engine-observer.enabled'
 PHYSICS_FILES = {'crml/physics-trial.enabled': 'crml/physics-trial.enabled'}
 PHYSICS_WASM_FILES = {'crml/physics-wasm.enabled': 'crml/physics-wasm.enabled'}
 MOVEMENT_WASM_FILES = {'crml/movement-wasm.enabled': 'crml/movement-wasm.enabled'}
-OPTIONAL_FILES = {'crml/licenses/minhook.txt': 'licenses/minhook/LICENSE.txt'}
+LUA_SOURCE_FILES = {'crml/engine-lua.enabled': 'crml/engine-lua.enabled'}
+OPTIONAL_FILES = {'crml/licenses/minhook.txt': 'licenses/minhook/LICENSE.txt',
+                  'crml/licenses/luau.txt': 'licenses/luau/LICENSE.txt'}
 NOCLIP_FILES = {'crml/noclip.enabled': 'examples/noclip/noclip.enabled',
                 'crml/mods/noclip/mod.ini': 'examples/noclip/mod.ini',
                 'crml/mods/noclip/noclip.wasm': 'examples/noclip/noclip.wasm'}
@@ -28,10 +30,18 @@ VISIBILITY_FILES = {'crml/visibility.enabled': 'examples/visibility/visibility.e
                     'crml/mods/visibility/visibility.wasm': 'examples/visibility/visibility.wasm'}
 
 
-def sources_for(dist, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, physics_trial=False, physics_wasm=False, movement_wasm=False):
+def sources_for(dist, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, physics_trial=False, physics_wasm=False, movement_wasm=False, lua_source=False):
     sources = {name: dist / name for name in FILES}
     sources['crml/licenses/wasmtime.txt'] = dist / 'licenses/wasmtime/LICENSE'
     sources.update({name: dist / source for name, source in OPTIONAL_FILES.items() if (dist / source).is_file()})
+    if lua_source:
+        if not movement_wasm:
+            raise ValueError('Trusted Lua sources require --movement-wasm in this development build')
+        features = json.loads((dist / 'crml/build-features.json').read_text(encoding='utf-8-sig'))
+        if features.get('lua_source') is not True:
+            raise ValueError('Rebuild with -LuaSource before enabling trusted Lua source mods')
+        sources.update({name: dist / source for name, source in LUA_SOURCE_FILES.items()})
+        sources['crml/licenses/luau.txt'] = dist / 'licenses/luau/LICENSE.txt'
     if movement_wasm:
         if physics_wasm or physics_trial or engine_observer or experimental_noclip or entity_inspector or experimental_visibility:
             raise ValueError('Wasm movement must be installed without other experimental modes')
@@ -131,7 +141,7 @@ def checked_path(root, relative):
             raise ValueError(f'Linked installation path: {relative}')
     return path
 
-def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, physics_trial=False, physics_wasm=False, movement_wasm=False):
+def install(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, physics_trial=False, physics_wasm=False, movement_wasm=False, lua_source=False):
     game = game.resolve(strict=True)
     executable = game / 'CONTROLResonant.exe'
     actual = digest(executable)
@@ -142,7 +152,7 @@ def install(game, dist, profiles, apply=False, experimental_noclip=False, entity
         path = checked_path(game, relative)
         if path.exists():
             raise ValueError(f'Refusing existing {relative}; no files overwritten')
-    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer, physics_trial, physics_wasm, movement_wasm)
+    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer, physics_trial, physics_wasm, movement_wasm, lua_source)
     hashes = {name: digest(path) for name, path in sources.items()}
     print('Experimental profile: ' + profile.get('status', 'unverified'))
     if experimental_noclip:
@@ -185,7 +195,7 @@ def read_receipt(game):
     receipt_path = checked_path(game, RECEIPT)
     receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     files = receipt.get('files', {})
-    if receipt.get('schema') != 1 or not set(FILES).issubset(files) or set(files) - set(FILES) - set(OPTIONAL_FILES) - set(NOCLIP_FILES) - set(INSPECTOR_FILES) - set(VISIBILITY_FILES) - set(OBSERVER_FILES) - set(PHYSICS_FILES) - set(PHYSICS_WASM_FILES) - set(MOVEMENT_WASM_FILES):
+    if receipt.get('schema') != 1 or not set(FILES).issubset(files) or set(files) - set(FILES) - set(OPTIONAL_FILES) - set(NOCLIP_FILES) - set(INSPECTOR_FILES) - set(VISIBILITY_FILES) - set(OBSERVER_FILES) - set(PHYSICS_FILES) - set(PHYSICS_WASM_FILES) - set(MOVEMENT_WASM_FILES) - set(LUA_SOURCE_FILES):
         raise ValueError('Invalid installation receipt')
     for name, expected in files.items():
         path = checked_path(game, name)
@@ -211,7 +221,7 @@ def uninstall(game, apply=False):
     checked_path(game, RECEIPT).unlink()
     print('Removed owned files. Additional mods, logs, and directories were preserved.')
 
-def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, disable_engine_observer=False, physics_trial=False, disable_physics_trial=False, physics_wasm=False, disable_physics_wasm=False, movement_wasm=False, disable_movement_wasm=False):
+def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_inspector=False, experimental_visibility=False, engine_observer=False, disable_engine_observer=False, physics_trial=False, disable_physics_trial=False, physics_wasm=False, disable_physics_wasm=False, movement_wasm=False, disable_movement_wasm=False, lua_source=False, disable_lua_source=False):
     game = game.resolve(strict=True)
     receipt = read_receipt(game)
     if engine_observer and disable_engine_observer:
@@ -223,9 +233,11 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
         raise ValueError('Cannot enable and disable physics trial together')
     if physics_wasm and disable_physics_wasm:
         raise ValueError('Cannot enable and disable Wasm physics together')
+    if lua_source and disable_lua_source:
+        raise ValueError('Cannot enable and disable Lua sources together')
     if movement_wasm and disable_movement_wasm:
         raise ValueError('Cannot enable and disable Wasm movement together')
-    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer, physics_trial, physics_wasm, movement_wasm)
+    sources = sources_for(dist, experimental_noclip, entity_inspector, experimental_visibility, engine_observer, physics_trial, physics_wasm, movement_wasm, lua_source)
     hashes = {name: digest(source) for name, source in sources.items()}
     changes = {name: source for name, source in sources.items() if receipt['files'].get(name) != hashes[name]}
     removals = set(OBSERVER_FILES) & receipt['files'].keys() if disable_engine_observer else set()
@@ -233,12 +245,17 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
     if movement_wasm:
         switched_off |= set(OBSERVER_FILES) | set(PHYSICS_FILES) | set(PHYSICS_WASM_FILES)
     if physics_wasm or physics_trial or engine_observer or disable_movement_wasm or experimental_noclip or experimental_visibility or entity_inspector:
-        switched_off |= set(MOVEMENT_WASM_FILES)
+        switched_off |= set(MOVEMENT_WASM_FILES) | set(LUA_SOURCE_FILES)
     if physics_trial or engine_observer or disable_physics_wasm:
         switched_off |= set(PHYSICS_WASM_FILES)
     for name in switched_off:
         if checked_path(game, name).exists() and name not in receipt['files']:
             raise ValueError(f'Remove the unowned mode marker before switching: {name}')
+    if disable_lua_source:
+        switched_off |= set(LUA_SOURCE_FILES)
+        for name in LUA_SOURCE_FILES:
+            if checked_path(game, name).exists() and name not in receipt['files']:
+                raise ValueError('Refusing unowned Lua source opt-in marker')
     removals |= switched_off & receipt['files'].keys()
     if physics_trial:
         removals |= set(OBSERVER_FILES) & receipt['files'].keys()
@@ -323,6 +340,9 @@ def main():
     parser.add_argument('--experimental-noclip', action='store_true', help='Install the opt-in experimental noclip example and enable its native bridge')
     parser.add_argument('--entity-inspector', action='store_true', help='Enable read-only player inspection; takes precedence over noclip at runtime')
     parser.add_argument('--experimental-visibility', action='store_true', help='Install the Wasm visibility example and enable hold-F7 player mesh hiding')
+    source_mode = parser.add_mutually_exclusive_group()
+    source_mode.add_argument('--lua-source', action='store_true', help='With --movement-wasm, opt into trusted engine Lua source mods; these are not sandboxed')
+    source_mode.add_argument('--disable-lua-source', action='store_true', help='With --update, remove the owned Lua source opt-in marker; preserves source packages')
     observer_mode = parser.add_mutually_exclusive_group()
     observer_mode.add_argument('--engine-observer', action='store_true', help='Enable observe-only engine validation; suspends all mods and other gameplay modes')
     observer_mode.add_argument('--disable-engine-observer', action='store_true', help='With --update, remove the owned observer marker and restore ordinary startup')
@@ -333,6 +353,8 @@ def main():
     observer_mode.add_argument('--movement-wasm', action='store_true', help='Enable guest-controlled movement without legacy fall/reset overrides')
     observer_mode.add_argument('--disable-movement-wasm', action='store_true', help='With --update, remove the owned Wasm movement marker')
     args = parser.parse_args()
+    if args.disable_lua_source and not args.update:
+        parser.error('--disable-lua-source requires --update')
     if args.disable_engine_observer and not args.update:
         parser.error('--disable-engine-observer requires --update')
     if args.disable_physics_trial and not args.update:
@@ -351,6 +373,9 @@ def main():
             options['physics_trial'] = args.physics_trial
             options['physics_wasm'] = args.physics_wasm
             options['movement_wasm'] = args.movement_wasm
+            options['lua_source'] = args.lua_source
+            if args.update:
+                options['disable_lua_source'] = args.disable_lua_source
             action(args.game, args.dist, profiles, args.apply, args.experimental_noclip, args.entity_inspector, args.experimental_visibility, args.engine_observer, **options)
     except (OSError, ValueError, KeyError) as error:
         parser.exit(1, f'{error}\n')

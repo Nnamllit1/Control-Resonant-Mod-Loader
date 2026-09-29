@@ -1,5 +1,5 @@
 #include "lua_lifetime.h"
-#include "lua_session.h"
+#include "lua_dispatch.h"
 #include "lua_references.h"
 #include <Windows.h>
 #include <MinHook.h>
@@ -75,10 +75,10 @@ void finish(Event token,const char* kind) noexcept {
 }
 void close_hook(void* vm) {
     Event token{};
-    const bool tracked=session::configured();
+    const bool tracked=engine::lua::dispatch::configured();
     const bool recording=enabled.load(std::memory_order_acquire) && !incomplete.load();
     const auto global=(tracked || recording)?global_of(vm):0;
-    if(tracked) session::close_begin(global);
+    if(tracked) engine::lua::dispatch::close_begin(global);
     if(tracked) references::close(global);
     if(recording) {
         ++close_calls;
@@ -91,15 +91,15 @@ void close_hook(void* vm) {
         }
     }
     original_close(vm);
-    if(tracked) session::close_end();
+    if(tracked) engine::lua::dispatch::teardown_end();
     finish(token,"vm_close_end");
 }
 void cleanup_hook(void* state,void* b,void* c,void* d,void* e,void* f,void* g,uint64_t owner) {
     Event token{};
-    const bool tracked=session::configured();
+    const bool tracked=engine::lua::dispatch::configured();
     const bool recording=enabled.load(std::memory_order_acquire) && !incomplete.load();
     const auto global=(tracked || recording)?global_of(vm_of(state)):0;
-    if(tracked) session::cleanup_begin(global,owner);
+    if(tracked) engine::lua::dispatch::cleanup_begin(global,owner);
     if(recording) {
         ++cleanup_calls;
         if(enter()) {
@@ -111,13 +111,13 @@ void cleanup_hook(void* state,void* b,void* c,void* d,void* e,void* f,void* g,ui
         }
     }
     original_cleanup(state,b,c,d,e,f,g,owner);
-    if(tracked) session::cleanup_end();
+    if(tracked) engine::lua::dispatch::teardown_end();
     finish(token,"owner_cleanup_end");
 }
 }
 
 bool start(uintptr_t image) noexcept {
-#if defined(CRML_LUA_PROBE)
+#if defined(CRML_LUA_PROBE) || defined(CRML_LUA_SOURCE)
     if(!image || original_close || original_cleanup) return false;
     constexpr unsigned char close_prefix[]{0x40,0x53,0x48,0x83,0xec,0x20,0x48,0x8b,0x41,0x18};
     constexpr unsigned char cleanup_prefix[]{0x48,0x89,0x5c,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7c,0x24,0x20};

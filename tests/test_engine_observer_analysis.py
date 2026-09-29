@@ -8,7 +8,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from analyze_engine_observer import analyze, physics_windows, records, PHASES, MAX_LINE
+from analyze_engine_observer import analyze, physics_windows, records, PHASES, CAMERA_PHASES, MAX_LINE
 
 
 def fixture():
@@ -36,6 +36,61 @@ def stream(rows):
 
 
 class CaptureTests(unittest.TestCase):
+    def camera_fixture(self):
+        rows = self.accessor_fixture()
+        rows[0]['schema'] = 5
+        rows[0]['hooks'].extend({'name': name, 'rva': i} for i, name in enumerate(CAMERA_PHASES))
+        end = rows.pop()
+        def add(**fields):
+            row = dict(type='event', sequence=max(r.get('sequence', 0) for r in rows)+1, qpc=1000+len(rows), thread=1,
+                       kind='camera_switch', edge=0, span=900, object='55', entity='0', value='0', detail='0', flags=0)
+            row.update(fields); rows.append(row)
+        add(edge=1)
+        add(kind='camera_state', entity='66', value='1', detail='77', flags=256)
+        add(kind='camera_slot', object='66', entity='77', value='88', flags=256 | (7 << 2))
+        add(kind='camera_state', entity='66', value='2', detail='99', flags=512)
+        add(kind='camera_slot', object='66', entity='99', value='88', detail='123', flags=512 | (15 << 2) | 1)
+        add(edge=2)
+        add(kind='camera_update', span=901, edge=1)
+        add(kind='camera_update', span=901, edge=2)
+        rows.append(end)
+        return rows
+
+    def test_camera_schema_and_selection_pairing(self):
+        report = analyze(stream(self.camera_fixture()))
+        camera = report['camera_probe']
+        self.assertEqual(camera['snapshot_pairs'], {'pairs': 1, 'readable_pairs': 1})
+        self.assertEqual(camera['transitions'][0]['before']['mode'], 0)
+        self.assertEqual(camera['transitions'][0]['after']['mode'], 1)
+        self.assertEqual(camera['transitions'][0]['phase'], 'camera_switch')
+        self.assertFalse(camera['ownership_or_mutation_verified'])
+        self.assertEqual(camera['unobserved_phases'], ['camera_select', 'camera_init', 'camera_remove'])
+        self.assertEqual(report['accessor_probe']['available'], True)
+        self.assertEqual(report['accessor_probe']['matched_samples'], 1)
+
+    def test_camera_malformed_records_and_incomplete_capture(self):
+        for field, value in [('flags', 256 | 7), ('value', '5'), ('entity', '0'), ('thread', 99)]:
+            rows = self.camera_fixture()
+            next(r for r in rows if r.get('kind') == 'camera_state')[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError): analyze(stream(rows))
+        rows = self.camera_fixture()
+        slot = next(r for r in rows if r.get('kind') == 'camera_slot')
+        slot['flags'] = 256 | (4 << 2) # Pose without a live entity.
+        with self.assertRaises(ValueError): analyze(stream(rows))
+        rows = self.camera_fixture()
+        for row in rows:
+            if row.get('kind') == 'camera_state':
+                row.update(flags=(row['flags'] & ~255) | 5, entity='0', value='0', detail='0')
+        rows = [r for r in rows if r.get('kind') != 'camera_slot']
+        report = analyze(stream(rows))
+        self.assertEqual(report['camera_probe']['reads'], {'memory': 2})
+        self.assertEqual(report['camera_probe']['transitions'], [])
+        self.assertEqual(report['camera_probe']['status'], 'no_readable_pairs')
+        self.assertEqual(report['status'], 'incomplete')
+        rows = self.camera_fixture()
+        rows = [r for r in rows if not (r.get('kind') == 'camera_state' and r['flags'] == 512)]
+        self.assertEqual(analyze(stream(rows))['camera_probe']['unpaired_snapshots'], 1)
+
     def test_windows_record_terminators_preserve_capture_bounds(self):
         data = stream(fixture()).getvalue()
         with patch('analyze_engine_observer.MAX_BYTES', len(data)):

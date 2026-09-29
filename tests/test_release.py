@@ -148,6 +148,13 @@ class ReleaseTests(unittest.TestCase):
             self.package(include_noclip=True)
         self.assertFalse(self.out.exists())
 
+    def test_source_development_build_refused(self):
+        self.write(self.dist / 'crml/build-features.json', json.dumps({
+            'movement_wasm': True, 'lua_probe': False, 'lua_source': True}).encode())
+        with self.assertRaisesRegex(ValueError, '-LuaSource'):
+            self.package()
+        self.assertFalse(self.out.exists())
+
     def test_runtime_sdk_do_not_require_compiled_mod_artifacts(self):
         for name in ('examples/movement/mod.ini', 'examples/movement/movement.wasm',
                      'crml/mods/hello/mod.ini', 'crml/mods/hello/hello.wasm'):

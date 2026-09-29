@@ -1,4 +1,5 @@
 #include "lua_session.h"
+#include "lua_dispatch.h"
 #include <Windows.h>
 #include <cstdlib>
 #include <iostream>
@@ -13,18 +14,45 @@ struct Call {Context context;Action action;int reference;};
 std::vector<Call> calls;
 int next_ref{},counter{},mode{};
 bool deliberate{},rollback{};
+int reentry{};
+Action reentry_action=Action::invoke;
+bool defer_release{},ambiguous_release{};
 HANDLE entered{},resume{};
 Context context{reinterpret_cast<void*>(1),0xabc123456,20,30};
 void require(bool ok,const char* message) {if(!ok) {std::cerr<<message<<'\n';std::exit(1);}}
 Result execute(Context c,Action action,int reference) {
     calls.push_back({c,action,reference});
+    if(reentry && action==reentry_action) {
+        const int event=reentry;reentry=0;
+        const auto before=calls.size();
+        tick(c,10000);
+        require(calls.size()==before,"nested tick must not execute another callback");
+        if(event==1 || event==2 || event==4) {
+            cleanup_begin(event==4?0:c.global,event==2?c.owner+1:c.owner);
+            cleanup_end();
+            require(call_vm_live()==(event!=4),"cleanup VM validity");
+            require(call_owner_live()==(event==2),"cleanup owner validity");
+        } else if(event==3) {
+            close_begin(c.global);close_end();
+            require(!call_vm_live() && !call_owner_live(),"closed VM invalidates active call");
+        } else if(event==5) throw 123;
+        else if(event==6) {
+            close_begin(c.global+1);close_end();
+            require(call_vm_live() && call_owner_live(),"foreign close preserves current VM");
+        }
+        std::ostringstream snapshot;write(snapshot); // Same-thread reporting cannot deadlock either.
+    }
     if(mode==1) return {}; // Unsuitable frame must not consume ownership.
     if(action==Action::initialize || action==Action::initialize_error || action==Action::initialize_listener_error || action==Action::initialize_rollback) {
         counter=0;deliberate=action==Action::initialize_error;
         rollback=action==Action::initialize_rollback;
         return {true,true,false,++next_ref,mode==2?4:0,0};
     }
-    if(action==Action::release || action==Action::unload) return {true,true,mode!=3,0,mode==3?4:0,double(counter),action==Action::unload};
+    if(action==Action::release || action==Action::unload) {
+        Result result{true,true,mode!=3 && !defer_release,0,mode==3?4:0,double(counter),action==Action::unload};
+        result.release_attempted=ambiguous_release || !defer_release;
+        return result;
+    }
     if(entered) {
         SetEvent(entered);
         require(WaitForSingleObject(resume,5000)==WAIT_OBJECT_0,"resume blocked operation");
@@ -34,7 +62,7 @@ Result execute(Context c,Action action,int reference) {
     if(rollback && counter==2 && mode==8) return {true,true,false,0,0,-404};
     return {true,mode!=4,false,0,deliberate && counter==3?2:0,double(counter),false,mode!=5 && deliberate && counter==3};
 }
-void reset() {calls.clear();next_ref=counter=mode=0;deliberate=false;entered=resume=nullptr;reset_for_test(execute);}
+void reset() {calls.clear();next_ref=counter=mode=reentry=0;deliberate=defer_release=ambiguous_release=false;reentry_action=Action::invoke;entered=resume=nullptr;reset_for_test(execute);}
 std::string report() {std::ostringstream out;write(out);return out.str();}
 void field(const char* name,int value) {
     require(report().find(std::string("\"")+name+"\":"+std::to_string(value)+",")!=std::string::npos,name);
@@ -144,5 +172,46 @@ int main() {
     reset();stage_three();
     for(uint64_t time=2750;time<=4000;time+=250) tick(context,time);
     field("listener_error_checks",0);field("initialized",3);
+
+    reset();tick(context,0);reentry=1;tick(context,250);
+    field("interrupted_calls",1);field("reentrant_cleanups",1);field("owner_retirements",1);field("current_calls",0);
+    require(report().find("\"retired\":true")!=std::string::npos,"same-thread cleanup retires in-flight invocation");
+    current_tick(new_owner,251);require(calls.back().action==Action::release && calls.back().reference==1,"interrupted callback releases root without another invocation");
+    field("released",1);field("failures",0);
+
+    reset();reentry=1;reentry_action=Action::initialize;tick(context,0);
+    field("initialized",0);field("owner_retirements",1);field("interrupted_calls",1);
+    current_tick(new_owner,1);require(calls.back().action==Action::release && calls.back().reference==1,"retirement during construction queues only the returned root");
+
+    reset();reset_for_test(execute,true);tick(context,0);stop();
+    reentry=1;reentry_action=Action::unload;defer_release=true;tick(context,1);
+    field("released",0);require(needs_calls(),"interrupted shutdown keeps cleanup pending");
+    defer_release=false;current_tick(new_owner,2);
+    require(calls.back().action==Action::release,"interrupted shutdown is not called again");field("released",1);field("failures",0);
+
+    reset();reset_for_test(execute,true);tick(context,0);stop();
+    reentry=1;reentry_action=Action::unload;defer_release=ambiguous_release=true;tick(context,1);
+    const auto uncertain=calls.size();current_tick(new_owner,2);
+    require(calls.size()==uncertain && !needs_calls(),"ambiguous unref during reentrant cleanup must never be retried");field("failures",1);
+
+    for(const auto action:{Action::initialize,Action::invoke,Action::release}) {
+        reset();
+        if(action!=Action::initialize) tick(context,0);
+        if(action==Action::release) stop();
+        reentry=3;reentry_action=action;tick(context,250);
+        field("vm_reclaimed",1);field("interrupted_calls",1);field("reentrant_closes",1);
+        require(report().find("\"active_reference\":false")!=std::string::npos,"closed VM cannot regain a returned reference");
+    }
+    for(int event:{2,6}) {
+        reset();tick(context,0);reentry=event;tick(context,250);
+        field("current_calls",1);field("interrupted_calls",0);field("owner_retirements",0);
+    }
+    reset();tick(context,0);reentry=4;tick(context,250);
+    require(report().find("\"halted\":true")!=std::string::npos,"unknown teardown identity stops the active call");field("failures",1);
+    reset();tick(context,0);reentry=5;
+    try {tick(context,250);require(false,"native exception must propagate");} catch(int code) {require(code==123,"original exception preserved");}
+    require(!crml::engine::lua::dispatch::in_operation_for_test(),"operation guard unwinds after C++ exception");
+    require(!call_vm_live() && !call_owner_live(),"unsafe native exception disables subsequent VM access across hosts");
+    field("failures",1);require(report().find("\"halted\":true")!=std::string::npos,"gate released and ambiguous session halted after exception");
     std::cout<<"Lua session checks passed\n";
 }

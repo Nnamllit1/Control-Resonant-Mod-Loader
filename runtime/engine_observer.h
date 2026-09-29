@@ -9,9 +9,11 @@
 
 namespace crml::observer {
 enum class Kind : uint8_t { movement, command_flush, script_fixed, renderer_sync,
-    physics_begin, physics_wait, physics_complete, player, resource, post_physics, body, body_scan, entity_body, entity_scan, body_accessor, accessor_scan, count };
+    physics_begin, physics_wait, physics_complete, player, resource, post_physics, body, body_scan, entity_body, entity_scan, body_accessor, accessor_scan,
+    camera_update, camera_switch, camera_select, camera_init, camera_remove, camera_state, camera_slot, count };
 inline constexpr const char* names[]{"movement","command_flush","script_fixed","renderer_sync",
-    "physics_begin","physics_wait","physics_complete","player","resource","post_physics","body","body_scan","entity_body","entity_scan","body_accessor","accessor_scan"};
+    "physics_begin","physics_wait","physics_complete","player","resource","post_physics","body","body_scan","entity_body","entity_scan","body_accessor","accessor_scan",
+    "camera_update","camera_switch","camera_select","camera_init","camera_remove","camera_state","camera_slot"};
 struct Event {
     uint64_t sequence{}, qpc{}, span{}, object{}, entity{}, value{}, detail{};
     uint32_t thread{}, flags{};
@@ -46,6 +48,7 @@ std::string module_fingerprint(const std::filesystem::path& path);
 void write_event(std::ostream& stream, const Event& event);
 #ifdef CRML_OBSERVER_TESTING
 bool test_hook_prologues();
+bool test_camera_callbacks();
 #endif
 
 class Recorder {

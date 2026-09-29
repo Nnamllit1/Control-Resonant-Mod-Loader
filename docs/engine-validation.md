@@ -7,7 +7,7 @@ description: Capture CONTROL Resonant update phases, body identities, and ECS as
 
 The engine observer records selected engine phases and player/resource identities so contributors can investigate update timing and object lifetime. Use it alongside the [engine atlas](engine-atlas.md) to interpret native update phases. The observer has no modification API.
 
-Observation mode suspends all Wasm mods and the existing noclip, visibility, input-filter, and fall-recovery features. It installs version-gated native hooks that forward the selected engine calls and copy diagnostic records. It does not intentionally change gameplay state or call property setters. Hooks introduce overhead, and capture durations include that overhead.
+Observation mode suspends Wasm and engine-Lua mods and the existing noclip, visibility, input-filter, and fall-recovery features. It installs version-gated native hooks that forward the selected engine calls and copy diagnostic records. It does not intentionally change gameplay state or call property setters. Hooks introduce overhead, and capture durations include that overhead.
 
 ## Build and enable
 
@@ -79,7 +79,7 @@ These are executable RVAs for the fingerprint in `compatibility.json`; they are 
 | `physics_complete` | `0x2cdb200` | Completion-task run entry/normal return; wrapper identity derived from embedded task offset `+0x148` |
 | `post_physics` (schema 2) | `0x2ce5310` | Scene-owner post-processing entry/normal return; bounded body sampling after the original returns |
 
-The simulation wrapper entry is used instead of the outer submission helper's AVX-leading entry because the bundled hook decoder must be able to relocate the overwritten instructions. All eight prefixes are checked before any hook is enabled in the current build. Unit tests exercise trampoline creation using copied prefixes; this does not replace live ABI and behavior validation. The original schema-1 capture used seven hooks, without post-processing/body observation.
+The simulation wrapper entry is used instead of the outer submission helper's AVX-leading entry because the bundled hook decoder must be able to relocate the overwritten instructions. Every prefix is checked before any hook is enabled. Unit tests exercise trampoline creation using copied prefixes; this does not replace live ABI and behavior validation. The original schema-1 capture used seven hooks; schemas 2–4 used eight. Schema 5 adds the five camera hooks below.
 
 Physics completion publishes its flag inside the original function. The observer never dereferences the completion task after that function returns. Completion-task return and wait-helper return are different events; neither alone establishes an exclusive mutation window. The immediate TGS simulation path is outside these normal-wrapper probes.
 
@@ -154,6 +154,35 @@ The getter results are compared with the stable before/after snapshot. Agreement
 Rejection bits 1–7 are `arguments`, `snapshot`, `slot`, `scalar`, `changed`, `mismatch`, and `memory`. Mismatch records preserve the finite getter values; other failures publish no value record. Publication losses can remove either a result or a scan summary. The analyzer flags a mismatch seen in either source and treats missing agreement or any observed mismatch as incomplete. Older schemas report `accessor_probe` as `not_recorded`; `agreement_observed` always retains `ownership_or_mutation_verified: false`.
 
 The capture procedure collects these comparisons automatically. Getter agreement does not establish scheduler exclusion, property-write behavior, restoration, or reload cleanup.
+
+## Camera timing and lifetime: schema 5
+
+Camera observation uses the same opt-in observer mode, buffer and capture limits. It adds these version-gated entry/normal-return pairs:
+
+| Phase | RVA | Observation |
+| --- | --- | --- |
+| `camera_update` | `0x1baa070` | Selected-camera consumer, before listener and render-view output |
+| `camera_switch` | `0x1ba8900` | Full native camera switch |
+| `camera_select` | `0x1ba7ea0` | Simpler native selector setter |
+| `camera_init` | `0x1ada8c0` | Free-camera pose initialization and slot assignment |
+| `camera_remove` | `0x1adb040` | Free-camera slot removal |
+
+The observer never invokes a switch or creates a camera. It forwards each original call with unchanged arguments. A normal return is recorded only when the original returns; native exceptions propagate. All five hooks remain pass-through when recording stops. Their live calling conventions and scheduling must still be checked against gameplay captures.
+
+Camera-update snapshots are sampled at most once per 100 ms. Switch, initialization and removal calls request snapshots on both sides of the original call. Snapshot records share the enclosing phase's span and thread ID. The reader authenticates the camera global against the callback's world, bounds its selector, checks full entity generations and chunk-row identities, and copies known view/free-transform fields. It rejects unreadable memory and non-finite or invalid basis data. Repeated identity checks can detect some changes but do not make the snapshot atomic or establish exclusive ownership.
+
+| Record | Encoding |
+| --- | --- |
+| `camera_state` | `object`: world identity; `entity`: camera-global identity; `value`: selector plus one, or zero on read failure; `detail`: selected entity identity, or zero when absent |
+| `camera_slot` | `object`: camera-global identity; `entity`: slot entity identity; `value`: view-pose digest; `detail`: free-transform pose digest |
+
+For both records, `edge` is zero and flag bits 8–9 identify the snapshot side: 1 before, 2 after. In `camera_state`, the low flag byte is the read result: 0 success, 1 missing arguments, 2 missing or mismatched environment, 3 invalid selector, 4 changed header/environment, 5 unreadable memory. In `camera_slot`, bits 0–1 hold the slot index and bits 2–7 hold a bitmask: present=1, live=2, valid view=4, valid free transform=8, invalid pose=16, identity changed=32. Failed whole snapshots publish no slot records. An absent component is distinct from an invalid entity.
+
+Identities and pose digests are salted for the capture. No native addresses or raw camera poses are written by these records. A changed digest indicates changed copied fields, not proof that the camera produced the final rendered view. See [camera selection and output](engine-paths.md#camera-selection-and-output) for the distinct source, view and render-output paths.
+
+`camera_probe` in the analyzer report lists read outcomes, observed modes, slot outcomes, paired snapshots, and selection changes within an observed call. Phase summaries provide paired durations and thread sets. A switch or removal need not happen during every capture; `unobserved_phases` reports those absences without treating them as successful restoration. Missing camera-update pairs or readable snapshot pairs leave the overall capture incomplete. Capture losses, incomplete spans and absent snapshot headers limit attribution.
+
+For camera investigation alone, load a playable save, turn the camera briefly, reload that save, and turn it again. Normal gameplay should remain unchanged; there is no free-camera toggle in observation mode. A reload is useful for lifetime observations but does not guarantee that every camera entity or the Lua VM is replaced.
 
 ## Scheduler and lifetime requirements
 

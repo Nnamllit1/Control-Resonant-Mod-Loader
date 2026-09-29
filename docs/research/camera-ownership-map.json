@@ -1,0 +1,290 @@
+{
+  "schema": 1,
+  "title": "Camera selection, source pose and native switching paths",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Reviewed static paths with passive observation of camera slots; native switching is not gameplay-verified.",
+  "documentation": "../engine-paths.md#camera",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x239537f",
+      "target": "0x327f790",
+      "label": "Lua position: locate FreeCameraTransform"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23953a7",
+      "target": "0x2c4d010",
+      "label": "Lua position: argument count"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23953b8",
+      "target": "0x2c4bf90",
+      "label": "Lua position: read vector argument"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23953fb",
+      "target": "0x2c4e880",
+      "label": "Lua position: return vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x239550f",
+      "target": "0x327f790",
+      "label": "Lua rotation: locate FreeCameraTransform"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2395546",
+      "target": "0x2c4bcb0",
+      "label": "Lua rotation: read first numeric argument"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1add9ee",
+      "target": "0x1ada8c0",
+      "label": "Free-camera initialization dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ada95f",
+      "target": "0x1ad9bf0",
+      "label": "Free-camera initialization: derive free transform"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ada96d",
+      "target": "0x1ae2c40",
+      "label": "Free-camera initialization: publish CameraView"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1addd0a",
+      "target": "0x1adb040",
+      "label": "Free-camera removal: clear slot handles"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bac1ef",
+      "target": "0x1baa070",
+      "label": "Camera update dispatcher to selected-camera consumer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1baa0e8",
+      "target": "0x1addef0",
+      "label": "Selected-camera consumer: resolve current view"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1baa1da",
+      "target": "0x1addef0",
+      "label": "Selected-camera consumer: resolve view again before output"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1baa2dd",
+      "target": "0x1bae4a0",
+      "label": "Selected-camera consumer: render-view update"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1baddf1",
+      "target": "0x1addef0",
+      "label": "Debug labels: current camera"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bade14",
+      "target": "0x1b4efb0",
+      "label": "Debug labels: player camera"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bade37",
+      "target": "0x1addef0",
+      "label": "Debug labels: free camera"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba7f83",
+      "target": "0x1addef0",
+      "label": "Simple selector setter: refresh previous position"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8931",
+      "target": "0x1addef0",
+      "label": "Full switch: resolve old selected camera"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8975",
+      "target": "0x1addef0",
+      "label": "Full switch: resolve new selected camera"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8a4c",
+      "target": "0x1addef0",
+      "label": "Full switch: resolve destination for modes 1 and 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8aa5",
+      "target": "0x327f790",
+      "label": "Full switch: find destination free transform"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8ae7",
+      "target": "0x1ad9140",
+      "label": "Full switch: clear free-transform target"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8b04",
+      "target": "0x435180",
+      "label": "Full switch: convert current camera basis"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8b64",
+      "target": "0x1ad9150",
+      "label": "Full switch: initialize free transform and view"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ad91a1",
+      "target": "0x1ad9bf0",
+      "label": "Pose initialization: derive free transform"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8bb3",
+      "target": "0x1bac470",
+      "label": "Switch wrapper: resolve required environments"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ba8be7",
+      "target": "0x1ba8900",
+      "label": "Switch wrapper: dispatch full switch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3d4fc0",
+      "target": "0x1ba8b80",
+      "label": "Engine caller: select free camera before supplying a pose"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2274d09",
+      "target": "0x1ba7e90",
+      "label": "Engine caller: inspect mirrored camera selector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2274d29",
+      "target": "0x1ba8900",
+      "label": "Engine caller: switch from mode 1 to mode 0"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x25144a9",
+      "target": "0x1ba7ea0",
+      "label": "Engine caller: simple selection of mode 1"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1ad91be",
+      "target": "0x1ae2c40",
+      "label": "Pose initialization: tail call to CameraView publisher"
+    }
+  ],
+  "camera_global": {
+    "environment_hash": "0xfe90f7f8",
+    "selector": {
+      "offset": "0x00",
+      "type": "int32"
+    },
+    "slots": [
+      {
+        "index": 0,
+        "offset": "0x04",
+        "role": "player camera"
+      },
+      {
+        "index": 1,
+        "offset": "0x0c",
+        "role": "free camera"
+      },
+      {
+        "index": 2,
+        "offset": "0x14",
+        "role": "second free-transform mode; initialized to same entity as slot 1"
+      },
+      {
+        "index": 3,
+        "offset": "0x1c",
+        "role": "special camera mode; purpose unresolved"
+      }
+    ],
+    "last_position": {
+      "offset": "0x34",
+      "size": 12
+    },
+    "derived_velocity": {
+      "offset": "0x44",
+      "size": 12
+    },
+    "selector_mirror_rva": "0x5c2c8b8",
+    "selection_expression": "slot_handles[selector]",
+    "handle_size": 8,
+    "notes": "Slots are unaligned 64-bit generational entity handles. These fields are not an ownership lease."
+  },
+  "components": [
+    {
+      "name": "coregame::component::CameraView",
+      "hash": "0x46967561",
+      "stride": "0x40",
+      "fields": {
+        "basis": "0x00:9 floats",
+        "position": "0x24:3 floats",
+        "lens": "0x30:2 floats"
+      }
+    },
+    {
+      "name": "coregame::component::FreeCameraTransform",
+      "hash": "0x01a3288e",
+      "stride": "0x70",
+      "fields": {
+        "position": "0x30:3 floats",
+        "rotation": "0x50:3 floats",
+        "target": "0x60:8 bytes"
+      },
+      "notes": "Rotation units/order and complete flag meanings are not asserted."
+    }
+  ],
+  "switch_context": {
+    "entry_rva": "0x1ba8900",
+    "source_wrapper_rva": "0x1ba8b80",
+    "reviewed_fields": {
+      "0x00": "world pointer",
+      "0x08": "environment 0xb26d1cc4",
+      "0x10": "environment 0x4c8470da",
+      "0x18": "Camera environment"
+    },
+    "notes": "Recovered from wrapper construction and callee reads; not a supported callable ABI. Entry assumes valid current and destination handles."
+  },
+  "evidence_limits": [
+    "Passive reads observed mode 0, valid slot handles, and a pre-existing FreeCameraTransform; no activation was performed.",
+    "Free-camera initialization sets slots 1 and 2, and removal clears both; this does not demonstrate restoring the selector on removal.",
+    "The simple setter and full switching path have different side effects. Writing the selector alone does not reproduce the full switch.",
+    "An existing engine caller switches mode 1 to 0 at 0x2274d29; a mod must not continually reassert selection over external transitions.",
+    "CameraView consumers, source transforms and render/listener outputs are distinct layers; render-thread ownership and scheduling need separate evidence.",
+    "Static reference checks authenticate encodings, not semantic labels, ABI safety, thread affinity or live restoration."
+  ]
+}

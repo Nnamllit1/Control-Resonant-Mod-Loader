@@ -147,9 +147,40 @@ This demonstrates queued animation-to-script event production. It does not estab
 
 `nl_camera_horizontal_fov` at `0x19cb5f0` resolves a camera through `0x19e0d80`, reads two floats at `+0x30` and `+0x34`, converts them through `0x1ba97c0`, and pushes one result. This callback is a **getter**. Its name alone is not evidence for a writable horizontal-FOV property or its units.
 
-An internal `coregame::freecamera::update` implementation is present. Registration installs `0x1addab0`, whose reviewed call goes to `0x1ad9e30`. The latter references a free-camera debug panel, lens/FOV controls, and input/math helpers, and reaches transform helper `0x1811fe0`. Presence of that path does not prove a supported retail activation mechanism.
+The [camera ownership map](research/camera-ownership-map.json) covers selection, free-camera transforms and the native switching path. Camera selection is separate from player movement and from the gameplay camera's mixer, lock-on and clipping systems. The existing Wasm `motion_camera` operation samples the player camera's horizontal basis; it grants no camera ownership.
 
-Gameplay camera mixing, tail-camera behavior, lock-on, and clipping have separate declared families. The final camera-pose owner and its restoration contract are not established by this trace. Player movement and camera pose are separate operations.
+### Camera selection and output
+
+The `coregame::global::Camera` environment uses hash `0xfe90f7f8`. It contains a signed selector at `+0x00` and unaligned, 64-bit generational entity handles:
+
+| Selector | Handle offset | Reviewed use |
+| --- | --- | --- |
+| 0 | `+0x04` | Player camera |
+| 1 | `+0x0c` | Free camera |
+| 2 | `+0x14` | Second mode using a free-camera transform; initialization assigns the same entity as slot 1 |
+| 3 | `+0x1c` | Separate special-camera mode; its purpose is unresolved |
+
+`coregame::camera::update` dispatches through `0x1bac190` to `0x1baa070`. The implementation selects the handle at `Camera + 4 + selector * 8`, resolves its view through `0x1addef0`, updates position history and derived velocity, prepares the camera listener output, and invokes the render-view path at `0x1bae4a0`. The debug labels in `0x1baddd0` independently identify the player and free slots. The render-view path can use a `CameraManView` when the selected entity has the corresponding component, so `CameraView` alone is not necessarily the final rendered pose.
+
+A passive in-game snapshot found selector 0, valid generation-checked entities in all four slots, and an existing free-camera entity shared by slots 1 and 2. This establishes that free-camera state can exist during ordinary gameplay. It does not establish that every world provides those entities or that switching is safe at an arbitrary update phase.
+
+### Free-camera source state
+
+`CameraView` has component hash `0x46967561` and stride `0x40`: a nine-float basis at `+0x00`, position at `+0x24`, and two lens values at `+0x30`. `FreeCameraTransform` is a separate component, hash `0x01a3288e`, stride `0x70`.
+
+The Lua binding `free_camera_position` at `0x23952b0` resolves slot 1 and reads or writes the free transform's position at `+0x30`. `free_camera_rotation` at `0x2395430` reads or writes three values at `+0x50`. Neither binding creates or selects a free camera. Rotation units and axis order are not established here.
+
+An internal `coregame::freecamera::update` implementation is present. Registration installs `0x1addab0`, whose reviewed call goes to `0x1ad9e30`. Its first gate requires selector 1. It processes the free-camera source state, input and transforms; pose publication also reaches `0x1ae2c40`, which writes the `CameraView` basis and position. Editing only the published view can therefore compete with its producer.
+
+Initialization dispatches through `0x1add760` to `0x1ada8c0`, initializes pose data and assigns the entity to slots 1 and 2. Removal dispatches through `0x1addc40` to `0x1adb040`, which clears both handles to the invalid sentinel. That removal helper does not itself restore the selector.
+
+### Switching and restoration
+
+The full native switch at `0x1ba8900`, reached through wrapper `0x1ba8b80`, does more than change the selector. For modes 1 and 2 it copies the current lens values, clears the destination free transform's handle at `+0x60`, derives a pose from the current view, and initializes the destination through `0x1ad9150`. It then changes both the world selector and its mirror at RVA `0x5c2c8b8`, refreshes position history, and submits a separate engine message. The meaning and ownership of that message are not established by this trace.
+
+The simpler setter at `0x1ba7ea0` updates the selector, its mirror and position history without that pose-initialization path. An existing engine caller at `0x2274d29` uses the full switch to return from mode 1 to mode 0. A mod must respect such external transitions rather than continually reasserting its selected camera. Neither entry checks all the lifetime and destination preconditions a mod-facing API needs. These recovered addresses are not exposed as callable mod APIs.
+
+A camera lease must account for world and entity generations, engine update order, native free-camera input, competing camera switches and component removal. Releasing a lease should return to the still-valid gameplay camera without restoring an old player pose over its current state. A transition that invalidates the owned camera must cancel pending writes. Live switching, conflict handling and restoration remain outside the current camera API's guarantees.
 
 ## AI and navigation
 

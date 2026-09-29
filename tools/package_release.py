@@ -65,8 +65,8 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
     if output.exists():
         raise ValueError('Output already exists; choose a new directory to preserve the previous release')
     features = json.loads((dist / 'crml/build-features.json').read_text(encoding='utf-8-sig'))
-    if features.get('movement_wasm') is not True or features.get('lua_probe') is not False:
-        raise ValueError('Build with -ExperimentalGameplay, without -LuaProbe, before packaging')
+    if features.get('movement_wasm') is not True or features.get('lua_probe') is not False or features.get('lua_source', False) is not False:
+        raise ValueError('Build with -ExperimentalGameplay, without -LuaProbe or -LuaSource, before packaging')
     notes = root / 'release' / f'{version}.md'
     if not notes.is_file():
         raise ValueError('Add release notes for this version before packaging')

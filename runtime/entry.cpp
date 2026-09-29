@@ -1,4 +1,7 @@
 #include "runtime.h"
+#ifdef CRML_LUA_SOURCE
+#include "lua_source.h"
+#endif
 #ifdef CRML_MOVEMENT_PROBE
 #include "movement_probe.h"
 #include "engine_observer.h"
@@ -52,6 +55,13 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
             if(observe_only) log << "Wasm mods suspended for engine observation\n";
             else if(physics_trial) log << "Wasm mods suspended for native physics trial\n";
             log.flush();
+#ifdef CRML_LUA_SOURCE
+            const bool source_requested=movement_wasm && !conflict && crml::engine::lua::source::prepare(root);
+            if(!source_requested && std::filesystem::is_regular_file(root/"engine-lua.enabled"))
+                log<<"Trusted Lua source loading requires movement mode in this development build\n";
+#else
+            if(std::filesystem::is_regular_file(root/"engine-lua.enabled")) log<<"Lua source loading is unavailable in this build\n";
+#endif
 #ifdef CRML_MOVEMENT_PROBE
             if(conflict) log << "Diagnostic startup refused: conflicting observer and physics trial markers (including Wasm physics)\n";
             else log << (observe_only ? observer.start(root) : physics_trial || physics_wasm ? physics.start(root,physics_wasm) : probe.start(root)) << '\n';
@@ -62,6 +72,11 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
             else if(physics_wasm) log << "Wasm physics refused: this build does not include diagnostics; mods remain suspended\n";
             else if(movement_wasm) log << "Wasm movement refused: this build does not include gameplay support; mods remain suspended\n";
 #endif
+#ifdef CRML_LUA_SOURCE
+            if(source_requested) log<<(crml::engine::lua::source::active()?
+                "Trusted Lua source watcher ready\n":"Lua source loading refused: compatible hooks or source log unavailable\n");
+            log.flush();
+#endif
             bool load_mods=!diagnostics && !conflict && !movement_wasm;
 #ifdef CRML_MOVEMENT_PROBE
             load_mods=load_mods || (physics_wasm && !conflict && physics.active());
@@ -70,6 +85,9 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
             if(load_mods) runtime.load(root / "mods");
             auto last = std::chrono::steady_clock::now();
             while (runtime.active()
+#ifdef CRML_LUA_SOURCE
+                   || crml::engine::lua::source::active()
+#endif
 #ifdef CRML_MOVEMENT_PROBE
                    || probe.active() || observer.active() || physics.active()
 #endif
@@ -82,6 +100,9 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
                 const auto now = std::chrono::steady_clock::now();
                 runtime.tick(std::chrono::duration<float>(now - last).count());
                 last = now;
+#ifdef CRML_LUA_SOURCE
+                crml::engine::lua::source::poll(GetTickCount64());
+#endif
 #ifdef CRML_MOVEMENT_PROBE
                 probe.poll();
                 observer.poll();

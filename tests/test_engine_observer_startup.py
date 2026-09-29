@@ -20,6 +20,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--runtime', type=Path, required=True)
     parser.add_argument('--child', action='store_true')
+    parser.add_argument('--lua-source', action='store_true')
     args = parser.parse_args()
     if args.child:
         return child(args.runtime.resolve())
@@ -82,6 +83,17 @@ def main():
         log = (root / 'crml.log').read_text()
         assert 'Movement probe refused: unsupported executable fingerprint' in log and 'must-not-load' not in log, log
         assert not (root / 'movement-probe.jsonl').exists()
+        (root / 'engine-lua.enabled').write_text('')
+        source = root / 'lua-mods' / 'must-not-load'
+        source.mkdir(parents=True)
+        (source / 'main.luau').write_text('this invalid source must never be compiled on an unsupported host')
+        subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
+                       check=True, timeout=20, capture_output=True)
+        log = (root / 'crml.log').read_text()
+        expected = ('Lua source loading refused: compatible hooks or source log unavailable'
+                    if args.lua_source else 'Lua source loading is unavailable in this build')
+        assert expected in log and 'must-not-load' not in log, log
+        assert not (root / 'lua-mods.jsonl').exists()
         print('Real-runtime unsupported-host refusal and isolated-mode startup checks passed')
     return 0
 

@@ -1,8 +1,12 @@
 #include "lua_probe.h"
+#include "lua_executor.h"
 #include "lua_lifetime.h"
 #include "lua_session.h"
 #include "lua_references.h"
 #include "lua_probe_bytecode.h"
+#ifdef CRML_LUA_SOURCE
+#include "lua_source.h"
+#endif
 #include <Windows.h>
 #include <array>
 #include <atomic>
@@ -18,6 +22,20 @@ bool events_probe{};
 std::atomic<bool> enabled{};
 std::atomic<unsigned> state{}; // 0 waiting, 1 executing, 2 report available
 std::atomic<uint64_t> rejected{};
+bool source_mode() noexcept {
+#ifdef CRML_LUA_SOURCE
+    return engine::lua::source::requested();
+#else
+    return false;
+#endif
+}
+bool source_calls() noexcept {
+#ifdef CRML_LUA_SOURCE
+    return engine::lua::source::needs_calls();
+#else
+    return false;
+#endif
+}
 struct Result {
     int load{-1},call{-1},protect{-1};
     double value{};
@@ -28,86 +46,14 @@ struct Result {
 };
 struct Report { DWORD thread{}; bool passed{}; std::array<Result,5> steps{}; } report;
 
-template<class T> T read(uintptr_t address) noexcept {
-    T value;std::memcpy(&value,reinterpret_cast<const void*>(address),sizeof(value));return value;
-}
-// Read only a bounded error object before stack cleanup. Never emit its text:
-// engine errors may contain asset paths, identifiers or other private data.
+using engine::lua::read;
+using engine::lua::Frame;
+using engine::lua::capture;
+using engine::lua::same_frame;
+using engine::lua::valid_owner;
 void error_details(void* vm,const char* label,Result& result) noexcept {
-    result.error_kind="unavailable";
-    __try {
-        const auto l=reinterpret_cast<uintptr_t>(vm);
-        const auto top=read<uintptr_t>(l+8),base=read<uintptr_t>(l+0x10);
-        if(top<base || top-base<24 || read<uint32_t>(top-8)!=5) return;
-        const auto string=read<uintptr_t>(top-24);
-        if(!string || read<uint8_t>(string)!=5) return;
-        const auto size=read<uint32_t>(string+0x14);
-        if(!size || size>4096) return;
-        char text[513]{};
-        std::memcpy(text,reinterpret_cast<const void*>(string+0x18),size<512?size:512);
-        const char* name=label[0]=='='?label+1:label;
-        const auto length=std::strlen(name);
-        const char* start=text[0]=='='?text+1:text;
-        if(!std::strncmp(start,name,length) && start[length]==':') {
-            const char* cursor=start+length+1;
-            unsigned line=0,digits=0;
-            while(*cursor>='0' && *cursor<='9' && digits<5) {line=line*10+unsigned(*cursor++-'0');++digits;}
-            if(digits && *cursor==':' && line) result.error_line=line;
-        }
-        result.error_kind=std::strstr(text,"no active script")?"no_active_script":
-            std::strstr(text,"required ECS environment missing")?"missing_ecs":
-            std::strstr(text,"invalid event handler handle")?"invalid_handler":
-            std::strstr(text,"attempt to call a nil value")?"nil_call":
-            std::strstr(text,"assertion failed")?"assertion":"other";
-    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) {
-        result.error_kind="unavailable";result.error_line=0;
-    }
-}
-struct Frame {
-    uintptr_t context{},world{},global{},environment{};
-    ptrdiff_t top{},base{},ci{};
-    size_t size{};
-    std::array<unsigned char,64*24> values{};
-};
-// No API calls here; a bad layout only rejects this observation.
-bool capture(void* vm,Frame& f,uintptr_t spare=96) noexcept {
-    __try {
-        const auto l=reinterpret_cast<uintptr_t>(vm);
-        if(!l || read<uint8_t>(l+3)) return false;
-        const auto stack=read<uintptr_t>(l+0x30),base=read<uintptr_t>(l+0x10);
-        const auto top=read<uintptr_t>(l+8),last=read<uintptr_t>(l+0x28);
-        const auto ci=read<uintptr_t>(l+0x20),baseci=read<uintptr_t>(l+0x40);
-        if(!stack || base<stack || top<=base || last<top || last-top<spare ||
-           spare>f.values.size() || top-base>f.values.size()-spare || (top-stack)%24 || (base-stack)%24 ||
-           !ci || ci!=baseci || read<uintptr_t>(ci)!=base) return false;
-        if(read<uint32_t>(base+0x10)!=7) return false; // Existing engine error handler.
-        f.context=read<uintptr_t>(l+0x78);
-        f.global=read<uintptr_t>(l+0x18);f.environment=read<uintptr_t>(l+0x58);
-        if(!f.context || !f.global || !f.environment) return false;
-        f.world=read<uintptr_t>(f.context);
-        // A debugger may suspend on the deliberate error instead of unwinding.
-        if(!f.world || read<uintptr_t>(f.global+0xd28)) return false;
-        f.top=top-stack;f.base=base-stack;f.ci=ci-baseci;f.size=top-base;
-        std::memcpy(f.values.data(),reinterpret_cast<void*>(base),f.size);
-        return true;
-    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) {
-        return false;
-    }
-}
-bool same_frame(const Frame& a,const Frame& b,bool top) noexcept {
-    return a.context==b.context && a.world==b.world && a.global==b.global &&
-        a.environment==b.environment && a.base==b.base && a.ci==b.ci && (!top ||
-        (a.top==b.top && a.size==b.size && !std::memcmp(a.values.data(),b.values.data(),a.size)));
-}
-bool valid_owner(Owner owner) noexcept {
-    __try {
-        const uint32_t index=static_cast<uint32_t>(owner.entity),generation=static_cast<uint32_t>(owner.entity>>32);
-        if(!owner.world || !owner.entity || index==UINT32_MAX || index>=read<uint64_t>(owner.world+0x58510)) return false;
-        const auto slots=read<uintptr_t>(owner.world+0x584e8);
-        return slots && read<uint32_t>(slots+uintptr_t(index)*8)==generation;
-    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) {
-        return false;
-    }
+    const auto detail=engine::lua::error_details(vm,label);
+    result.error_kind=detail.kind;result.error_line=detail.line;
 }
 struct Work { const unsigned char* bytes;size_t size;const char* label;Result* result;uint64_t owner{}; };
 void execute(void* vm,void* user) {
@@ -178,95 +124,42 @@ void run(void* vm,const Frame& initial,Owner owner) {
         if(!result.passed) {report.passed=false;break;}
     }
 }
-struct PersistentWork {
-    session::Context context;
-    session::Action action;
-    int reference{};
-    session::Result result;
-};
-void persistent_body(void* vm,void* user) {
-    auto& w=*static_cast<PersistentWork*>(user);
-    auto& result=w.result;
-    const auto l=reinterpret_cast<uintptr_t>(vm);
-    const int saved=static_cast<int>((read<uintptr_t>(l+8)-read<uintptr_t>(l+0x10))/24);
-    if(w.action==session::Action::release || w.action==session::Action::unload) {
-        if(w.action==session::Action::unload) {
-            if(api.fetch(vm,-10000,w.reference)!=7) result.status=-301;
-            else {
-                api.push_value(vm,-1); // A non-nil command; no new push API needed.
-                result.status=api.call(vm,1,1,0);
-                if(!result.status) {
-                    const auto value=read<uintptr_t>(l+8)-24;
-                    if(read<uint32_t>(value+16)!=3) result.status=-307;
-                    else {result.value=read<double>(value);result.shutdown=true;}
-                }
-            }
-        }
-        api.release(vm,w.reference);result.released=true;return;
-    }
-    if(w.action==session::Action::invoke) {
-        if(api.fetch(vm,-10000,w.reference)!=7) {result.status=-301;return;}
-        result.status=api.call(vm,0,1,0);
-        if(result.status) {
-            Result diagnostic;
-            error_details(vm,events_probe?"=crml_persistent_events":"=crml_persistent_error",diagnostic);
-            result.error_line=diagnostic.error_line;
-            result.deliberate_error=std::strcmp(diagnostic.error_kind,"nil_call")==0 &&
-                diagnostic.error_line==(events_probe?bytecode::persistent_events_error_line:bytecode::persistent_error_error_line);
-            return;
-        }
-        const auto value=read<uintptr_t>(l+8)-24;
-        if(read<uint32_t>(value+16)!=3) {result.status=-302;return;}
-        result.value=read<double>(value);return;
-    }
-    constexpr const char* marker="__crml_persistent_counter";
-    if(api.raw_field(vm,-10002,marker)!=0) {result.status=-303;return;}
-    api.settop(vm,saved);
-    api.new_table(vm,0,3);const int env=saved+1;
-    api.new_table(vm,0,1);
-    api.push_value(vm,-10002);api.set_field(vm,-2,"__index");
-    api.readonly(vm,-1,1);
-    if(!api.set_metatable(vm,env)) {result.status=-304;return;}
-    api.push_value(vm,env);api.set_field(vm,env,"_ENV");
-    api.push_entity(vm,w.context.owner,1);api.set_field(vm,env,"self");
-    const bool error=w.action==session::Action::initialize_error;
-    const bool listener_error=w.action==session::Action::initialize_listener_error;
-    const bool rollback=w.action==session::Action::initialize_rollback;
-    const auto* code=events_probe?bytecode::persistent_events:error?bytecode::persistent_error:bytecode::persistent;
-    const auto size=events_probe?sizeof(bytecode::persistent_events):error?sizeof(bytecode::persistent_error):sizeof(bytecode::persistent);
-    result.status=api.load(vm,events_probe?"=crml_persistent_events":error?"=crml_persistent_error":"=crml_persistent",
-        reinterpret_cast<const char*>(code),size,env);
-    if(result.status) return;
-    // Three truthy arguments select initialization rollback; two select a
-    // listener error; one selects a controller error. Reuse rooted values.
-    const int arguments=events_probe?(rollback?3:listener_error?2:error?1:0):0;
-    for(int i=0;i<arguments;++i) api.push_value(vm,env);
-    result.status=api.call(vm,arguments,1,0);
-    if(result.status) return;
-    if(read<uint32_t>(read<uintptr_t>(l+8)-8)!=7) {result.status=-305;return;}
-    // Event construction has no engine side effects. Register only when this
-    // retained controller is invoked, so a failed retain cannot strand a listener.
-    result.reference=api.retain(vm,-1); // Copies without popping; stack stays rooted.
-    if(result.reference<=0) result.status=-306;
-}
 session::Result persistent_execute(session::Context context,session::Action action,int reference) {
-    Frame initial;
-    if(!capture(context.vm,initial,144) || initial.global!=context.global || initial.world!=context.world ||
-       !valid_owner({context.world,context.owner})) return {};
-    PersistentWork work{context,action,reference,{}};work.result.attempted=true;
-    const int status=api.protect(context.vm,&persistent_body,&work,initial.top,0);
-    if(status) work.result.status=status;
-    Frame before_cleanup;
-    if(capture(context.vm,before_cleanup,0) && same_frame(initial,before_cleanup,false) && before_cleanup.top>=initial.top) {
-        api.settop(context.vm,static_cast<int>((initial.top-initial.base)/24));
-        Frame after;
-        work.result.restored=capture(context.vm,after) && same_frame(initial,after,true);
-    }
-    return work.result;
+    namespace native=engine::lua;
+    const bool error=action==session::Action::initialize_error;
+    const bool listener_error=action==session::Action::initialize_listener_error;
+    const bool rollback=action==session::Action::initialize_rollback;
+    const auto bytes=events_probe?std::span<const unsigned char>(bytecode::persistent_events):
+        error?std::span<const unsigned char>(bytecode::persistent_error):std::span<const unsigned char>(bytecode::persistent);
+    // Invocation errors are attributed to their diagnostic source, independently
+    // of the initialization action that selected the retained controller.
+    const char* label=events_probe?"=crml_persistent_events":
+        (error || action==session::Action::invoke)?"=crml_persistent_error":"=crml_persistent";
+    const auto operation=action==session::Action::invoke?native::Action::invoke:
+        action==session::Action::unload?native::Action::unload:
+        action==session::Action::release?native::Action::release:native::Action::initialize;
+    native::Options options;
+    options.returns=native::Returns::number;
+    options.environment_arguments=events_probe?(rollback?3u:listener_error?2u:error?1u:0u):0u;
+    options.global_must_be_nil="__crml_persistent_counter";
+    const auto execution=native::execute(api,context,operation,reference,{bytes,label},options,
+        {&session::call_vm_live,&session::call_owner_live});
+    session::Result result;
+    result.attempted=execution.attempted;result.restored=execution.restored;
+    result.released=execution.released;result.reference=execution.reference;
+    result.status=execution.status;result.value=execution.value;result.shutdown=execution.shutdown;
+    result.release_attempted=execution.release_attempted;result.error_line=execution.error.line;
+    result.deliberate_error=action==session::Action::invoke && execution.status &&
+        std::strcmp(execution.error.kind,"nil_call")==0 &&
+        execution.error.line==(events_probe?bytecode::persistent_events_error_line:bytecode::persistent_error_error_line);
+    return result;
 }
 }
 bool start(uintptr_t image,Call original) noexcept {
-#if defined(CRML_LUA_PROBE) || defined(CRML_LUA_PROBE_TESTING)
+#if defined(CRML_LUA_PROBE) || defined(CRML_LUA_PROBE_TESTING) || defined(CRML_LUA_SOURCE)
+#if defined(CRML_LUA_SOURCE) && !defined(CRML_LUA_PROBE) && !defined(CRML_LUA_PROBE_TESTING)
+    if(!source_mode()) return false;
+#endif
     if(!image || !original) return false;
     constexpr unsigned char signatures[3][12]{
         {0x48,0x89,0x5c,0x24,0x10,0x48,0x89,0x74,0x24,0x20,0x48,0x89},
@@ -301,7 +194,7 @@ bool start(uintptr_t image,Call original) noexcept {
 #endif
 }
 bool start_persistent(uintptr_t image) noexcept {
-#ifdef CRML_LUA_PROBE
+#if defined(CRML_LUA_PROBE) || defined(CRML_LUA_SOURCE)
     if(!enabled.load() || !image) return false;
     constexpr unsigned char retain[]{0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7c,0x24,0x20};
     constexpr unsigned char fetch[]{0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x74,0x24,0x10};
@@ -313,6 +206,9 @@ bool start_persistent(uintptr_t image) noexcept {
     api.fetch=reinterpret_cast<decltype(api.fetch)>(image+0x2c4f1d0);
     api.release=reinterpret_cast<decltype(api.release)>(image+0x2c508d0);
     if(!references::start(image)) return false;
+#ifdef CRML_LUA_SOURCE
+    if(source_mode()) return engine::lua::source::attach(api);
+#endif
     events_probe=true;
     session::start(&persistent_execute,true);return true;
 #else
@@ -321,9 +217,10 @@ bool start_persistent(uintptr_t image) noexcept {
 }
 Owner before_call(void* vm,uintptr_t caller,int nargs,int results,int error) noexcept {
     const auto revision=session::revision();
-    if((!enabled.load(std::memory_order_acquire) && !session::needs_calls()) || state.load()==1 ||
+    const bool sources=source_mode();
+    if((sources?!source_calls():!enabled.load(std::memory_order_acquire) && !session::needs_calls()) || (!sources && state.load()==1) ||
        caller!=image_base+0x1a0aadf || nargs!=1 || results!=0 || error!=1) return {};
-    if(state.load()!=0 && !lifetime::active() && !session::needs_calls()) return {};
+    if(!sources && state.load()!=0 && !lifetime::active() && !session::needs_calls()) return {};
     Frame frame;
     if(!capture(vm,frame) || frame.size<72) return {};
     // Copy only the value of the non-GC entity argument while it is still rooted
@@ -337,10 +234,14 @@ Owner before_call(void* vm,uintptr_t caller,int nargs,int results,int error) noe
     return owner;
 }
 void after_call(void* vm,uintptr_t caller,int nargs,int results,int error,int status,Owner owner) {
-    if((!enabled.load(std::memory_order_acquire) && !session::needs_calls()) || state.load()==1 || status ||
+    const bool sources=source_mode();
+    if((sources?!source_calls():!enabled.load(std::memory_order_acquire) && !session::needs_calls()) || (!sources && state.load()==1) || status ||
        caller!=image_base+0x1a0aadf || nargs!=1 || results!=0 || error!=1) return;
     Frame frame;
     if(!capture(vm,frame) || frame.size>60*24 || frame.world!=owner.world || !valid_owner(owner)) {++rejected;return;}
+#ifdef CRML_LUA_SOURCE
+    if(sources) {engine::lua::source::tick({vm,frame.global,frame.world,owner.entity,owner.revision},GetTickCount64());return;}
+#endif
     if(state.load()==0) {
         unsigned expected=0;
         if(!state.compare_exchange_strong(expected,1)) return;
@@ -351,6 +252,7 @@ void after_call(void* vm,uintptr_t caller,int nargs,int results,int error,int st
     if(report.passed && session::needs_calls()) session::tick({vm,frame.global,frame.world,owner.entity,owner.revision},GetTickCount64());
 }
 void write(std::ostream& out) {
+    if(source_mode()) {out<<"{\"type\":\"lua_probe\",\"schema\":4,\"enabled\":false,\"mode\":\"source\"}\n";return;}
     const auto s=state.load(std::memory_order_acquire);
     out<<"{\"type\":\"lua_probe\",\"schema\":4,\"enabled\":"<<(enabled.load()?"true":"false")
        <<",\"state\":"<<s<<",\"rejected\":"<<rejected.load();

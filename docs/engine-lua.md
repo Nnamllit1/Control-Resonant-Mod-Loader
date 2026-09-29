@@ -5,7 +5,62 @@ description: CONTROL Resonant engine Lua loading, protected execution, script en
 
 # Engine Lua integration
 
-CRML's engine Lua integration is experimental. Self-authored Luau 0.650 bytecode has executed in the game's VM, including arithmetic, a contained runtime error, successful execution afterward and stack restoration. Private script environments, persistent custom-event delivery, explicit listener removal and engine-owned listener cleanup have also passed in gameplay for the embedded examples. Developer builds include diagnostics for these contracts. Arbitrary `.lua` mod packages, general callback scheduling and hot reload are not supported yet. The existing [Wasm API](api.md) remains the supported mod interface.
+CRML's engine Lua integration is experimental. Source-enabled development builds can compile and load trusted controllers from `crml/lua-mods/`. This mode is not included in player releases. The existing [Wasm API](api.md) remains the supported release interface.
+
+Self-authored Luau 0.650 bytecode has executed in the game's VM, including arithmetic, a contained runtime error, successful execution afterward and stack restoration. Private script environments, persistent custom-event delivery, explicit listener removal and engine-owned listener cleanup have passed in gameplay for the embedded examples. File-based source loading uses the same native executor. The counter example supports live source replacement, recovery from a callback error, explicit unload and re-enable, and controller recreation across a save reload.
+
+## Source controllers in development builds
+
+Engine Lua is **trusted code, not a sandbox**. It inherits the game's scripting bindings and can change engine state. Enable only source packages you trust. Wasm modules retain their separate capability checks and execution budgets.
+
+Build and install the source-enabled runtime with the game closed:
+
+```powershell
+.\build.bat -LuaSource -Test
+$game = Read-Host 'Game installation folder'
+python tools/install.py "$game" --movement-wasm --lua-source --apply
+```
+
+Add `--update` when CRML is already installed. The source option currently uses movement mode's authenticated engine hook; it does not install a movement mod. Do not combine it with the observer or physics modes. The installer records ownership of `crml/engine-lua.enabled` and includes the compiler license. It never installs source packages implicitly.
+
+A source package has this layout:
+
+```text
+crml/
+  engine-lua.enabled
+  lua-mods/
+    my-mod/
+      main.luau
+```
+
+Package identifiers contain lowercase ASCII letters, digits, underscores or hyphens, with at most 64 characters. Copy `examples/lua-counter/main.luau` into `crml/lua-mods/lua-counter/main.luau` for a minimal controller. It updates private state without changing visible gameplay. The watcher checks source files approximately every 500 ms; compilation runs on the worker thread and execution runs only on eligible engine updates.
+
+The entry point returns a function:
+
+```lua
+local stopped = false
+return function(shutdown)
+    if shutdown then
+        stopped = true
+        -- Release resources owned by this controller.
+        return
+    end
+    if stopped then return end
+    -- Update; acquire resources here after the host has retained the controller.
+end
+```
+
+Construction must not acquire engine resources. Ordinary updates receive no arguments and need no return value; shutdown receives one truthy argument. `_ENV` is private to the controller and `self` is its selected, existing script owner, **not necessarily the player**. The host requests updates at intervals of at least 16 ms, subject to that owner's engine updates. An owner or world transition can retire the controller and allow a new owner; shutdown is not called on an owner the engine has already destroyed. Scripts must distinguish engine-owned resource cleanup from restoration of their own gameplay changes. CRML does not automatically undo arbitrary script side effects.
+
+A controller recreated after a save reload starts with fresh local state and a new private environment, even when its source has not changed. Source controllers do not provide save persistence. Do not assume that every save reload destroys the selected owner or closes the Lua VM.
+
+Editing `main.luau` queues a replacement after successful compilation. The old controller shuts down before its replacement is constructed. A compile error preserves the old controller. Adding an empty `disabled` file beside the entry point, or removing the entry point, queues unload. Removing the global `engine-lua.enabled` marker queues unload of all source packages; restoring it allows discovery again within a session that started with source loading enabled. Enabling that mode for the first time requires restarting the game. An unreadable marker preserves the previous state. Installer-managed markers must be restored unchanged before a later installer update checks their receipt, or removed through `--update --disable-lua-source` while the game is closed.
+
+A callback error stops updates for that source revision and schedules cleanup. Correcting the file can start a new revision after successful cleanup; the failing revision is not retried automatically. Aggregate `failures` is cumulative for the process, so a recovered package can be `active` with `status: 0` while that count still includes an earlier error.
+
+`crml/lua-mods.jsonl` contains aggregate `lua_source` records, per-package `lua_package` records and compile/discovery events. `active_revision` and `desired_revision` distinguish the current controller from a queued edit. `calls` counts successful updates in the current controller; `status` and `line` retain the last native or script error until a new initialization. `released` counts explicit registry releases and `reclaimed` counts roots retired by observed VM closure. The file is bounded to 4 MiB per process; reaching the limit stops logging, not source execution. Ending a movement diagnostic capture does not stop source mods.
+
+Normal gameplay is unchanged by the counter example. Its package should become `active`, `calls` should increase, and the aggregate failure count should remain zero. Disabling it should increase `released` and remove its active reference after an eligible owner update. These counters describe lifecycle operations; they do not establish that an arbitrary script restored every property or released every engine-owned resource.
 
 ## Execution path
 
@@ -27,6 +82,36 @@ The protected callback saves call-frame position and native-call depth. Its erro
 The engine's fixed script update makes a protected call at `0x1a0aada` with one argument, zero results and error handler index 1. The one-shot probe uses the return from that exact call after success. It shares the existing boundary-guard hook, runs synchronously on the engine thread, and does not retain a VM, world or entity pointer afterward. The separate persistent diagnostic below retains a registry reference with explicit lifecycle ownership. A suspended VM, non-root call frame, missing context, insufficient stack space or installed protected-error debugger callback prevents execution.
 
 The arithmetic/error/recovery test confirms this loading and protected-execution path for the embedded compiler output. Other ABI interpretations still come from instruction and data-flow inspection. Encoded-reference checks and native mock tests do not establish behavior of additional engine operations.
+
+### Native execution layer
+
+`runtime/lua_executor.h` defines the internal synchronous executor in `crml::engine::lua`. The persistent diagnostic uses this executor; script selection, expected counters and deliberate-error recognition remain in `lua_probe.cpp` and `lua_session.cpp`. `lua_vm.h` and `lua_vm.cpp` hold the shared engine ABI, frame checks, owner-generation check and bounded error classification.
+
+The executor accepts a borrowed bytecode span and chunk label, an authenticated engine context, an action, and operation-liveness callbacks supplied by its lifecycle host. It creates a private environment and retains the constructor's returned closure. Ordinary invocation requests no return values. Shutdown calls that closure with one truthy argument, then releases the host's registry reference; raw release skips the Lua callback. Numeric returns and rooted constructor arguments are optional facilities used by the diagnostic, not requirements for ordinary controllers.
+
+The caller owns scheduling, thread affinity, serialization with engine teardown and reference retirement. A successful VM call is insufficient on its own: the caller must also check stack restoration and whether the operation was invalidated. An initialization result received after owner retirement or VM closure must not become an active controller. After an interrupted shutdown, release can be deferred to a fresh eligible frame; once native release has been attempted, an ambiguous outcome must never be retried against a potentially recycled reference. Construction must defer engine resource acquisition until the retained controller's first invocation.
+
+This executor performs no file discovery, compilation or mod installation and is not a public Lua package API. Source compilation is available through the [offline tool](binlua.md#compile-self-authored-source) and the native source preparation layer below. Header and size checks reject unsuitable input but do not make bytecode trustworthy. The executor requires trusted compiler output and inherits the engine's permissions. Native tests exercise caller-selected programs, callbacks without numeric returns, errors and synchronous teardown; the mock loader does not prove arbitrary bytecode compatibility with the game.
+
+### Internal controller lifecycle
+
+`runtime/lua_controller.h` supplies a native host for already-compiled, trusted controllers. It owns up to 16 controllers with a combined 64 MiB of active and queued bytecode, at most 16 MiB per program. Submission transfers the program into host-owned storage and queues initialization; it makes no VM calls. The host requires eligible engine-thread contexts from the fingerprinted update hook. The source service connects discovery to this host only in explicitly enabled development builds.
+
+Each controller stays with its selected owner and VM. Its configured interval limits invocation frequency; the owner must also supply an eligible update. A replacement keeps the old source revision alive through shutdown and reference release before constructing the new revision. An initialization or callback error stops automatic retries of that revision. Failed shutdown blocks replacement until engine owner cleanup, since releasing the host's reference alone does not remove resources retained by the engine. Owner retirement uses raw reference release instead of calling a stale shutdown closure, and VM closure retires references without touching the destroyed VM.
+
+`runtime/lua_dispatch.h` provides the common gate, operation invalidation and teardown notifications used by both the controller host and the diagnostic session. Native stack-restoration failure, an unknown teardown identity or an unexpected C++ exception disables further CRML Lua execution for the process. Normal contained Lua errors do not disable unrelated controllers. Native exceptions propagate after gate cleanup. These boundaries cannot make arbitrary engine bindings transactional or resolve cross-thread engine task dependencies.
+
+Shutdown must drain through eligible updates or VM closure before the host is destroyed. Its destructor disconnects notifications and never attempts Lua execution on the worker thread. Tests exercise the host's replacement and retirement rules, shared-gate concurrency, and the host-to-executor path against a mock engine ABI.
+
+### Native source preparation
+
+Development builds using `-LuaSource` link the pinned Luau 0.650 compiler and AST utilities. Compilation uses optimization level 0 and debug level 2, matching the embedded examples. The build verifies the source archive and includes its MIT license. This path does not require a Python installation or external compiler executable, and it does not link a second Lua VM. Native tests compare all seven embedded examples byte-for-byte against the linked compiler's output.
+
+`runtime/lua_packages.h` provides worker-thread discovery and compilation for an explicitly supplied directory. Each package uses a lowercase ASCII identifier and a `main.luau` entry point. A `disabled` marker queues its unload. Sources must be UTF-8, with an optional BOM, and at most 1 MiB each. The scanner accepts up to 16 package folders and bounds directory enumeration. It rejects reparse-point package paths and never loads precompiled files as executable input. These checks are not a filesystem or scripting sandbox: engine Lua packages remain trusted code.
+
+Polling compiles changed source snapshots and queues the resulting controllers. An unchanged syntax error is not repeatedly compiled. Invalid edits and uncertain reads preserve the previous accepted revision; source removal and explicit disabling queue unload. A second read rejects an edit that changed during compilation. Compile diagnostics contain a fixed category and source line, without copying source text or filesystem paths into events. Controller replacement still waits for the native lifecycle host to drain the old revision.
+
+`runtime/lua_source.cpp` owns the process-pinned host, worker polling and bounded logs. Startup requires the source opt-in, the supported executable and successful VM/lifetime-hook setup. Source mode bypasses the embedded diagnostic sequence. The worker never saves a VM pointer or executes Lua. Normal release packaging rejects `-LuaSource` builds. Native tests exercise compilation, file changes, hook routing, opt-out and lifecycle operations against a mock engine provider, plus startup refusal in an unsupported process. Gameplay coverage for the file-based `lua-counter` includes initialization, updates, live replacement, preservation after a compile error, callback-error cleanup, corrected-source recovery, unload through the package's `disabled` marker, and reference release followed by reinitialization across a save reload. This resource-free example does not establish cleanup of arbitrary engine resources or reference reclamation during VM closure.
 
 ## Script environments and callback ownership
 
@@ -133,7 +218,7 @@ Older schema-3 captures can also contain -101 through -105 for missing `getfenv`
 
 The binding mask uses bits 1, 2, 4, 8, 16, 32 and 64 for `nl_update_callback`, `nl_add_event_handler`, `nl_send_custom_event`, `nl_copy_world_transform`, `spawn_bundle_with_instigator`, `npc_spawn` and `npc_despawn`, respectively. The execution test returned **15**, confirming the first four names in the default environment. A set bit proves only function presence. A clear bit does not establish that the operation is unavailable in entity-specific environments or under another namespace. Argument schemas, context requirements and behavior remain separate questions.
 
-Normal builds omit `-LuaProbe` and do not arm this test. The compiler is not a runtime dependency. The embedded bytecode can be reproduced from the checked-in sources using a separately built [Luau 0.650 compiler](https://github.com/luau-lang/luau/tree/0.650):
+Normal builds omit `-LuaProbe` and do not arm this test. The embedded probe does not require a compiler at runtime; `-LuaSource` builds separately include the compiler described above. The embedded bytecode can be reproduced from the checked-in sources using a separately built [Luau 0.650 compiler](https://github.com/luau-lang/luau/tree/0.650):
 
 ```powershell
 $compiler = Read-Host 'Path to Luau 0.650 luau-compile executable'
@@ -200,13 +285,15 @@ Construction and resource acquisition are separate so a failed native retain has
 
 All allocating operations, invocation and registry access run inside the recovered native error barrier. The original stack and frame are checked and restored after each operation. A reference is fetched only from its recorded global state. A failed or ambiguous release is never retried, because the engine can recycle the reference number.
 
-An ownership gate prevents the bounded diagnostic operation from overlapping observed script cleanup or VM destruction. Teardown first waits for an in-flight diagnostic operation, retires matching ownership and marks cleanup in progress, then enters the original engine routine without holding the gate. Updates skip while teardown is active. A revision copied before the original script call rejects a stale update even if cleanup completed before its return and the entity generation still matches.
+An ownership gate prevents another thread's observed script cleanup or VM destruction from overlapping a bounded diagnostic operation. Other-thread teardown waits for that operation, retires matching ownership and marks cleanup in progress, then enters the original engine routine without holding the gate. Updates skip while teardown is active. A revision copied before the original script call rejects a stale update even if cleanup completed before its return and the entity generation still matches.
+
+Cleanup that reenters on the callback thread reuses the gate already held by that thread. Matching owner cleanup invalidates the current operation; nested updates cannot start another callback. The provider stops further script operations, restores the stack only while the VM remains live, and defers release of its separate controller root to a fresh eligible frame. An interrupted shutdown is not invoked twice. VM closure invalidates the operation before destruction: returned references are not published afterward, and CRML performs no subsequent stack restoration or registry access on that VM. An unreadable teardown identity halts the session. Reference release is marked as attempted before entering the native unref routine, so an ambiguous failure cannot cause a second release of a recycled slot.
 
 The selected script owner remains fixed between diagnostic stages, including the interval after one controller is released and before the next is constructed. Unrelated script updates cannot select a new owner during that interval. Observed owner cleanup, world replacement or VM closure permits a new selection; cleanup is tracked even when no controller reference is held. This preserves owner context without assuming every script updates continuously.
 
 Teardown notifications perform no Lua calls. Owner retirement queues release of CRML's controller reference for a subsequent eligible update in the same VM; the old callback is not invoked again. The engine owns the listener reference and performs its removal through its own cleanup routine. CRML does not call script shutdown with a retired listener handle. An explicit unload waits for the still-live owner; owner cleanup supersedes a pending explicit unload. If the VM closes first, the diagnostic discards its reference number before destruction and leaves reclamation to the VM. On recording shutdown, new initialization and invocation stop; pending cleanup can still drain through the pinned update hook. If no eligible update follows, reclamation waits for engine cleanup or VM destruction. The host retains identity values for comparison, but never saves a VM pointer to dereference from a worker thread.
 
-This gate is specific to the embedded arithmetic callbacks and their private counting listener. It is not a scheduler for arbitrary scripts that may reenter engine teardown, block or run indefinitely. The diagnostic does not establish arbitrary Lua file loading, comprehensive hot reload, initialization rollback for arbitrary engine bindings, or sandboxing.
+Native tests exercise same-thread cleanup during construction, invocation, shutdown and reference release, including closed or reused VM memory and unrelated-owner notifications. These tests cover CRML's handling of notifications; they do not establish that the engine can safely close a VM from inside its own interpreter stack. The diagnostic uses the shared dispatch gate described above. The embedded gameplay captures do not establish arbitrary Lua file loading, comprehensive hot reload, rollback of arbitrary engine side effects or sandboxing. A script that blocks or runs indefinitely is outside these guarantees.
 
 `lua_session` records accompany the lifetime records in `crml/fall-recovery.jsonl`:
 
@@ -225,12 +312,16 @@ This gate is specific to the embedded arithmetic callbacks and their private cou
 | `failures`, `halted` | Unexpected results or unsafe state; a halted session performs no further registry access |
 | `rejected` | Unsuitable execution frames; no operation was attempted |
 | `eligible_updates`, `owner_waits`, `vm_waits`, `revision_waits`, `teardown_waits` | Coordinator entries and skipped entries for a different owner, a different VM, a stale cleanup revision, or active teardown; skips do not establish a script failure or a completed check |
+| `interrupted_calls` | Returned operations invalidated by matching owner cleanup, VM closure or an unreadable teardown identity; their callback result is not accepted as a successful invocation |
+| `reentrant_cleanups`, `reentrant_closes` | Teardown notifications received on the thread currently executing a CRML operation, including unrelated identities that do not invalidate it |
 | `last_status` | Last VM/host status, including protected error 2 or diagnostic errors -301 through -306 |
 | `failure_status`, `failure_line`, `failure_value` | First unexpected operation result, retained across later cleanup; no arbitrary error text is logged |
 | `callback_thread`, `cleanup_thread` | Last execution and matching owner-retirement threads |
 | `teardown_depth`, `stop_requested` | Active cleanup nesting and a request to cease execution |
 
 Errors -301 through -307 mean: registry value is not a closure, callback result is not numeric, shared counter already exists, private metatable installation failed, initialization returned no closure, retaining the closure returned no positive reference, or shutdown returned no numeric result. Script result -401 means delivery continued after removal; -402 means delivery count, sender or payload differed from expectations; -403 means the deliberate listener-error branch did not execute; -404 means unexpected initialization failure; -405 means removal failed or was ambiguous; -406 rejects invocation after shutdown or failed cleanup. Result -410 is an expected rollback marker only on the fourth stage's first invocation; elsewhere it is a failure.
+
+Error -308 records an unexpected C++ exception from the native provider. The coordinator releases its gate, halts further operations and rethrows the original exception; it does not turn that exception into a successful Lua error result.
 
 An additional read-only observer identifies listener references created at the engine's event-registration call site by the exact self-authored chunk label. It watches registry release without invoking Lua, changing arguments, or retaining Lua values. The ledger has 16 slots and logs counters rather than addresses or reference numbers. A release is classified only after the original function returns; an interrupted release remains pending. Reused reference numbers and closed VM identities are handled separately.
 

@@ -310,6 +310,7 @@ void test_body_entity() {
 int main() {
     try {
         require(test_hook_prologues(),"all observed prologues must be relocatable by MinHook");
+        require(test_camera_callbacks(),"camera hooks preserve arguments, pass-through and native unwinding");
         test_body_observation();
         test_body_entity();
         auto buffer=std::make_unique<Buffer>(); buffer->open();

@@ -1,9 +1,10 @@
 #pragma once
+#include "lua_vm.h"
 #include <cstdint>
 #include <iosfwd>
 
 namespace crml::probe::lua::session {
-struct Context {void* vm{};uintptr_t global{},world{};uint64_t owner{},revision{};};
+using engine::lua::Context;
 enum class Action {initialize, initialize_error, invoke, release, unload, initialize_listener_error, initialize_rollback};
 struct Result {
     bool attempted{},restored{},released{};
@@ -12,11 +13,17 @@ struct Result {
     bool shutdown{};
     bool deliberate_error{};
     unsigned error_line{};
+    bool release_attempted{}; // Set before native unref, including an ambiguous failure.
 };
 using Execute=Result(*)(Context,Action,int);
+// Native provider checks after calls that can reenter engine teardown. These
+// describe the current protected operation only, never a saved VM pointer.
+bool call_vm_live() noexcept;
+bool call_owner_live() noexcept;
 // A bounded diagnostic, not an arbitrary-script scheduler. The embedded
 // callbacks perform arithmetic or dispatch their own bounded counting listener.
-// They never initiate engine teardown; this gate is not an arbitrary-script API.
+// Observed teardown can invalidate a call; this is not an arbitrary-script API
+// or protection against closing a VM from within its own interpreter stack.
 void start(Execute execute,bool events=false) noexcept;
 bool configured() noexcept;
 uint64_t revision() noexcept;

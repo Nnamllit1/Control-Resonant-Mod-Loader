@@ -8,6 +8,8 @@ import struct
 
 PHASES = ('movement', 'command_flush', 'script_fixed', 'renderer_sync',
           'physics_begin', 'physics_wait', 'physics_complete')
+CAMERA_PHASES = ('camera_update', 'camera_switch', 'camera_select', 'camera_init', 'camera_remove')
+CAMERA_READS = ('ok', 'arguments', 'environment', 'selector', 'changed', 'memory')
 MAX_BYTES = 64 * 1024 * 1024
 MAX_LINE = 8192
 MAX_TRACKED = 16384
@@ -158,6 +160,10 @@ def analyze(stream):
     accessor_scans = 0
     accessor_scan_rejections = Counter()
     orphan_returns = 0
+    camera_reads, camera_modes, camera_slots = Counter(), Counter(), Counter()
+    camera_before = {}
+    camera_current = {}
+    camera_pairs, camera_changes = Counter(), []
     first_time = last_time = None
     for row in records(stream):
         kind = row['type']
@@ -166,12 +172,17 @@ def analyze(stream):
             notes.add('Final partial line ignored; capture tail is incomplete.')
             break
         if header is None:
-            require(kind == 'header' and row.get('schema') in (1, 2, 3, 4) and row.get('mode') == 'observe-only'
+            require(kind == 'header' and row.get('schema') in (1, 2, 3, 4, 5) and row.get('mode') == 'observe-only'
                     and row.get('mods_suspended') is True, 'Unsupported or non-observational capture')
             require(number(row, 'qpc_frequency') > 0, 'Missing clock frequency')
             number(row, 'qpc_origin')
             require(isinstance(row.get('sha256'), str) and len(row['sha256']) == 64, 'Invalid fingerprint')
             expected_phases = PHASES + (('post_physics',) if row['schema'] >= 2 else ())
+            if row['schema'] >= 5:
+                expected_phases += CAMERA_PHASES
+                for phase in CAMERA_PHASES:
+                    phases[phase] = {'enters': 0, 'returns': 0, 'threads': set(),
+                                     'paired': 0, 'duration_ticks_total': 0, 'duration_ticks_max': 0}
             require({h['name'] for h in row['hooks']} == set(expected_phases), 'Incomplete hook manifest')
             if row['schema'] >= 2:
                 require(isinstance(row.get('physx_sha256'), str) and len(row['physx_sha256']) == 64, 'Missing physics backend fingerprint')
@@ -209,6 +220,8 @@ def analyze(stream):
                 phase['enters'] += 1
             else:
                 phase['returns'] += 1
+                if name in CAMERA_PHASES:
+                    camera_current.pop(span, None)
                 begin = pending.pop(span, None)
                 if begin is None:
                     orphan_returns += 1
@@ -321,7 +334,7 @@ def analyze(stream):
                 for i, reason in enumerate(reasons):
                     if flags & (1 << (offset + i)):
                         entity_scan_rejections[prefix + reason] += 1
-        elif name == 'body_accessor' and header['schema'] == 4:
+        elif name == 'body_accessor' and header['schema'] >= 4:
             require(edge == 0 and span > 0 and flags in (1, 3, 4, 6) and obj != '0' and detail != '0'
                     and (int(entity) & 0xffffffff) < 1 << 20, 'Invalid accessor sample')
             linear, angular = struct.unpack('<ff', int(value).to_bytes(8, 'little'))
@@ -336,17 +349,70 @@ def analyze(stream):
             for prefix, v in (('linear', linear), ('angular', angular)):
                 observed[prefix + '_min'] = min(observed[prefix + '_min'], v)
                 observed[prefix + '_max'] = max(observed[prefix + '_max'], v)
-        elif name == 'accessor_scan' and header['schema'] == 4:
+        elif name == 'accessor_scan' and header['schema'] >= 4:
             require(edge == 0 and span > 0 and int(value) <= 4 and int(entity) <= int(value)
                     and detail == '0' and flags < 1 << len(ACCESS_REJECTIONS) and not flags & 1
                     and (obj != '0' or (value == entity == '0' and flags == 0)), 'Invalid accessor scan')
             accessor_scans += 1
             for i, reason in enumerate(ACCESS_REJECTIONS):
                 if flags & (1 << i): accessor_scan_rejections[reason] += 1
+        elif name in ('camera_state', 'camera_slot') and header['schema'] >= 5:
+            sample_edge = flags >> 8
+            require(edge == 0 and span > 0 and sample_edge in (1, 2), 'Invalid camera snapshot edge')
+            parent = pending.get(span)
+            if parent is None:
+                notes.add('Camera snapshots lack an enclosing phase entry; recording losses limit attribution.')
+            else:
+                require(parent[0] in CAMERA_PHASES and parent[2] == thread, 'Camera snapshot phase/thread mismatch')
+            if name == 'camera_state':
+                reason = flags & 255
+                require(reason < len(CAMERA_READS), 'Unknown camera read result')
+                require((reason == 0 and 1 <= int(value) <= 4 and obj != '0' and entity != '0') or
+                        (reason != 0 and value == detail == entity == '0'), 'Invalid camera state payload')
+                camera_reads[CAMERA_READS[reason]] += 1
+                if reason == 0:
+                    camera_modes[str(int(value) - 1)] += 1
+                current = (obj, entity, value, detail, reason, thread, time)
+                require(span in camera_current or len(camera_current) < MAX_TRACKED, 'Too many camera sample groups')
+                camera_current[span] = [sample_edge, entity, reason, 0]
+                if sample_edge == 1:
+                    require(span not in camera_before and len(camera_before) < MAX_TRACKED, 'Invalid camera snapshot pairing')
+                    camera_before[span] = current
+                else:
+                    previous = camera_before.pop(span, None)
+                    if previous is not None:
+                        require(previous[5] == thread and previous[6] <= time, 'Camera snapshot time/thread mismatch')
+                        camera_pairs['pairs'] += 1
+                        if previous[4] == reason == 0:
+                            camera_pairs['readable_pairs'] += 1
+                            if previous[:4] != current[:4]:
+                                require(len(camera_changes) < MAX_TRACKED, 'Too many camera transitions')
+                                camera_changes.append({'span': span, 'phase': parent[0] if parent else None,
+                                    'thread': thread, 'qpc': time,
+                                    'before': {'world': previous[0], 'camera_global': previous[1], 'mode': int(previous[2])-1, 'selected': previous[3]},
+                                    'after': {'world': obj, 'camera_global': entity, 'mode': int(value)-1, 'selected': detail}})
+            else:
+                slot, state = flags & 3, (flags & 255) >> 2
+                current = camera_current.get(span)
+                if current is None or current[0] != sample_edge:
+                    notes.add('Camera slot snapshots lack their state record; recording losses limit attribution.')
+                else:
+                    require(current[1] == obj and current[2] == 0, 'Camera slot does not match readable global state')
+                    require(not current[3] & (1 << slot), 'Duplicate slot in camera snapshot')
+                    current[3] |= 1 << slot
+                require(obj != '0' and (bool(state & 1) == (entity != '0')), 'Invalid camera slot identity')
+                require(not state & 2 or state & 1, 'Live camera slot must be present')
+                require(not state & 12 or state & 2, 'Camera pose needs a live entity')
+                require(not state & 32 or state == 33, 'Changed camera slot cannot retain pose data')
+                require((bool(state & 4) == (value != '0')) and (bool(state & 8) == (detail != '0')), 'Invalid camera pose digests')
+                camera_slots[(slot, state)] += 1
         else:
             raise ValueError('Unknown event kind')
     require(header is not None, 'No capture header')
-    missing = [name for name, info in phases.items() if not info['paired']]
+    # Switch/init/remove calls need not occur in every capture. Their absence
+    # remains explicit and is never interpreted as verified restoration.
+    missing = [name for name, info in phases.items() if not info['paired'] and
+               (name not in CAMERA_PHASES or name == 'camera_update')]
     if dropped:
         notes.add('Producer contention or overflow dropped records; absence and ordering conclusions are incomplete.')
     if end is None:
@@ -377,9 +443,12 @@ def analyze(stream):
     getter_matches = sum(o['matched_samples'] for o in accessor_observations.values())
     getter_mismatches = sum(o['mismatched_samples'] for o in accessor_observations.values())
     mismatch_seen = getter_mismatches > 0 or accessor_scan_rejections['mismatch'] > 0
-    if header['schema'] == 4 and (not getter_matches or mismatch_seen):
+    if header['schema'] >= 4 and (not getter_matches or mismatch_seen):
         failed = True
         notes.add('Native getter agreement is missing or a mismatch was recorded; investigate before using property writes.')
+    if header['schema'] >= 5 and not camera_pairs['readable_pairs']:
+        failed = True
+        notes.add('No readable paired camera snapshots; camera lifetime and timing remain unestablished.')
     return {'schema': 1, 'sha256': header['sha256'], 'status': 'incomplete' if failed or missing or not player_samples or not resource_ids or dropped else 'ready_for_manual_review',
             'not_a_gameplay_or_api_validation': True,
             'duration_seconds': (last_time - first_time) / header['qpc_frequency'] if first_time is not None else 0,
@@ -404,12 +473,20 @@ def analyze(stream):
                              'scans_with_rejection': dict(entity_scan_rejections),
                              'associations': list(entity_observations.values()),
                              'ownership_or_mutation_verified': False},
-            'accessor_probe': {'available': header['schema'] == 4, 'scans': accessor_scans,
+            'accessor_probe': {'available': header['schema'] >= 4, 'scans': accessor_scans,
                               'status': 'not_recorded' if header['schema'] < 4 else 'mismatch_observed' if mismatch_seen else 'agreement_observed' if getter_matches else 'no_accepted_samples',
                               'matched_samples': getter_matches, 'mismatched_samples': getter_mismatches,
                               'scans_with_rejection': dict(accessor_scan_rejections),
                               'bodies': list(accessor_observations.values()),
                               'ownership_or_mutation_verified': False},
+            'camera_probe': {'available': header['schema'] >= 5,
+                             'status': 'not_recorded' if header['schema'] < 5 else 'snapshots_observed' if camera_pairs['readable_pairs'] else 'no_readable_pairs',
+                             'reads': dict(camera_reads), 'modes': dict(camera_modes),
+                             'snapshot_pairs': dict(camera_pairs), 'unpaired_snapshots': len(camera_before),
+                             'transitions': camera_changes,
+                             'slots': [{'slot': s, 'flags': f, 'samples': n} for (s, f), n in sorted(camera_slots.items())],
+                             'unobserved_phases': [name for name in CAMERA_PHASES if name in phases and not phases[name]['paired']],
+                             'ownership_or_mutation_verified': False},
             'notes': sorted(notes)}
 
 
