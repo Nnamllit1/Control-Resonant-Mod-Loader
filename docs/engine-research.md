@@ -109,3 +109,19 @@ The existing native bridge also demonstrates entity handles, generation checks, 
 The [engine atlas](engine-atlas.md) indexes recovered system declarations and candidate bindings. [Engine operation paths](engine-paths.md) connect script, spawn/remove, physics, material, UI, audio, animation, camera, AI, and save entries to their implementations. Each reference describes the available evidence and its limits.
 
 Engine Lua callbacks are separate from the Wasm host API. Only the operations documented in the [SDK reference](api.md) are exposed to guest modules.
+
+## Community courtesy
+
+If CRML provides the operations your mod needs, consider building on its [shared runtime and SDK](developing.md). Reusing the bridge lets you focus on your mod's behavior and share engine compatibility work with other authors.
+
+If this research helps you build a mod, tool or write-up, a credit to **CONTROL Resonant Mod Loader (CRML) contributors** and a link to the relevant research page are appreciated. This includes projects that use a different loader or their own native implementation. Linking the specific findings also helps readers find the original evidence and its limitations.
+
+A short note in your README, credits or mod description is enough. For example:
+
+> Built with [CONTROL Resonant Mod Loader (CRML)](https://crml.nnamllit.de/).
+
+Or, for a project using the research independently:
+
+> Based in part on [Northlight engine research by CRML contributors](https://crml.nnamllit.de/engine-research/).
+
+These are voluntary community requests, not additional license terms. They do not replace any applicable license requirements.

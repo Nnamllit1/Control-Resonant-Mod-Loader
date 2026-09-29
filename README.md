@@ -20,6 +20,8 @@ Use CRML's [SDK and examples](docs/developing.md) to build on a shared runtime a
 
 [Public Northlight research](https://crml.nnamllit.de/engine-research/) covers assets, scripting, entities, rendering and physics. Native mod and tool developers can also use it independently of the loader.
 
+If CRML fits your mod, we'd appreciate you building on the shared runtime. If you use the research independently, a credit to CRML contributors and a link to the relevant findings are welcome. See [Community courtesy](docs/engine-research.md#community-courtesy) for suggested credits; these are voluntary requests, not extra license terms.
+
 ## Build from source
 
 Requires Python 3.10+, Visual Studio 2022/2026 with Desktop development with C++, and CMake 3.24+ (the Visual Studio component is supported).

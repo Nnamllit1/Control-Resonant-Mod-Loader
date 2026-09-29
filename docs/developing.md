@@ -60,3 +60,7 @@ The [movement example](movement.md) also keeps camera-relative axes, speed selec
 The host validates signatures, checks ABI version 1, and calls `crml_init`. Optional ticks receive elapsed seconds. A trap disables the offending mod and releases its store. Healthy mods continue.
 
 The standalone host calls optional shutdown callbacks on exit. Abrupt termination of the game does not guarantee shutdown; mods must not depend on it for durable writes or restoring game state.
+
+## Share your mod
+
+Include the required CRML version and a link to the [runtime installation guide](installation.md) in your mod's description. A short "Built with CRML" credit helps players find the runtime and other authors discover the SDK. Credits are appreciated as a [community courtesy](engine-research.md#community-courtesy), not an additional license condition.

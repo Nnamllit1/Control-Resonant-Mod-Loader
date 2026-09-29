@@ -31,6 +31,8 @@ Use CRML's SDK, shared runtime and bounded host API to build your own gameplay b
 
 The project publishes research on assets, scripting, entities, rendering and physics. It is also useful to native mod and tool developers independently of CRML. The reference maps distinguish recovered engine internals from supported mod APIs.
 
+Consider building on CRML when its API fits your mod. If the research helps your own project, crediting CRML contributors and linking the findings is appreciated. These are voluntary requests; see [Community courtesy](engine-research.md#community-courtesy) for examples.
+
 [Engine research](engine-research.md) · [Build from source](building.md) · [Runtime architecture](architecture.md)
 
 Independent community project. Not affiliated with Remedy Entertainment.
