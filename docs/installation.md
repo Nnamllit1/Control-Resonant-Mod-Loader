@@ -17,15 +17,17 @@ Open [GitHub Releases](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/
 | `crml-sdk-<version>-windows-x64.zip` | Mod authors who need development tools and examples |
 | GitHub's **Source code** archives | Contributors building CRML itself |
 
-**You do not need the SDK, Source code, Python or a compiler to play.** If a mod specifies a CRML version, use that version. The runtime includes a small hello example that writes to the log; install other mods to add the gameplay features you want.
+**You do not need the SDK, Source code, Python or a compiler to play.** If a mod specifies a CRML version, use that version. The runtime download contains no gameplay mod or in-game panel; install your chosen mods separately.
 
 ## Copy the files and start the game
 
+**Running CRML alongside another mod loader, including a native DLL mod loader, is not recommended.** Compatibility has not been verified or guaranteed. The combination may work, but loaders and their mods can interfere with shortcuts or gameplay, or cause crashes, even when they use different DLL filenames. Use one loader at a time; follow each loader's removal instructions when switching.
+
 1. **Close CONTROL Resonant.**
 2. Right-click the downloaded ZIP in Windows and choose **Extract All**.
-3. In your Steam Library, right-click **CONTROL Resonant**, then choose **Manage > Browse local files**. Find the folder containing `CONTROLResonant.exe`.
+3. Find the folder containing `CONTROLResonant.exe` using your launcher or storefront. In Steam, right-click **CONTROL Resonant**, then choose **Manage > Browse local files**.
 4. Open the extracted download folder and **copy its contents into that game folder**. Select `xinput1_4.dll`, `crml` and the accompanying files. Copy the contents, rather than the outer folder named after the download. If an existing `xinput1_4.dll` belongs to another loader, stop here: CRML cannot share that filename with it.
-5. **Start the game normally through Steam**, or double-click `CONTROLResonant.exe` with Steam running. CRML loads automatically; there is no separate loader application to open.
+5. **Start the game normally through your launcher.** CRML loads automatically; there is no separate loader application to open. Alpha 4.1 asks before starting mods on an unrecognized executable; read the prompt before choosing whether to continue.
 
 After installing the runtime, the files should be arranged like this:
 
@@ -60,7 +62,7 @@ To remove an individual mod, follow its removal instructions. A mod may include 
 
 ## If it does not load
 
-Check the folder layout above first. After starting the game, `crml/crml.log` records loader activity. See [troubleshooting](troubleshooting.md) if no log appears or a mod does not start. Gameplay support is limited to the game build listed in the release's `compatibility.json`; a game update may require a new CRML release.
+Check the folder layout above first. After starting the game, `crml/crml.log` records loader activity. See [troubleshooting](troubleshooting.md) if no log appears or a mod does not start. The release's `compatibility.json` lists the tested build. Trying an unrecognized build does not guarantee gameplay support; a game update may require a new CRML release.
 
 ## Building from source
 

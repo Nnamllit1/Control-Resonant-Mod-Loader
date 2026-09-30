@@ -4,12 +4,11 @@ Experimental preview - Windows x64
 Install - no compiling or developer tools needed
 1. Close CONTROL Resonant.
 2. Right-click the downloaded ZIP in Windows and choose Extract All.
-3. In your Steam Library, right-click CONTROL Resonant, then choose
-   Manage > Browse local files. Find the folder containing CONTROLResonant.exe.
+3. Find the folder containing CONTROLResonant.exe using your launcher.
+   In Steam: right-click CONTROL Resonant > Manage > Browse local files.
 4. Open the extracted ZIP folder. Copy its contents into that game folder.
    Copy the contents, not the outer folder named after the download.
-5. Start CONTROL Resonant through Steam as usual, or double-click
-   CONTROLResonant.exe in that folder. Keep Steam running.
+5. Start CONTROL Resonant through your normal storefront or launcher.
 
 The files should look like this after copying:
 
@@ -40,9 +39,17 @@ If an existing xinput1_4.dll belongs to another loader, do not replace it with
 CRML. Two loaders using that same filename cannot be installed together this way.
 
 Compatibility
-The gameplay bridge checks the exact executable fingerprint in compatibility.json.
-Unknown game builds refuse gameplay support. A game update may require a new CRML
-release. Mods use a bounded Wasm API; arbitrary native mod DLLs are not supported.
+Running CRML alongside another mod loader, including a native DLL mod loader,
+is not recommended. Compatibility has not been verified or guaranteed. It may
+work, but shortcuts or gameplay can break, and crashes are possible even when
+the loaders use different DLL filenames. Use one loader at a time.
+
+An unrecognized executable opens a CRML Windows prompt before mods start.
+Choose Continue to try it or Leave CRML disabled to play without CRML mods.
+The checkbox remembers either choice for that exact executable. Remove
+crml/compatibility-choice.txt with the game closed to reset it.
+Hook signatures are still checked; approval does not guarantee compatibility.
+Mods use a bounded Wasm API; arbitrary native mod DLLs are not supported.
 Direct engine Lua mods are not part of this release.
 
 Removal

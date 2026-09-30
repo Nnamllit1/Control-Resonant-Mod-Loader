@@ -1,3 +1,4 @@
+#include "compatibility.h"
 #include "engine_observer.h"
 #include "physics_observation.h"
 #include "camera_observation.h"
@@ -361,14 +362,15 @@ bool Recorder::line(const std::string& text) {
 }
 std::string Recorder::start(const std::filesystem::path& root) {
     wchar_t path[32768]{}; const auto length=GetModuleFileNameW(nullptr,path,32768);
-    if(!length || length>=32768 || fingerprint(path)!=fingerprint_expected) return "Engine observer refused: unsupported executable fingerprint";
+    const auto actual_sha=length && length<32768?fingerprint(path):std::string{};
+    if(!compatibility::allowed(actual_sha)) return "Engine observer refused: unsupported executable fingerprint";
     wchar_t backend_path[32768]{}; const auto backend=GetModuleHandleW(L"PhysX_64.dll");
     const auto backend_length=backend?GetModuleFileNameW(backend,backend_path,32768):0;
     if(!backend_length || backend_length>=32768 || fingerprint(backend_path)!=physx_expected)
         return "Engine observer refused: unsupported physics backend fingerprint";
     dynamic_vtable=reinterpret_cast<uintptr_t>(backend)+0x15dd88;
     image_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-    for(const auto& hook:hooks) if(std::memcmp(reinterpret_cast<void*>(image_base+hook.rva),hook.prefix.data(),hook.prefix.size())!=0)
+    for(const auto& hook:hooks) if(!compatibility::matches(reinterpret_cast<void*>(image_base+hook.rva),hook.prefix.data(),hook.prefix.size()))
         return std::string("Engine observer refused: changed or already hooked entry ")+hook.name;
     const auto initialized=MH_Initialize();
     if(initialized!=MH_OK && initialized!=MH_ERROR_ALREADY_INITIALIZED) return "Engine observer refused: hook initialization failed";
@@ -391,7 +393,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
         return "Engine observer refused: cannot open diagnostic log";
     }
     std::ostringstream header;
-    header<<"{\"type\":\"header\",\"schema\":5,\"mode\":\"observe-only\",\"sha256\":\""<<fingerprint_expected
+    header<<"{\"type\":\"header\",\"schema\":5,\"mode\":\"observe-only\",\"sha256\":\""<<actual_sha
           <<"\",\"physx_sha256\":\""<<physx_expected
           <<"\",\"pid\":"<<GetCurrentProcessId()<<",\"qpc_frequency\":"<<frequency.QuadPart
           <<",\"qpc_origin\":"<<stamp.QuadPart<<",\"max_bytes\":"<<max_bytes<<",\"max_ms\":"<<max_milliseconds

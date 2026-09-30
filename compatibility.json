@@ -1,5 +1,8 @@
 {
   "schema": 1,
+  "unknown_executable_policy": "native-consent-before-mods",
+  "remembered_choice_scope": "exact-executable-sha256",
+  "hook_signatures_required": true,
   "profiles": [
     {
       "id": "control-resonant-observed-2026-09-24",

@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import shutil
 import stat
+import struct
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -130,6 +131,20 @@ def digest(path):
     with path.open('rb') as stream:
         return hashlib.file_digest(stream, 'sha256').hexdigest() if hasattr(hashlib, 'file_digest') else hashlib.sha256(stream.read()).hexdigest()
 
+def require_x64_executable(path):
+    """Permit untested PE32+ AMD64 builds; execution still requires in-game consent."""
+    with path.open('rb') as stream:
+        header = stream.read(64)
+        if len(header) != 64 or header[:2] != b'MZ':
+            raise ValueError('Unknown game file is not a Windows x64 executable')
+        offset = struct.unpack_from('<I', header, 60)[0]
+        if offset < 64 or offset > path.stat().st_size - 26:
+            raise ValueError('Unknown game executable has invalid PE headers')
+        stream.seek(offset)
+        pe = stream.read(26)
+        if pe[:4] != b'PE\0\0' or struct.unpack_from('<H', pe, 4)[0] != 0x8664 or struct.unpack_from('<H', pe, 24)[0] != 0x20b:
+            raise ValueError('Unknown game file is not a Windows x64 executable')
+
 def checked_path(root, relative):
     path = root / relative
     if not path.resolve().is_relative_to(root):
@@ -147,7 +162,8 @@ def install(game, dist, profiles, apply=False, experimental_noclip=False, entity
     actual = digest(executable)
     profile = next((p for p in profiles if p['sha256'] == actual and p['executable'] == executable.name), None)
     if profile is None:
-        raise ValueError('Unknown game fingerprint; inspect and validate this build first')
+        require_x64_executable(executable)
+        profile = {'status': 'untested executable; CRML will ask before starting mods'}
     for relative in ('xinput1_4.dll', 'crml'):
         path = checked_path(game, relative)
         if path.exists():
@@ -227,8 +243,9 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
     if engine_observer and disable_engine_observer:
         raise ValueError('Cannot enable and disable engine observation together')
     actual = digest(game / 'CONTROLResonant.exe')
-    if actual != receipt.get('executable_sha256') or not any(p['sha256'] == actual and p['executable'] == 'CONTROLResonant.exe' for p in profiles):
-        raise ValueError('Unknown game fingerprint; update refused')
+    if not any(p['sha256'] == actual and p['executable'] == 'CONTROLResonant.exe' for p in profiles):
+        require_x64_executable(game / 'CONTROLResonant.exe')
+        print('Untested executable; CRML will ask before starting mods.')
     if physics_trial and disable_physics_trial:
         raise ValueError('Cannot enable and disable physics trial together')
     if physics_wasm and disable_physics_wasm:
@@ -277,7 +294,7 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
         print('Preview only. Pass --update --apply with the game closed to update.')
         return
     require_closed(game)
-    if not changes and not removals:
+    if not changes and not removals and actual == receipt.get('executable_sha256'):
         print('Already up to date.')
         return
     token = uuid.uuid4().hex
@@ -295,7 +312,7 @@ def update(game, dist, profiles, apply=False, experimental_noclip=False, entity_
                 raise ValueError(f'Copy verification failed: {name}')
         for name in removals:
             stages[name] = None
-        new_receipt = dict(receipt, files={name: value for name, value in {**receipt['files'], **hashes}.items() if name not in removals})
+        new_receipt = dict(receipt, executable_sha256=actual, files={name: value for name, value in {**receipt['files'], **hashes}.items() if name not in removals})
         target = checked_path(game, RECEIPT)
         stages[RECEIPT] = target.with_name(target.name + '.' + token + '.new')
         with stages[RECEIPT].open('x', encoding='utf-8') as out:

@@ -1,3 +1,4 @@
+#include "compatibility.h"
 #include "lua_probe.h"
 #include "lua_executor.h"
 #include "lua_lifetime.h"
@@ -166,11 +167,11 @@ bool start(uintptr_t image,Call original) noexcept {
         {0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x6c,0x24,0x10,0x48,0x89},
         {0x48,0x63,0xc2,0x4c,0x8b,0xc1,0x85,0xd2,0x78,0x4c,0x48,0x8d}};
     const uintptr_t rvas[]{0x2c27b70,0x2c434f0,0x2c4d040};
-    for(size_t i=0;i<3;++i) if(std::memcmp(reinterpret_cast<void*>(image+rvas[i]),signatures[i],12)) return false;
+    for(size_t i=0;i<3;++i) if(!compatibility::matches(reinterpret_cast<void*>(image+rvas[i]),signatures[i],12)) return false;
     constexpr unsigned char site[]{0xe8,0xb1,0x51,0x24,0x01,0x85,0xc0};
-    if(std::memcmp(reinterpret_cast<void*>(image+0x1a0aada),site,sizeof(site))) return false;
+    if(!compatibility::matches(reinterpret_cast<void*>(image+0x1a0aada),site,sizeof(site))) return false;
     constexpr unsigned char push[]{0x48,0x8b,0x41,0x08,0x48,0x89,0x10,0x44,0x89,0x40,0x08};
-    if(std::memcmp(reinterpret_cast<void*>(image+0x2c4ec50),push,sizeof(push))) return false;
+    if(!compatibility::matches(reinterpret_cast<void*>(image+0x2c4ec50),push,sizeof(push))) return false;
     constexpr uintptr_t environment_rvas[]{0x2c4f290,0x2c4d0b0,0x2c4f6e0,0x2c4f320,0x2c4fa90,0x2c4f030};
     constexpr unsigned char environment_signatures[][12]{
         {0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x6c,0x24,0x10,0x48,0x89},
@@ -179,7 +180,7 @@ bool start(uintptr_t image,Call original) noexcept {
         {0x48,0x83,0xec,0x28,0x45,0x8b,0xd8,0x4c,0x8b,0xd1,0x85,0xd2},
         {0x40,0x53,0x48,0x83,0xec,0x20,0x48,0x8d,0x59,0x08,0x4c,0x8b},
         {0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x6c,0x24,0x10,0x48,0x89}};
-    for(size_t i=0;i<6;++i) if(std::memcmp(reinterpret_cast<void*>(image+environment_rvas[i]),environment_signatures[i],12)) return false;
+    for(size_t i=0;i<6;++i) if(!compatibility::matches(reinterpret_cast<void*>(image+environment_rvas[i]),environment_signatures[i],12)) return false;
     api={reinterpret_cast<decltype(api.load)>(image+rvas[0]),reinterpret_cast<decltype(api.protect)>(image+rvas[1]),
          reinterpret_cast<decltype(api.settop)>(image+rvas[2]),original,reinterpret_cast<decltype(api.push_entity)>(image+0x2c4ec50)};
     api.new_table=reinterpret_cast<decltype(api.new_table)>(image+environment_rvas[0]);
@@ -199,9 +200,9 @@ bool start_persistent(uintptr_t image) noexcept {
     constexpr unsigned char retain[]{0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7c,0x24,0x20};
     constexpr unsigned char fetch[]{0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x74,0x24,0x10};
     constexpr unsigned char release[]{0x85,0xd2,0x7e,0x46,0x57,0x48,0x83,0xec,0x20};
-    if(std::memcmp(reinterpret_cast<void*>(image+0x2c507a0),retain,sizeof(retain)) ||
-       std::memcmp(reinterpret_cast<void*>(image+0x2c4f1d0),fetch,sizeof(fetch)) ||
-       std::memcmp(reinterpret_cast<void*>(image+0x2c508d0),release,sizeof(release))) return false;
+    if(!compatibility::matches(reinterpret_cast<void*>(image+0x2c507a0),retain,sizeof(retain)) ||
+       !compatibility::matches(reinterpret_cast<void*>(image+0x2c4f1d0),fetch,sizeof(fetch)) ||
+       !compatibility::matches(reinterpret_cast<void*>(image+0x2c508d0),release,sizeof(release))) return false;
     api.retain=reinterpret_cast<decltype(api.retain)>(image+0x2c507a0);
     api.fetch=reinterpret_cast<decltype(api.fetch)>(image+0x2c4f1d0);
     api.release=reinterpret_cast<decltype(api.release)>(image+0x2c508d0);

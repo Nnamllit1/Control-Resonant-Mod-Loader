@@ -21,6 +21,18 @@ def probe(path):
             fn.argtypes = [ctypes.c_uint32, ctypes.c_void_p]
             fn.restype = ctypes.c_uint32
     state = ctypes.create_string_buffer(16)
+    # Non-Steam builds may first call a different XInput export. This must also
+    # bootstrap once, without waiting for GetState/ordinal 2.
+    proxy.XInputEnable.argtypes = [ctypes.c_bool]
+    proxy.XInputEnable(False)
+    log = path.parent / 'crml' / 'crml.log'
+    for _ in range(100):
+        if log.exists() and 'Hello from a sandboxed' in log.read_text():
+            break
+        time.sleep(0.05)
+    else:
+        raise RuntimeError('Non-GetState export did not start runtime')
+    proxy.XInputEnable(True)
     expected = system.XInputGetState(999, state)
     if proxy[2](999, state) != expected or proxy.XInputGetState(999, state) != expected:
         raise RuntimeError('Ordinal/name forwarding mismatch')

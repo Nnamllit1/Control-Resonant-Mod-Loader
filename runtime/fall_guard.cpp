@@ -1,3 +1,4 @@
+#include "compatibility.h"
 #include "fall_guard.h"
 #include "movement_view.h"
 #include <Windows.h>
@@ -176,9 +177,9 @@ bool start(uintptr_t image,Active callback) noexcept {
     constexpr unsigned char action_signature[]{0x4c,0x8b,0xdc,0x49,0x89,0x53,0x10,0x53,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57};
     constexpr unsigned char recovery_signature[]{0x4c,0x8b,0xdc,0x4d,0x89,0x4b,0x20,0x49,0x89,0x53,0x10};
     constexpr unsigned char camera_signature[]{0x48,0x8b,0xc4,0x48,0x89,0x58,0x10,0x48,0x89,0x70,0x18,0x48,0x89,0x78,0x20};
-    if(std::memcmp(check,check_signature,sizeof(check_signature)) || std::memcmp(query,query_signature,sizeof(query_signature)) ||
-       std::memcmp(monitor_check,monitor_signature,sizeof(monitor_signature)) || std::memcmp(action_check,action_signature,sizeof(action_signature)) ||
-       std::memcmp(recovery_check,recovery_signature,sizeof(recovery_signature)) || std::memcmp(camera_check,camera_signature,sizeof(camera_signature))) return false;
+    if(!compatibility::matches(check,check_signature,sizeof(check_signature)) || !compatibility::matches(query,query_signature,sizeof(query_signature)) ||
+       !compatibility::matches(monitor_check,monitor_signature,sizeof(monitor_signature)) || !compatibility::matches(action_check,action_signature,sizeof(action_signature)) ||
+       !compatibility::matches(recovery_check,recovery_signature,sizeof(recovery_signature)) || !compatibility::matches(camera_check,camera_signature,sizeof(camera_signature))) return false;
     active_callback=callback;
     if(MH_CreateHook(check,reinterpret_cast<void*>(&inactive),reinterpret_cast<void**>(&original_inactive))!=MH_OK ||
        MH_CreateHook(query,reinterpret_cast<void*>(&target),reinterpret_cast<void**>(&original_target))!=MH_OK ||

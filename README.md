@@ -14,6 +14,8 @@ Close the game, extract the ZIP, then copy **the extracted folder's contents** b
 
 The **SDK** and **Source code** downloads are for developers. The runtime supplies the loader; individual mods supply gameplay features and controls. See [installation, updates and removal](docs/installation.md).
 
+Running CRML alongside another mod loader, including a native DLL loader, is not recommended. Compatibility is unverified and not guaranteed; the combination may work, interfere with shortcuts or gameplay, or cause crashes. See [loader conflicts](docs/troubleshooting.md#shortcuts-or-gameplay-break-with-another-loader-installed).
+
 ## Make mods and explore the engine
 
 Use CRML's [SDK and examples](docs/developing.md) to build on a shared runtime and [bounded gameplay API](docs/api.md). The movement example keeps its controls in Wasm; other examples cover visibility and temporary physics damping. Available operations depend on the selected runtime mode.

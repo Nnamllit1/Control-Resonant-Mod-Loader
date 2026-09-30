@@ -1,4 +1,5 @@
 #include "runtime.h"
+#include "compatibility.h"
 #ifdef CRML_LUA_SOURCE
 #include "lua_source.h"
 #endif
@@ -55,6 +56,7 @@ extern "C" __declspec(dllexport) DWORD WINAPI crml_run() {
             if(observe_only) log << "Wasm mods suspended for engine observation\n";
             else if(physics_trial) log << "Wasm mods suspended for native physics trial\n";
             log.flush();
+            if(!crml::compatibility::authorize(root,log)) {result=0;return;}
 #ifdef CRML_LUA_SOURCE
             const bool source_requested=movement_wasm && !conflict && crml::engine::lua::source::prepare(root);
             if(!source_requested && std::filesystem::is_regular_file(root/"engine-lua.enabled"))

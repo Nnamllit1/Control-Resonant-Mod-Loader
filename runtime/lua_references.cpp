@@ -1,3 +1,4 @@
+#include "compatibility.h"
 #include "lua_references.h"
 #include <Windows.h>
 #include <MinHook.h>
@@ -104,7 +105,7 @@ bool start(uintptr_t image) noexcept {
     constexpr unsigned char b[]{0x85,0xd2,0x7e,0x46,0x57,0x48,0x83,0xec,0x20};
     auto* retain_entry=reinterpret_cast<void*>(image+0x2c507a0);
     auto* release_entry=reinterpret_cast<void*>(image+0x2c508d0);
-    if(std::memcmp(retain_entry,a,sizeof(a)) || std::memcmp(release_entry,b,sizeof(b))) return false;
+    if(!compatibility::matches(retain_entry,a,sizeof(a)) || !compatibility::matches(release_entry,b,sizeof(b))) return false;
     image_base=image;
     if(MH_CreateHook(retain_entry,reinterpret_cast<void*>(&retain_hook),reinterpret_cast<void**>(&original_retain))!=MH_OK ||
        MH_CreateHook(release_entry,reinterpret_cast<void*>(&release_hook),reinterpret_cast<void**>(&original_release))!=MH_OK ||

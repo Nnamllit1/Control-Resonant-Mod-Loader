@@ -1,3 +1,5 @@
+#include "compatibility.h"
+#include "input_filter.h"
 #include "physics_session.h"
 #include "physics_trial.h"
 #include "physics_selection.h"
@@ -83,7 +85,7 @@ bool down(int key) noexcept {
 #ifdef CRML_PHYSICS_SESSION_TESTING
     if(test_focus>=0) return false;
 #endif
-    return (GetAsyncKeyState(key)&0x8000)!=0;
+    return probe::input::down(static_cast<unsigned>(key));
 }
 bool position(uintptr_t world,uint64_t entity,float (&out)[3],bool exclude_controller=true) noexcept {
     __try {
@@ -312,13 +314,15 @@ const Hook hooks[]{
 std::string Session::start(const std::filesystem::path& root,bool wasm) {
     wasm_=wasm;guest_mode=wasm;
     wchar_t path[32768]{}; const auto size=GetModuleFileNameW(nullptr,path,32768);
-    if(!size || size>=32768 || module_fingerprint(path)!=game_sha) return "Physics trial refused: unsupported executable fingerprint";
+    const auto actual_sha=size && size<32768?module_fingerprint(path):std::string{};
+    if(!compatibility::allowed(actual_sha)) return "Physics trial refused: unsupported executable fingerprint";
     auto backend=GetModuleHandleW(L"PhysX_64.dll");
     const auto length=backend?GetModuleFileNameW(backend,path,32768):0;
     if(!length || length>=32768 || module_fingerprint(path)!=backend_sha) return "Physics trial refused: unsupported backend fingerprint";
     image=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)); backend_image=reinterpret_cast<uintptr_t>(backend);
-    for(const auto& hook:hooks) if(std::memcmp(reinterpret_cast<void*>(image+hook.rva),hook.bytes.data(),hook.bytes.size())) return "Physics trial refused: changed hook entry";
+    for(const auto& hook:hooks) if(!compatibility::matches(reinterpret_cast<void*>(image+hook.rva),hook.bytes.data(),hook.bytes.size())) return "Physics trial refused: changed hook entry";
     const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return "Physics trial refused: hook initialization";
+    if(!probe::input::start()) return "Physics trial refused: keyboard observation unavailable";
     size_t created{};
     for(const auto& hook:hooks) {
         if(MH_CreateHook(reinterpret_cast<void*>(image+hook.rva),hook.detour,hook.original)!=MH_OK) break;
@@ -333,7 +337,7 @@ std::string Session::start(const std::filesystem::path& root,bool wasm) {
     log_.open(root/name,std::ios::out|std::ios::binary);
     if(!log_) return "Physics trial refused: cannot open log";
     std::ostringstream header;
-    header<<"{\"type\":\"header\",\"schema\":1,\"mode\":\"native-physics-trial\",\"sha256\":\""<<game_sha<<"\",\"physx_sha256\":\""<<backend_sha<<"\",\"mods_suspended\":"<<(wasm?"false":"true")<<"}\n";
+    header<<"{\"type\":\"header\",\"schema\":1,\"mode\":\"native-physics-trial\",\"sha256\":\""<<actual_sha<<"\",\"physx_sha256\":\""<<backend_sha<<"\",\"mods_suspended\":"<<(wasm?"false":"true")<<"}\n";
     const auto header_text=header.str();log_<<header_text;bytes_=header_text.size();
     log_.flush(); if(!log_) return "Physics trial refused: cannot write log";
     overlay_=probe::overlay_create(image,true,wasm);

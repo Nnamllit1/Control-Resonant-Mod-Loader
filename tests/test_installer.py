@@ -2,6 +2,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import struct
 from pathlib import Path
 import tempfile
 import unittest
@@ -13,6 +14,24 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def test_untested_x64_install_and_game_update(self):
+        executable = bytearray(512)
+        executable[:2] = b'MZ'
+        struct.pack_into('<I', executable, 60, 128)
+        executable[128:132] = b'PE\0\0'
+        struct.pack_into('<H', executable, 132, 0x8664)
+        struct.pack_into('<H', executable, 152, 0x20b)
+        game_exe = self.game / 'CONTROLResonant.exe'
+        game_exe.write_bytes(executable)
+        installer.install(self.game, self.dist, [], True)
+        self.assertFalse((self.game / 'crml/compatibility-choice.txt').exists(), 'installation must not grant consent')
+        first = installer.read_receipt(self.game)['executable_sha256']
+        executable[-1] = 1
+        game_exe.write_bytes(executable)
+        installer.update(self.game, self.dist, [], True)
+        self.assertNotEqual(first, installer.read_receipt(self.game)['executable_sha256'])
+        self.assertEqual(installer.digest(game_exe), installer.read_receipt(self.game)['executable_sha256'])
+
     def test_trusted_lua_opt_in_build_gate_and_removal(self):
         installer.install(self.game, self.dist, self.profiles, True)
         features = self.dist / 'crml/build-features.json'

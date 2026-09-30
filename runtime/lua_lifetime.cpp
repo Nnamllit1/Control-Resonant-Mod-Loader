@@ -1,3 +1,4 @@
+#include "compatibility.h"
 #include "lua_lifetime.h"
 #include "lua_dispatch.h"
 #include "lua_references.h"
@@ -123,8 +124,8 @@ bool start(uintptr_t image) noexcept {
     constexpr unsigned char cleanup_prefix[]{0x48,0x89,0x5c,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7c,0x24,0x20};
     auto* close_entry=reinterpret_cast<void*>(image+0x2c3be80);
     auto* cleanup_entry=reinterpret_cast<void*>(image+0x19c70e0);
-    if(std::memcmp(close_entry,close_prefix,sizeof(close_prefix)) ||
-       std::memcmp(cleanup_entry,cleanup_prefix,sizeof(cleanup_prefix))) return false;
+    if(!compatibility::matches(close_entry,close_prefix,sizeof(close_prefix)) ||
+       !compatibility::matches(cleanup_entry,cleanup_prefix,sizeof(cleanup_prefix))) return false;
     // Installed trampolines stay pinned, including partial installation failures.
     // No state is observed until BOTH hooks are active; stopped hooks forward only.
     if(MH_CreateHook(close_entry,reinterpret_cast<void*>(&close_hook),reinterpret_cast<void**>(&original_close))!=MH_OK ||

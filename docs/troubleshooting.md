@@ -16,10 +16,10 @@ The runtime alone does not add a general mod menu or gameplay controls. Check `c
 
 After launching the game, look for `crml/crml.log` in the game folder. If it is absent:
 
-1. Use Steam's **Manage > Browse local files** to check that `xinput1_4.dll` is directly beside `CONTROLResonant.exe`.
+1. Find the game folder through your launcher and check that `xinput1_4.dll` is directly beside `CONTROLResonant.exe`. In Steam, use **Manage > Browse local files**.
 2. Check that `crml/crml_runtime.dll` and `crml/wasmtime.dll` are present. An extra folder named after the ZIP should not sit between these files and the game.
 3. Confirm that you installed `crml-runtime-<version>-windows-x64.zip`, not only a mod or the SDK.
-4. Confirm that you extracted the ZIP before copying its contents, then start the game normally through Steam.
+4. Confirm that you extracted the ZIP before copying its contents, then start the game normally through your usual storefront or launcher.
 
 If the layout is correct and no log appears, [report the problem](#report-a-problem) with the release filename and any Windows error message.
 
@@ -27,9 +27,17 @@ If the layout is correct and no log appears, [report the problem](#report-a-prob
 
 Another loader may also use a file named `xinput1_4.dll`. CRML cannot share that filename with it. Follow the other loader's removal instructions before installing CRML; do not rename its DLL or overwrite it to try to combine the two.
 
+## Shortcuts or gameplay break with another loader installed
+
+Running CRML alongside another mod loader, including a native DLL mod loader, is not recommended. Compatibility has not been verified or guaranteed. It may work normally, but the loaders or their mods can interfere with input and gameplay or cause crashes. Different proxy DLL filenames do not guarantee compatibility.
+
+To check whether the combination is involved, close the game and move **CRML's** `xinput1_4.dll` out of the game folder, then launch again. This disables CRML and its mods. If the other mods' shortcuts work again, include both loaders' versions, the affected mods and hotkeys, and `crml/crml.log` in your report. Keep a copy of the log before another launch.
+
 ## A game update changes the fingerprint
 
-CRML checks the game version before enabling gameplay features. If a game update is not supported, install a CRML release that explicitly supports it. Changing `compatibility.json` does not make an unsupported version work.
+From Alpha 4.1, an unrecognized executable opens a CRML-owned Windows prompt before any mods or gameplay hooks start. Choose **Continue with CRML** to try it, or **Leave CRML disabled** to play without CRML mods. The checkbox remembers either choice for that exact executable. Close the game and remove `crml/compatibility-choice.txt` to reset it; a changed executable requires a new choice. Changing `compatibility.json` does not grant approval or adjust engine offsets.
+
+Approval does not establish compatibility. Changed or unreadable hook signatures still refuse the affected feature, and physics integrations retain their backend checks. Send `crml/crml.log` with the exact game version and storefront if a feature remains unavailable. A different edition or storefront alone does not tell us whether its engine layout matches.
 
 Check each mod's stated CRML requirements when choosing a runtime version. A mod update may be needed after updating CRML.
 

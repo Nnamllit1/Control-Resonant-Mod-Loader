@@ -16,6 +16,16 @@ void post(UINT message,WPARAM key,LPARAM flags=1) {
 }
 int main() {
     try {
+        std::array<BYTE,256> snapshot{};
+        snapshot[VK_INSERT]=0x80;snapshot[VK_F6]=0x80;snapshot['W']=0x80;
+        snapshot[VK_CAPITAL]=1;
+        input::testing::publish(snapshot.data(),GetTickCount64());
+        for(unsigned i=0;i<1000;++i) require(input::down(VK_INSERT),"Reading our cached key must not consume another reader's edge");
+        require(input::down(VK_F6) && input::down('W') && !input::down(VK_CAPITAL) && !input::down(256),"Cached high-bit and bounds handling");
+        input::testing::publish(snapshot.data(),GetTickCount64()-501);
+        require(!input::down(VK_INSERT),"Stale message-thread state must stop movement");
+        snapshot.fill(0);input::testing::publish(snapshot.data(),GetTickCount64());
+        require(!input::down('W'),"Released snapshot restores key state");
         for(unsigned key:{unsigned('W'),unsigned('A'),unsigned('S'),unsigned('D'),unsigned(VK_SPACE),unsigned(VK_CONTROL),unsigned(VK_LCONTROL),unsigned(VK_RCONTROL),
                           unsigned(VK_SHIFT),unsigned(VK_LSHIFT),unsigned(VK_RSHIFT)}) {
             MSG message{}; message.message=WM_KEYDOWN; message.wParam=key; message.lParam=0x00110001;
@@ -31,6 +41,14 @@ int main() {
         for(unsigned key:{unsigned(VK_ESCAPE),unsigned(VK_F6),unsigned(VK_MENU),unsigned(VK_TAB),unsigned('E')}) {
             MSG message{}; message.message=WM_KEYDOWN; message.wParam=key;
             require(!input::filter(message) && message.message==WM_KEYDOWN,"Unowned key consumed");
+        }
+        for(unsigned key=VK_F1;key<=VK_F24;++key) {
+            MSG message{};message.message=WM_KEYDOWN;message.wParam=key;
+            require(!input::filter(message) && message.message==WM_KEYDOWN,"Third-party function hotkey consumed");
+        }
+        for(unsigned key:{unsigned(VK_INSERT),unsigned(VK_HOME),unsigned(VK_DELETE),unsigned(VK_END)}) {
+            MSG message{};message.message=WM_KEYDOWN;message.wParam=key;
+            require(!input::filter(message) && message.message==WM_KEYDOWN,"Third-party menu hotkey consumed");
         }
         RAWINPUT mouse{}; mouse.header.dwSize=sizeof(mouse); mouse.header.dwType=RIM_TYPEMOUSE;
         mouse.data.mouse.lLastX=42; const auto before=mouse;

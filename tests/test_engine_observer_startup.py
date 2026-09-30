@@ -24,6 +24,7 @@ def main():
     args = parser.parse_args()
     if args.child:
         return child(args.runtime.resolve())
+    assert b'GetAsyncKeyState\0' not in args.runtime.read_bytes(), 'Runtime must not consume shared async key-press bits'
     with tempfile.TemporaryDirectory() as temporary:
         root = Path(temporary)
         runtime = root / 'crml_runtime.dll'

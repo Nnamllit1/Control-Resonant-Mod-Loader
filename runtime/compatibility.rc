@@ -1,0 +1,2 @@
+#include <Windows.h>
+2 RT_MANIFEST "compatibility.manifest"

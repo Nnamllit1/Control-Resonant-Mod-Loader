@@ -1,3 +1,4 @@
+#include "compatibility.h"
 #include "visibility.h"
 #include <Windows.h>
 #include <MinHook.h>
@@ -75,7 +76,7 @@ bool start(uintptr_t base,Player player) noexcept {
     if(!base || !player) return false;
     const unsigned char expected[]={0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57};
     auto* target=reinterpret_cast<void*>(base+0x1969ca0);
-    if(std::memcmp(target,expected,sizeof(expected))) return false;
+    if(!compatibility::matches(target,expected,sizeof(expected))) return false;
     image=base; player_callback=player;
     if(MH_CreateHook(target,reinterpret_cast<void*>(&apply),reinterpret_cast<void**>(&original))!=MH_OK) return false;
     if(MH_EnableHook(target)!=MH_OK) { MH_RemoveHook(target); return false; }

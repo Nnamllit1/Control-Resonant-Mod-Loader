@@ -12,6 +12,8 @@ Active active_callback{};
 uintptr_t executable{}, executable_end{};
 std::atomic<bool> ready{};
 std::atomic<uint64_t> filtered{};
+std::array<std::atomic<BYTE>,256> cached{};
+std::atomic<uint64_t> cached_tick{};
 decltype(&PeekMessageW) peek_w{};
 decltype(&PeekMessageA) peek_a{};
 decltype(&GetMessageW) message_w{};
@@ -20,9 +22,30 @@ decltype(&GetRawInputData) raw_data{};
 decltype(&GetKeyboardState) keyboard_state{};
 decltype(&GetKeyState) key_state{};
 
-bool capture(void* caller) noexcept {
+bool game_caller(void* caller) noexcept {
     const auto address=reinterpret_cast<uintptr_t>(caller);
-    if(!ready.load(std::memory_order_acquire) || address<executable || address>=executable_end) return false;
+    return ready.load(std::memory_order_acquire) && address>=executable && address<executable_end;
+}
+void publish(const BYTE* state,uint64_t tick) noexcept {
+    for(size_t i=0;i<cached.size();++i) cached[i].store(state[i],std::memory_order_relaxed);
+    cached_tick.store(tick,std::memory_order_release);
+}
+void observe(void* caller) noexcept {
+    // Observation may pass through another mod's hook first. Thread/window
+    // ownership scopes this read; only suppression requires an executable caller.
+    (void)caller;
+    if(!ready.load(std::memory_order_acquire)) return;
+    const auto error=GetLastError();DWORD process{};
+    const auto thread=GetWindowThreadProcessId(GetForegroundWindow(),&process);
+    if(process==GetCurrentProcessId() && thread==GetCurrentThreadId()) {
+        BYTE state[256]{};
+        if(keyboard_state(state)) publish(state,GetTickCount64());
+    }
+    SetLastError(error);
+}
+
+bool capture(void* caller) noexcept {
+    if(!active_callback || !game_caller(caller)) return false;
     const DWORD error=GetLastError();
     const bool result=active_callback();
     SetLastError(error);
@@ -30,21 +53,25 @@ bool capture(void* caller) noexcept {
 }
 BOOL WINAPI peekW(LPMSG out,HWND window,UINT first,UINT last,UINT remove) {
     const auto result=peek_w(out,window,first,last,remove);
+    observe(_ReturnAddress());
     if(result && capture(_ReturnAddress()) && filter(*out)) ++filtered;
     return result;
 }
 BOOL WINAPI peekA(LPMSG out,HWND window,UINT first,UINT last,UINT remove) {
     const auto result=peek_a(out,window,first,last,remove);
+    observe(_ReturnAddress());
     if(result && capture(_ReturnAddress()) && filter(*out)) ++filtered;
     return result;
 }
 BOOL WINAPI messageW(LPMSG out,HWND window,UINT first,UINT last) {
     const auto result=message_w(out,window,first,last);
+    observe(_ReturnAddress());
     if(result>0 && capture(_ReturnAddress()) && filter(*out)) ++filtered;
     return result;
 }
 BOOL WINAPI messageA(LPMSG out,HWND window,UINT first,UINT last) {
     const auto result=message_a(out,window,first,last);
+    observe(_ReturnAddress());
     if(result>0 && capture(_ReturnAddress()) && filter(*out)) ++filtered;
     return result;
 }
@@ -69,6 +96,11 @@ bool owned(unsigned key) noexcept {
     if(!key) return false;
     for(auto candidate:keys) if(key==candidate) return true;
     return false;
+}
+bool down(unsigned key) noexcept {
+    if(key>=cached.size()) return false;
+    const auto tick=cached_tick.load(std::memory_order_acquire),now=GetTickCount64();
+    return tick && now>=tick && now-tick<=500 && (cached[key].load(std::memory_order_relaxed)&0x80)!=0;
 }
 bool filter(MSG& message) noexcept {
     if((message.message==WM_KEYDOWN || message.message==WM_SYSKEYDOWN) && owned(static_cast<unsigned>(message.wParam))) {
@@ -98,7 +130,7 @@ bool filter(RAWINPUT& event,UINT bytes) noexcept {
 void filter(BYTE* state) noexcept { for(auto key:keys) if(key) state[key]&=1; }
 
 bool start(Active callback) noexcept {
-    if(!callback) return false;
+    if(ready.load(std::memory_order_acquire)) return active_callback==callback;
     executable=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     const auto dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(executable);
     const auto nt=reinterpret_cast<const IMAGE_NT_HEADERS*>(executable+dos->e_lfanew);
@@ -126,14 +158,17 @@ bool start(Active callback) noexcept {
 void release_held(HWND window) noexcept {
     DWORD process{};
     if(!window || !GetWindowThreadProcessId(window,&process) || process!=GetCurrentProcessId()) return;
-    // Release cached legacy actions even when a key was held before F6. Physical
-    // state is untouched: the noclip bridge continues polling GetAsyncKeyState.
+    // Release cached legacy actions even when a key was held before F6.
+    // CRML keeps reading its non-consuming snapshot of the real queue state.
     for(auto key:keys) {
-        if(!key || !(GetAsyncKeyState(key)&0x8000)) continue;
+        if(!key || !down(key)) continue;
         const auto scan=MapVirtualKeyW(key,MAPVK_VK_TO_VSC_EX);
         const LPARAM flags=LPARAM{0xc0000001} | LPARAM((scan&0xff)<<16) | (scan&0xff00 ? LPARAM{1}<<24 : 0);
         PostMessageW(window,WM_KEYUP,key,flags);
     }
 }
 uint64_t consumed() noexcept { return filtered.load(std::memory_order_relaxed); }
+#ifdef CRML_INPUT_TESTING
+namespace testing { void publish(const BYTE* state,uint64_t tick) noexcept { input::publish(state,tick); } }
+#endif
 }

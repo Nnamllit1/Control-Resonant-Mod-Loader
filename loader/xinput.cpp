@@ -29,7 +29,12 @@ DWORD WINAPI start_runtime(void* argument) {
     if (wcscat_s(path, L"crml\\crml_runtime.dll") != 0) return 1;
     // Trusted runtime and Wasmtime are adjacent; no dependency search through CWD.
     const auto runtime = LoadLibraryExW(path, nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
-    if (!runtime) { OutputDebugStringW(L"CRML: runtime could not be loaded\n"); return 1; }
+    if (!runtime) {
+        OutputDebugStringW(L"CRML: runtime could not be loaded\n");
+        MessageBoxW(nullptr,L"The CRML proxy loaded, but the runtime could not start.\n\nCheck that crml\\crml_runtime.dll and crml\\wasmtime.dll were extracted beside the game executable. The Microsoft Visual C++ x64 runtime is also required.",
+                    L"CRML could not start",MB_OK|MB_ICONERROR);
+        return 1;
+    }
     using Run = DWORD (WINAPI*)();
     const auto run = reinterpret_cast<Run>(GetProcAddress(runtime, "crml_run"));
     if (!run) return 1;
@@ -49,9 +54,9 @@ BOOL CALLBACK begin_runtime(PINIT_ONCE, PVOID, PVOID*) {
 
 extern "C" FARPROC crml_resolve(unsigned index) {
     InitOnceExecuteOnce(&system_once, load_system, nullptr, nullptr);
-    // The observed game import is ordinal 2. Bootstrap on its first invocation,
-    // never during this DLL's process-attach callback.
-    if (index == 0) InitOnceExecuteOnce(&runtime_once, begin_runtime, nullptr, nullptr);
+    // Bootstrap on any forwarded XInput call, supporting differing import/use
+    // patterns. Never start the runtime in this DLL's process-attach callback.
+    InitOnceExecuteOnce(&runtime_once, begin_runtime, nullptr, nullptr);
     return functions[index];
 }
 BOOL WINAPI DllMain(HINSTANCE, DWORD, LPVOID) { return TRUE; }

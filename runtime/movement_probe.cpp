@@ -1,4 +1,5 @@
 #include "movement_probe.h"
+#include "compatibility.h"
 #include "movement_view.h"
 #include "entity_inspector.h"
 #include "visibility.h"
@@ -51,7 +52,7 @@ bool focused() noexcept {
     GetWindowThreadProcessId(GetForegroundWindow(), &process);
     return process == GetCurrentProcessId();
 }
-bool down(int key) noexcept { return (GetAsyncKeyState(key) & 0x8000) != 0; }
+bool down(int key) noexcept { return input::down(static_cast<unsigned>(key)); }
 
 fall::Player active_player() noexcept {
     if(!gameplay_enabled.load(std::memory_order_acquire) || !focused() || down(VK_ESCAPE)) return {};
@@ -189,18 +190,19 @@ std::string Recorder::start(const std::filesystem::path& root) {
     if (!motion_requested && !visibility_requested && !inspector_requested && !noclip_requested && !std::filesystem::is_regular_file(root / "movement-probe.enabled")) return "Experimental gameplay and movement probe disabled";
     wchar_t executable[32768]{};
     const auto length = GetModuleFileNameW(nullptr, executable, 32768);
-    if (!length || length >= 32768 || fingerprint(executable) != "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0")
+    const auto actual_sha=length && length<32768?fingerprint(executable):std::string{};
+    if (!compatibility::allowed(actual_sha))
         return "Movement probe refused: unsupported executable fingerprint";
     image_base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     auto target = reinterpret_cast<void*>(image_base + 0x1b98950);
     constexpr unsigned char signature[] = {0x48,0x8b,0xc4,0x4c,0x89,0x48,0x20,0x4c,0x89,0x40,0x18,0x48,0x89,0x50,0x10,0x53,0x56,0x57};
-    if (std::memcmp(target, signature, sizeof(signature)) != 0) return "Movement probe refused: movement routine changed or already hooked";
+    if (!compatibility::matches(target, signature, sizeof(signature))) return "Movement probe refused: movement routine changed, unavailable or already hooked";
     output_.open(root / "movement-probe.jsonl", std::ios::trunc);
     if (!output_) return "Movement probe refused: cannot open diagnostic log";
     if(inspector_requested) {
         entity_output_.open(root / "entity-inspector.jsonl",std::ios::trunc);
         if(!entity_output_) { output_.close(); return "Entity inspector refused: cannot open log"; }
-        entity_output_ << "{\"visibility_requested\":" << (visibility_requested?"true":"false") << ",\"schema\":1,\"mode\":\"player-inspector\",\"phase\":\"before-controller-update\",\"sha256\":\"2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0\"}\n";
+        entity_output_ << "{\"visibility_requested\":" << (visibility_requested?"true":"false") << ",\"schema\":1,\"mode\":\"player-inspector\",\"phase\":\"before-controller-update\",\"sha256\":\""<<actual_sha<<"\"}\n";
         inspecting.store(true);
     }
     auto status = MH_Initialize();
@@ -216,6 +218,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
         return std::string("Movement probe refused: ") + MH_StatusToString(status);
     }
     visibility_ = visibility_requested && visibility::start(image_base,&visibility_player);
+    if(visibility_) input::start();
     motion_=motion_requested && input::start(&input_active);
     gameplay_ = motion_ || (noclip_requested && fall::start(image_base,&active_player) && input::start(&input_active));
     gameplay_enabled.store(gameplay_);
@@ -226,7 +229,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
         boundary_guard=fall_observer && boundary::start(image_base,&active_player);
         if(fall_output_) {
             fall_output_<<"{\"schema\":4,\"mode\":\""<<(boundary_guard?"flight-boundary-guard":"observe-only")<<"\",\"active\":"<<(fall_observer?"true":"false")
-                        <<",\"sha256\":\"2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0\"}\n";
+                        <<",\"sha256\":\""<<actual_sha<<"\"}\n";
             fall_output_.flush();
         }
         if(!fall_observer) fall_output_.close();
