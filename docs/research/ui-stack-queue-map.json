@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "title": "Engine UI stack command queue and observed-state semantics",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static original-binary trace of stack command production, consumption and state queries. This map does not establish live ordering between independent command producers.",
+  "documentation": "../engine-paths.md#ui-models-and-events",
+  "checks": [
+    { "kind": "u32", "rva": "0x17bfdbb", "target": "0x4", "label": "Push callback constructs command type 4" },
+    { "kind": "call_rel32", "rva": "0x17bfef6", "target": "0x17c6a80", "label": "Push callback grows the command array when full" },
+    { "kind": "call_rel32", "rva": "0x17bff2e", "target": "0x17c4170", "label": "Push callback moves its owned stack command into the queue" },
+    { "kind": "u32", "rva": "0x17bf951", "target": "0x2", "label": "Back callback constructs command type 2" },
+    { "kind": "call_rel32", "rva": "0x17bfa7e", "target": "0x17c6a80", "label": "Back callback grows the same command array when full" },
+    { "kind": "call_rel32", "rva": "0x17bfab6", "target": "0x17c4170", "label": "Back callback moves its owned stack command into the queue" },
+    { "kind": "call_rel32", "rva": "0x17c2bc6", "target": "0x17c2c60", "label": "FIFO drain dispatches stack command records" },
+    { "kind": "call_rel32", "rva": "0x17c2c32", "target": "0x17c6a10", "label": "FIFO drain destroys processed command records" },
+    { "kind": "u32", "rva": "0x17c3084", "target": "0x17c2d65", "label": "Stack command jump table maps type 2 to Back" },
+    { "kind": "u32", "rva": "0x17c308c", "target": "0x17c2e3b", "label": "Stack command jump table maps type 4 to Push" },
+    { "kind": "call_rel32", "rva": "0x17c2db0", "target": "0x17b47d0", "label": "Back consumption resolves the named stack at execution" },
+    { "kind": "jump_rel32", "rva": "0x17c2dcb", "target": "0x17b35d0", "label": "Back consumption reaches the relative backward operation" },
+    { "kind": "jump_rel32", "rva": "0x17b35d5", "target": "0x17b3480", "label": "Back delegates to relative Go with delta minus one" },
+    { "kind": "jump_rel32", "rva": "0x17c2d60", "target": "0x17b3480", "label": "Go command uses the same relative index operation" },
+    { "kind": "call_rel32", "rva": "0x17c2e86", "target": "0x17b47d0", "label": "Push consumption resolves the named stack at execution" },
+    { "kind": "call_rel32", "rva": "0x17c2ee3", "target": "0x17b35f0", "label": "Push consumption reaches string append and current-index update" },
+    { "kind": "call_rel32", "rva": "0x17b371e", "target": "0x17b5ac0", "label": "Push appends the supplied state string to the stack array" },
+    { "kind": "call_rel32", "rva": "0x17b3804", "target": "0x17b5930", "label": "Push emits old/new state notification after mutation" },
+    { "kind": "call_rel32", "rva": "0x17c099c", "target": "0x17b3250", "label": "isCurrent reads the currently applied stack index" },
+    { "kind": "call_rel32", "rva": "0x17c09a7", "target": "0x40eea0", "label": "isCurrent compares the complete current state name" },
+    { "kind": "call_rel32", "rva": "0x17bc137", "target": "0x17b3250", "label": "Native navigation reads currently applied stack state" },
+    { "kind": "call_rel32", "rva": "0x17bc219", "target": "0x17b4160", "label": "Matching navigation context additionally checks stack activity" },
+    { "kind": "call_rel32", "rva": "0x17c0325", "target": "0x17b3bc0", "label": "has searches the entire retained state array" },
+    { "kind": "call_rel32", "rva": "0x17c0455", "target": "0x17b3c50", "label": "indexOf returns the first match in the entire retained state array" }
+  ],
+  "api_callbacks": {
+    "registration_rva": "0x17c3590",
+    "push": { "callback_rva": "0x17bfd90", "registration_reference_rva": "0x17c3743", "command_type": 4, "count_increment_rva": "0x17bff37" },
+    "back": { "callback_rva": "0x17bf930", "registration_reference_rva": "0x17c36a2", "command_type": 2, "count_increment_rva": "0x17bfabf" },
+    "is_current": { "callback_rva": "0x17c0910", "current_string_rva": "0x17b3250", "comparison_rva": "0x40eea0" },
+    "get_stack_data": { "callback_rva": "0x17c0dd0", "scope": "Returns all retained state strings, including forward history." }
+  },
+  "command_queue": {
+    "producer_queue_pointer_offset": "0x0",
+    "array_layout": { "data": "0x0", "count": "0x8", "capacity": "0xc", "record_stride": "0x78", "variant_tag": "0x70" },
+    "drain_rva": "0x17c2b60",
+    "stack_dispatch_rva": "0x17c2c60",
+    "order": "The reviewed drain starts at the first array record and advances by 0x78. Stack-command records are dispatched in append order. It destroys the records and clears count afterward.",
+    "visibility": "Push and Back callbacks append commands and return without applying them. State queries read the applied stack; an immediate query after enqueueing is not completion acknowledgement."
+  },
+  "applied_stack": {
+    "current_index_offset": "0xbc",
+    "strings_offset": "0xc0",
+    "string_count_offset": "0xc8",
+    "string_stride": "0x28",
+    "push_rva": "0x17b35f0",
+    "relative_go_rva": "0x17b3480",
+    "back_rva": "0x17b35d0",
+    "push_semantics": "Push discards forward history where necessary, copies the supplied string, appends it, sets current_index to count minus one and emits a state-change notification. This path does not require a declared UI model state or navigation context before accepting the string.",
+    "back_semantics": "Back applies delta minus one to the current index at execution time, with index clamping. It carries no expected state name, owner token or compare-and-swap condition. Go is also relative and does not provide that condition.",
+    "current_semantics": "isCurrent compares the complete state name selected by current_index through a character-folding comparison. Ancestor activity does not make an ancestor current.",
+    "history_semantics": "has and indexOf search the full retained array. Their results alone do not distinguish an active ancestor from forward history after Back."
+  },
+  "navigation": {
+    "worker_rva": "0x17bc0b0",
+    "context_state_offset": "0x28",
+    "state_mismatch_branches": ["0x17bc1b1", "0x17bc211"],
+    "skip_target": "0x17bc22b",
+    "input_polling_start": "0x17bc277",
+    "eligibility": "A navigation context must match an applied current state and pass stack activity checks before this worker reaches input polling. This is a static control-flow finding, not a live interaction result."
+  },
+  "integration_requirements": [
+    "Record pending ownership before enqueueing a transition. Observe the requested state on a later update before showing controls that depend on it.",
+    "Track an outstanding exit command separately. Do not enqueue repeated Back commands while waiting for the first command to become visible.",
+    "Retain ownership when cancellation or teardown occurs before a queued enter has applied; a late command must not create an unowned modal state.",
+    "Exercise deferred queue application in fixtures. A synchronous mock for push and back omits the behavior established by these callbacks.",
+    "Do not claim atomic isolation from independent stack producers. A foreign Push queued before a Back can change the state that Back affects, even when an earlier query still reports the caller's own state. A JS-side current-state check does not close that execution-time race."
+  ]
+}

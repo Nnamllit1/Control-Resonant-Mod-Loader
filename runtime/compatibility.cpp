@@ -105,6 +105,7 @@ bool write_choice(const std::filesystem::path& path,std::string_view sha,Choice 
 }
 bool authorize(const std::filesystem::path& root,std::ostream& log) {
     approved_sha[0]=0;
+    reviewed_build=false;
     wchar_t path[32768]{};const auto length=GetModuleFileNameW(nullptr,path,32768);
     if(!length || length>=32768) {log<<"CRML startup refused: executable path unavailable\n";log.flush();return false;}
     // The standalone host/proxy tests are not game installations. Existing
@@ -112,7 +113,7 @@ bool authorize(const std::filesystem::path& root,std::ostream& log) {
     if(_wcsicmp(std::filesystem::path(path).filename().c_str(),L"CONTROLResonant.exe")) return true;
     const auto sha=hash_file(path);
     log<<"CRML loaded; executable SHA-256: "<<sha<<'\n';log.flush();
-    if(sha==tested_sha) return true;
+    if(sha==tested_sha) {reviewed_build=true;return true;}
     if(!valid_sha(sha)) {
         MessageBoxW(nullptr,L"CRML loaded, but could not identify the game executable. Mods have not been started.",
                     L"CRML - executable unavailable",MB_OK|MB_ICONWARNING);

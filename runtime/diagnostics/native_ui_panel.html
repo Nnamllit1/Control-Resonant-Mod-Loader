@@ -1,0 +1,460 @@
+<!-- crml-native-ui-v1: self-authored extension for the engine-owned options page -->
+<script>
+(function () {
+    'use strict';
+    if (window.__crmlNativeUi) return;
+    var stackName = 'menu_options';
+    var ownState = 'crml_mods_modal';
+    var normalStates = ['gameplay', 'controls', 'graphics', 'audio', 'interface'];
+    var state = { enabled: false, amount: 50 };
+    var mounted = [];
+    var active = null;
+    var timer = null;
+    var scanning = false;
+    var stopped = false;
+    var stopping = false;
+    var cancelEngine = null;
+    var cancelFrame = null;
+    var drag = null;
+    var lastError = '';
+
+    function element(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text) node.textContent = text;
+        return node;
+    }
+    function consume(event) {
+        if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+        if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    }
+    function nativeStack() {
+        var api = window.stack;
+        return api && typeof api.active === 'function' && typeof api.state === 'function' &&
+            typeof api.push === 'function' && typeof api.back === 'function' &&
+            typeof api.has === 'function' ? api : null;
+    }
+    function currentState() {
+        try { var api = nativeStack(); return api ? api.state(stackName) : ''; }
+        catch (_) { return ''; }
+    }
+    function connected(node) { return document.documentElement.contains(node); }
+    function visible(entry) {
+        return connected(entry.container) && entry.container.classList.contains('fullscreen-layout--visible');
+    }
+    function owns(entry) {
+        if (active !== entry || entry.phase !== 'active' || currentState() !== ownState) return false;
+        try { return visible(entry) && nativeStack().active(stackName); }
+        catch (_) { return false; }
+    }
+    function error(entry, message) {
+        lastError = message;
+        if (entry.status.textContent !== message) entry.status.textContent = message;
+    }
+    function refresh() { mounted.forEach(function (entry) { entry.render(); }); }
+    function present(entry, show) {
+        if (show) {
+            if (!entry.container.hasAttribute('data-crml-mods-active')) entry.container.setAttribute('data-crml-mods-active', '1');
+        } else entry.container.removeAttribute('data-crml-mods-active');
+        var display = show ? 'block' : 'none';
+        if (entry.root.style.display !== display) entry.root.style.display = display;
+        ['menu-button--selected', 'selection-item--selected'].forEach(function (name) {
+            if (entry.tab.classList.contains(name) !== show) entry.tab.classList.toggle(name, show);
+        });
+    }
+    function stillInStack() {
+        try {
+            var api = nativeStack();
+            if (!api.has(stackName, ownState)) return false;
+            // Native has/indexOf include forward history after back(). Resolve
+            // only an unambiguous current position; otherwise retain the owner.
+            if (typeof api.getStackData !== 'function') return true;
+            var items = api.getStackData(stackName);
+            if (!items || typeof items.length !== 'number' || items.length > 256) return true;
+            var current = api.state(stackName);
+            var matches = 0;
+            var position = -1;
+            for (var i = 0; i < items.length; ++i) {
+                if (items[i] === current) { ++matches; position = i; }
+            }
+            if (matches !== 1) return true;
+            for (var j = 0; j <= position; ++j) if (items[j] === ownState) return true;
+            return false;
+        }
+        catch (_) { return true; }
+    }
+    function endDrag() {
+        if (drag) drag.entry.fill.classList.remove('options-slider__bar__fill--dragging');
+        drag = null;
+        window.removeEventListener('mousemove', moveDrag);
+        window.removeEventListener('mouseup', releaseDrag);
+        window.removeEventListener('blur', endDrag);
+        window.removeEventListener('resize', endDrag);
+    }
+    function clearOwner(entry) {
+        active = null;
+        entry.phase = 'idle';
+        present(entry, false);
+        error(entry, '');
+        var index = entry.nextTab;
+        entry.nextTab = null;
+        // A stock tab click was held while our queued pop completed. Only invoke
+        // its original route after a normal options state has been observed.
+        if (index !== null && !stopping && visible(entry) && normalStates.indexOf(currentState()) >= 0) {
+            var routes = window.routes;
+            var root = routes && routes.menu_options && routes.menu_options.root;
+            if (root && typeof root.onTab === 'function') root.onTab(index);
+        }
+    }
+    function leave() {
+        if (!active) return true;
+        var entry = active;
+        entry.wantLeave = true;
+        endDrag();
+        if (entry.phase === 'entering') {
+            // The engine has not acknowledged push yet. Keep ownership even if
+            // close/unload arrives first; a late push must never strand the UI.
+            error(entry, 'Waiting for Mods to close...');
+            return false;
+        }
+        if (entry.phase === 'leaving') return false;
+        if (currentState() !== ownState) {
+            if (!stillInStack()) { clearOwner(entry); return true; }
+            present(entry, false);
+            error(entry, 'Waiting for the open dialog to close...');
+            return false;
+        }
+        // Native back, like push, enqueues a command. Mark it before calling and
+        // never retry based on an immediate read of the old current state. This
+        // observed-state check is not atomic with other queued UI commands.
+        entry.phase = 'leaving';
+        error(entry, 'Returning to game options...');
+        try { nativeStack().back(stackName); }
+        catch (_) { error(entry, 'Return is pending. Restart the game if this message stays.'); }
+        return false;
+    }
+    function enter(entry) {
+        if (stopping) return;
+        if (active === entry) return;
+        if (active && !leave()) return;
+        var api = nativeStack();
+        if (!api || !visible(entry)) { error(entry, 'Mods tab is unavailable in this UI session.'); return; }
+        try {
+            var previous = api.state(stackName);
+            if (!api.active(stackName) || normalStates.indexOf(previous) < 0) {
+                error(entry, 'Return to a main options tab first.'); return;
+            }
+            // These native calls queue work for a later engine update. Install
+            // the owner BEFORE push and wait for scan() to observe completion.
+            active = entry;
+            entry.previousState = previous;
+            entry.wantLeave = false;
+            entry.nextTab = null;
+            entry.phase = 'entering';
+            error(entry, 'Opening Mods...');
+            api.push(stackName, ownState);
+        } catch (_) {
+            // An exception cannot establish whether a command was enqueued.
+            // Retain the pending owner and unwind if its state appears later.
+            if (active === entry) entry.wantLeave = true;
+            error(entry, 'Mods could not open. Any pending transition will be closed.');
+        }
+    }
+    function cancel() {
+        if (!active || cancelFrame !== null) return;
+        if (active.phase !== 'entering' && !owns(active)) return;
+        var entry = active;
+        // Keep the modal guard for this entire input dispatch. Original listeners
+        // must not receive the same Cancel after our state has been popped.
+        cancelFrame = window.requestAnimationFrame(function () {
+            cancelFrame = null;
+            if (active === entry && (entry.phase === 'entering' || owns(entry))) leave();
+        });
+    }
+    function listenCancel() {
+        if (cancelEngine || !window.engine || typeof window.engine.on !== 'function' ||
+            typeof window.engine.off !== 'function') return;
+        cancelEngine = window.engine;
+        cancelEngine.on('OnCancel', cancel);
+    }
+    function xPosition(event) {
+        // The game's native slider uses screenX as a view-space coordinate.
+        // Browser previews use clientX, where screenX includes the OS window offset.
+        if (window.engine && window.engine.isAttached === true && event &&
+            typeof event.screenX === 'number' && isFinite(event.screenX)) return event.screenX;
+        if (event && typeof event.clientX === 'number' && isFinite(event.clientX)) return event.clientX;
+        if (event && typeof event.screenX === 'number' && isFinite(event.screenX)) return event.screenX;
+        return null;
+    }
+    function sliderGeometry(entry) {
+        var box = entry.bar.getBoundingClientRect();
+        var left = typeof box.x === 'number' ? box.x : box.left;
+        return typeof left === 'number' && isFinite(left) && typeof box.width === 'number' &&
+            isFinite(box.width) && box.width > 0 ? { left: left, width: box.width } : null;
+    }
+    function updateSlider(entry, event, geometry) {
+        if (!owns(entry)) return;
+        var box = geometry || sliderGeometry(entry);
+        var x = xPosition(event);
+        if (!box || x === null) return;
+        state.amount = Math.max(0, Math.min(100, Math.round((x - box.left) * 100 / box.width)));
+        refresh();
+    }
+    function moveDrag(event) {
+        if (!drag || !owns(drag.entry)) { endDrag(); return; }
+        consume(event);
+        updateSlider(drag.entry, event, drag.geometry);
+    }
+    function releaseDrag(event) {
+        if (drag) updateSlider(drag.entry, event, drag.geometry);
+        endDrag();
+    }
+    function interactive(node) {
+        node.style.pointerEvents = 'auto';
+        node.style.cursor = 'pointer';
+        var children = node.querySelectorAll('*');
+        for (var i = 0; i < children.length; ++i) children[i].style.pointerEvents = 'none';
+    }
+    function hover(node, className) {
+        node.addEventListener('mouseenter', function () { node.classList.add(className); });
+        node.addEventListener('mouseleave', function () { node.classList.remove(className); });
+    }
+    function remove(node) { if (node.parentNode) node.parentNode.removeChild(node); }
+
+    function mount(container, tabbar, content) {
+        var tab = element('div', 'menu-button tab-buttons-button tab-buttons__element');
+        tab.setAttribute('data-crml-native-tab', '1');
+        tab.appendChild(element('div', 'menu-button__label', 'Mods'));
+        interactive(tab);
+        hover(tab, 'menu-button--focused');
+        var status = element('div', '', '');
+        status.setAttribute('data-crml-native-status', '1');
+        status.style.cssText = 'position:absolute;bottom:0;left:1.85vh;font-size:1.5vh;pointer-events:none';
+        var root = element('div', 'crml-native-ui');
+        root.setAttribute('data-crml-native-ui', '1');
+        root.style.cssText = 'display:none;padding:1vh 0;width:70vh;max-width:100%;position:relative';
+        var heading = element('div', '', 'CRML controls');
+        heading.style.cssText = 'font-size:2.3vh;font-weight:700;padding:1vh 1.85vh';
+        root.appendChild(heading);
+        var toggle = element('div', 'options-checkbox');
+        toggle.setAttribute('data-crml-native-toggle', '1');
+        toggle.appendChild(element('div', 'options-checkbox__label', 'Example toggle'));
+        var toggleValue = element('div', '', 'OFF');
+        toggleValue.style.cssText = 'margin-left:auto;font-size:2.2vh';
+        toggle.appendChild(toggleValue);
+        root.appendChild(toggle);
+        interactive(toggle);
+        hover(toggle, 'options-checkbox--focused');
+        var slider = element('div', 'options-slider');
+        slider.style.cssText = 'width:100%;box-sizing:border-box';
+        slider.appendChild(element('div', 'options-slider__label', 'Example amount'));
+        var bar = element('div', 'options-slider__bar');
+        bar.style.cssText = 'width:23.15vh;min-width:23.15vh;flex:0 0 23.15vh';
+        bar.setAttribute('data-crml-native-slider', '1');
+        var fill = element('div', 'options-slider__bar__fill');
+        fill.style.width = '100%';
+        bar.appendChild(fill);
+        slider.appendChild(bar);
+        var value = element('div', 'options-slider__value');
+        value.style.cssText = 'margin-left:1vh;width:4.5vh;min-width:4.5vh;flex:0 0 4.5vh;text-align:right';
+        slider.appendChild(value);
+        root.appendChild(slider);
+        interactive(bar);
+        hover(slider, 'options-slider--focused');
+        slider.addEventListener('mouseenter', function () {
+            bar.classList.add('options-slider__bar--focused');
+            fill.classList.add('options-slider__bar__fill--focused');
+            value.classList.add('options-slider__value--focused');
+        });
+        slider.addEventListener('mouseleave', function () {
+            bar.classList.remove('options-slider__bar--focused');
+            fill.classList.remove('options-slider__bar__fill--focused');
+            value.classList.remove('options-slider__value--focused');
+        });
+        function button(label, attribute) {
+            var node = element('div', 'options-button');
+            node.setAttribute(attribute, '1');
+            var text = element('div', 'options-button__label', label);
+            text.style.cssText = 'flex:0 0 auto;white-space:nowrap';
+            node.appendChild(text);
+            interactive(node);
+            hover(node, 'options-button--focused');
+            root.appendChild(node);
+            return node;
+        }
+        var reset = button('Restore example defaults', 'data-crml-native-reset');
+        var back = button('Back to game options', 'data-crml-native-back');
+        var note = element('div', '', 'Interface example. No gameplay changes. Use the mouse to adjust controls.');
+        note.style.cssText = 'font-size:1.5vh;opacity:0.7;padding:1vh 1.85vh';
+        root.appendChild(note);
+        var entry = { container: container, tabbar: tabbar, content: content,
+            root: root, tab: tab, bar: bar, fill: fill, status: status, previousState: '', wantLeave: false,
+            phase: 'idle', nextTab: null, render: function () {
+                toggleValue.textContent = state.enabled ? 'ON' : 'OFF';
+                value.textContent = String(state.amount);
+                // Keep the native slider's nonzero minimum scale so its matrix
+                // remains invertible at zero without changing the readout.
+                fill.style.transform = 'matrix(' + Math.max(0.001, state.amount / 100) + ',0,0,1,0,0)';
+            } };
+        tab.addEventListener('click', function (event) { consume(event); enter(entry); });
+        toggle.addEventListener('click', function (event) {
+            consume(event);
+            if (!owns(entry)) return;
+            state.enabled = !state.enabled;
+            refresh();
+        });
+        // Native sliders update on mousedown/move. Consuming the later click
+        // avoids recalculating once more after mouseup has ended the drag.
+        bar.addEventListener('click', consume);
+        bar.addEventListener('mousedown', function (event) {
+            consume(event);
+            if (!owns(entry) || (typeof event.button === 'number' && event.button !== 0)) return;
+            endDrag();
+            var geometry = sliderGeometry(entry);
+            if (!geometry) return;
+            // Capture the track once, like the game does, so readout/layout
+            // updates cannot move the coordinate origin under the pointer.
+            drag = { entry: entry, geometry: geometry };
+            fill.classList.add('options-slider__bar__fill--dragging');
+            updateSlider(entry, event, geometry);
+            window.addEventListener('mousemove', moveDrag);
+            window.addEventListener('mouseup', releaseDrag);
+            window.addEventListener('blur', endDrag);
+            window.addEventListener('resize', endDrag);
+        });
+        reset.addEventListener('click', function (event) {
+            consume(event);
+            if (!owns(entry)) return;
+            state.enabled = false;
+            state.amount = 50;
+            refresh();
+        });
+        back.addEventListener('click', function (event) { consume(event); if (active === entry) leave(); });
+        entry.baseTab = function (event) {
+            if (active !== entry) return;
+            var target = event.target;
+            while (target && target !== tabbar) {
+                var expression = target.getAttribute && target.getAttribute('data-bind-click');
+                var match = expression && /^routes\.menu_options\.root\.onTab\((0|3|5|6|7)\)$/.exec(expression);
+                if (match) {
+                    entry.nextTab = Number(match[1]);
+                    consume(event);
+                    leave();
+                    return;
+                }
+                target = target.parentNode;
+            }
+        };
+        // Hold this click until the queued return is acknowledged. Do not run a
+        // stock route against our modal or replace the stock handler itself.
+        tabbar.addEventListener('mousedown', entry.baseTab, true);
+        tabbar.addEventListener('click', entry.baseTab, true);
+        mounted.push(entry);
+        entry.render();
+        tabbar.insertBefore(tab, tabbar.querySelector('.tab-buttons__key--right'));
+        content.appendChild(root);
+        content.appendChild(status);
+    }
+    function dispose(entry) {
+        if (active === entry && !leave()) return false;
+        entry.tabbar.removeEventListener('mousedown', entry.baseTab, true);
+        entry.tabbar.removeEventListener('click', entry.baseTab, true);
+        remove(entry.root);
+        remove(entry.tab);
+        remove(entry.status);
+        entry.container.removeAttribute('data-crml-mods-active');
+        return true;
+    }
+    function reconcile() {
+        if (stopped) return;
+        listenCancel();
+        if (active) {
+            var entry = active;
+            var current = currentState();
+            if (entry.phase === 'entering') {
+                if (current === ownState) {
+                    entry.phase = 'active';
+                    if (entry.wantLeave || !owns(entry) || !connected(entry.root) || !connected(entry.tab)) leave();
+                    else { present(entry, true); error(entry, ''); }
+                } else if (current !== entry.previousState || !visible(entry)) entry.wantLeave = true;
+            } else if (entry.phase === 'leaving') {
+                if (current !== ownState && !stillInStack()) clearOwner(entry);
+                else if (current !== ownState) present(entry, false);
+            } else if (current === ownState) {
+                if (entry.wantLeave || !owns(entry) || !connected(entry.root) || !connected(entry.tab)) leave();
+                else { present(entry, true); error(entry, ''); }
+            } else if (!stillInStack()) clearOwner(entry);
+            else present(entry, false);
+        }
+        if (stopping && !active) { completeStop(); return; }
+        mounted = mounted.filter(function (entry) {
+            if (connected(entry.container) && connected(entry.root) && connected(entry.tab) &&
+                entry.root.parentNode === entry.content && entry.tab.parentNode === entry.tabbar) return true;
+            return !dispose(entry);
+        });
+        // Native visible-if caches clone nodes, dropping event listeners. A copied
+        // marker is not ownership: remove those orphan copies and bind fresh nodes.
+        var copies = document.querySelectorAll('[data-crml-native-ui], [data-crml-native-tab], [data-crml-native-status]');
+        for (var c = 0; c < copies.length; ++c) {
+            var node = copies[c];
+            var owned = mounted.some(function (entry) { return node === entry.root || node === entry.tab || node === entry.status; });
+            if (!owned) remove(node);
+        }
+        var containers = document.querySelectorAll('.options');
+        for (var i = 0; i < containers.length && mounted.length < 4; ++i) {
+            var container = containers[i];
+            if (mounted.some(function (entry) { return entry.container === container; })) continue;
+            container.removeAttribute('data-crml-mods-active');
+            var tabbar = container.querySelector('.tab-buttons');
+            var content = container.querySelector('.options__content');
+            if (tabbar && content && content.querySelector('.tabs__pages')) mount(container, tabbar, content);
+        }
+    }
+    function scan() {
+        if (stopped || scanning) return;
+        scanning = true;
+        try { reconcile(); }
+        finally { scanning = false; }
+    }
+    var styles = element('style', '');
+    styles.textContent = '[data-crml-mods-active] .options__content > .tabs__pages{display:none !important;pointer-events:none !important}' +
+        '[data-crml-mods-active] .tab-buttons > .menu-button:not([data-crml-native-tab]){color:#e8e8e8;background-color:transparent;pointer-events:auto}' +
+        '[data-crml-native-ui] .options-slider__label{min-width:0}' +
+        '[data-crml-native-ui] .options-slider__bar__fill--dragging{transition:none}';
+    function start() {
+        if (stopped || timer !== null) return;
+        document.head.appendChild(styles);
+        scan();
+        // Reconcile at a bounded rate. DOM mutation delivery/filter behavior in
+        // the embedded renderer must not recursively trigger our own mutations.
+        timer = window.setInterval(scan, 200);
+    }
+    function completeStop() {
+        stopped = true;
+        if (timer !== null) window.clearInterval(timer);
+        if (cancelFrame !== null) window.cancelAnimationFrame(cancelFrame);
+        endDrag();
+        if (cancelEngine) cancelEngine.off('OnCancel', cancel);
+        document.removeEventListener('DOMContentLoaded', start);
+        window.removeEventListener('unload', stop);
+        mounted.forEach(dispose);
+        mounted = [];
+        remove(styles);
+        delete window.__crmlNativeUi;
+    }
+    function stop() {
+        if (stopped) return true;
+        stopping = true;
+        if (active && !leave()) return false;
+        completeStop();
+        return true;
+    }
+    window.__crmlNativeUi = { stop: stop, status: function () {
+        return { active: !!active && owns(active), pending: !!active && !owns(active),
+            phase: active ? active.phase : 'idle', enabled: state.enabled, amount: state.amount, error: lastError };
+    } };
+    window.addEventListener('unload', stop);
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+    else start();
+}());
+</script>

@@ -10,13 +10,14 @@ crml-noclip-bundle ZIP: it includes both the mod and the required runtime.
 The smaller crml-noclip ZIP needs the matching crml-runtime ZIP installed first.
 
 1. Close the game. Right-click the downloaded ZIP and choose Extract All.
-2. In your Steam Library, right-click CONTROL Resonant, then choose
-   Manage > Browse local files. Find CONTROLResonant.exe.
+2. Open the game's installation folder in your launcher. In Steam, right-click
+   CONTROL Resonant and choose Manage > Browse local files.
+   Find CONTROLResonant.exe.
 3. Copy the extracted folder's contents into that game folder, not the outer
    download folder. Merge the crml folder with an existing CRML installation.
    The bundle also puts xinput1_4.dll beside CONTROLResonant.exe.
-4. Start the game through Steam as usual, or double-click CONTROLResonant.exe
-   with Steam running. Load a playable save and press F6 to start flying.
+4. Start the game through your usual launcher. Load a playable save and press
+   F6 to start flying.
 
 After installation, crml/mods/movement/movement.wasm and
 crml/movement-wasm.enabled should be inside the game folder. The folder is named
@@ -49,8 +50,10 @@ Removal
 Close the game. Remove crml/movement-wasm.enabled and crml/mods/movement.
 Other CRML mods remain installed. To stop CRML entirely, remove its xinput1_4.dll.
 
-Compatible game fingerprints are listed in compatibility.json. Unsupported game
-updates need a matching CRML release; do not bypass the compatibility check.
+The tested game fingerprint is listed in compatibility.json. An unrecognized
+executable opens a CRML prompt before mods start. Continuing permits an untested
+attempt; hook checks still apply and features may remain unavailable. Approval
+does not guarantee compatibility with a different game build.
 
 Built with CRML. Write your own mods: https://crml.nnamllit.de/developing/
 Source and releases: https://github.com/Nnamllit1/Control-Resonant-Mod-Loader

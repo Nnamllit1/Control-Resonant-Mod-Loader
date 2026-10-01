@@ -14,7 +14,7 @@ $gameDir = Read-Host 'Path to your CONTROL Resonant installation'
 python tools/install.py "$gameDir" --update --experimental-visibility
 ```
 
-Close the game and add `--apply` to install. Omit `--update` for a fresh installation. The installer owns `crml/visibility.enabled` and the example under `crml/mods/visibility`. Inspector capture can remain enabled alongside visibility changes. Noclip is disabled while visibility mode is installed.
+Close the game and add `--apply` to install. Omit `--update` for a fresh installation. The installer owns `crml/visibility.enabled` and the example under `crml/mods/visibility`. Inspector capture can remain enabled alongside visibility changes. Alpha 4.2 can run visibility alongside movement and physics. The marker is retained for older installations; new mods can request `player.visibility` directly in their manifest.
 
 Load a playable save, hold F7, then release it. The expected result is a hidden root mesh while held, followed by normal engine visibility on release. Also check Escape and focus loss. The Wasm input-to-render path is experimental. A renewed lease alone does not confirm a rendered result. The movement log's `visibility_submissions` counter reports submitted hide commands.
 

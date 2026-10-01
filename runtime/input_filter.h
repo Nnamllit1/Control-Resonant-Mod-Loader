@@ -13,6 +13,7 @@ bool filter(RAWINPUT& event, UINT bytes) noexcept;
 void filter(BYTE* state) noexcept;
 // Process-local hooks; only calls made by the executable are filtered.
 bool start(Active active=nullptr) noexcept;
+bool observing() noexcept;
 void release_held(HWND window) noexcept;
 uint64_t consumed() noexcept;
 #ifdef CRML_INPUT_TESTING

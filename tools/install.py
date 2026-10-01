@@ -21,7 +21,8 @@ PHYSICS_WASM_FILES = {'crml/physics-wasm.enabled': 'crml/physics-wasm.enabled'}
 MOVEMENT_WASM_FILES = {'crml/movement-wasm.enabled': 'crml/movement-wasm.enabled'}
 LUA_SOURCE_FILES = {'crml/engine-lua.enabled': 'crml/engine-lua.enabled'}
 OPTIONAL_FILES = {'crml/licenses/minhook.txt': 'licenses/minhook/LICENSE.txt',
-                  'crml/licenses/luau.txt': 'licenses/luau/LICENSE.txt'}
+                  'crml/licenses/luau.txt': 'licenses/luau/LICENSE.txt',
+                  'crml/ui-bootstrap.html': 'crml/ui-bootstrap.html'}
 NOCLIP_FILES = {'crml/noclip.enabled': 'examples/noclip/noclip.enabled',
                 'crml/mods/noclip/mod.ini': 'examples/noclip/mod.ini',
                 'crml/mods/noclip/noclip.wasm': 'examples/noclip/noclip.wasm'}

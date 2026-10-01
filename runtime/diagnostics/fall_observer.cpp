@@ -1,5 +1,5 @@
 #include "compatibility.h"
-#include "fall_observer.h"
+#include "diagnostics/fall_observer.h"
 #include "movement_view.h"
 #include "script_origin.h"
 #include "boundary_guard.h"

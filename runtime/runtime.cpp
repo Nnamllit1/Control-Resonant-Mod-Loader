@@ -1,4 +1,6 @@
 #include "runtime.h"
+#include "action_bindings.h"
+#include "physics_selection.h"
 #include <wasmtime.h>
 #include <Windows.h>
 #include <algorithm>
@@ -55,7 +57,22 @@ std::string trim(std::string value) {
     if (first == std::string::npos) return {};
     return value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
 }
-struct Manifest { std::string id, module; bool log = false, noclip = false, visibility = false, input = false, physics = false, motion = false, motion_input = false; };
+struct Manifest {
+    std::string id, module;
+    uint32_t capabilities{};
+    std::array<uint16_t,CRML_ACTION_COUNT> actions{};
+    bool has(uint32_t capability) const noexcept { return (capabilities&capability)!=0; }
+};
+struct Capability {std::string_view name;uint32_t bit;};
+constexpr Capability capabilities[]{
+    {"log",CRML_CAP_LOG},{"input.buttons",CRML_CAP_INPUT_BUTTONS},
+    {"player.noclip",CRML_CAP_PLAYER_NOCLIP},{"player.visibility",CRML_CAP_PLAYER_VISIBILITY},
+    {"physics.damping",CRML_CAP_PHYSICS_DAMPING},{"input.motion",CRML_CAP_INPUT_MOTION},
+    {"player.motion",CRML_CAP_PLAYER_MOTION},{"input.actions",CRML_CAP_INPUT_ACTIONS},
+    {"player.read",CRML_CAP_PLAYER_READ},{"camera.read",CRML_CAP_CAMERA_READ},
+    {"ui.read",CRML_CAP_UI_READ},{"ui.activate",CRML_CAP_UI_ACTIVATE},
+    {"ui.presentation",CRML_CAP_UI_PRESENTATION},
+    {"media.read",CRML_CAP_MEDIA_READ},{"media.skip",CRML_CAP_MEDIA_SKIP}};
 Manifest manifest(const std::filesystem::path& path) {
     std::istringstream input(read(path, 8192));
     std::map<std::string, std::string> fields;
@@ -66,24 +83,27 @@ Manifest manifest(const std::filesystem::path& path) {
         if (equal == std::string::npos) throw std::runtime_error("Expected key=value manifest");
         auto key = trim(line.substr(0, equal));
         auto value = trim(line.substr(equal + 1));
-        if (key != "id" && key != "abi" && key != "module" && key != "capabilities")
+        if (key != "id" && key != "abi" && key != "module" && key != "capabilities" && action_slot(key)<0)
             throw std::runtime_error("Unknown manifest field: " + key);
         if (!fields.emplace(key, value).second) throw std::runtime_error("Duplicate manifest field");
     }
     Manifest m{fields["id"], fields["module"]};
-    std::istringstream capabilities(fields["capabilities"]);
+    std::istringstream requested(fields["capabilities"]);
     std::set<std::string> seen;
-    for (std::string cap; std::getline(capabilities, cap, ',');) {
+    for (std::string cap; std::getline(requested, cap, ',');) {
         cap = trim(cap);
         if (!seen.insert(cap).second) throw std::runtime_error("Duplicate capability");
-        if (cap == "log") m.log = true;
-        else if (cap == "player.noclip") m.noclip = true;
-        else if (cap == "player.visibility") m.visibility = true;
-        else if (cap == "input.buttons") m.input = true;
-        else if (cap == "physics.damping") m.physics = true;
-        else if (cap == "player.motion") m.motion = true;
-        else if (cap == "input.motion") m.motion_input = true;
-        else throw std::runtime_error("Unsupported capability");
+        const auto found=std::find_if(std::begin(capabilities),std::end(capabilities),[&](const auto& candidate){return candidate.name==cap;});
+        if(found==std::end(capabilities)) throw std::runtime_error("Unsupported capability");
+        m.capabilities|=found->bit;
+    }
+    for(const auto& [key,value]:fields) {
+        const auto slot=action_slot(key);
+        if(slot<0) continue;
+        if(!m.has(CRML_CAP_INPUT_ACTIONS)) throw std::runtime_error("Action bindings require input.actions");
+        const auto code=action_key(value);
+        if(!code && value!="None") throw std::runtime_error("Unsupported action key: "+value);
+        m.actions[slot]=code;
     }
     if (!fields["capabilities"].empty() && fields["capabilities"].back() == ',') throw std::runtime_error("Empty capability");
     if (m.id.empty() || m.id.size() > 64 || m.id.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_-") != std::string::npos)
@@ -105,9 +125,37 @@ struct Runtime::Impl {
         Manifest info;
         Log* log;
         Gameplay* gameplay{};
+        Input* input{};
         uint64_t owner{};
         size_t gameplay_calls{};
         ~Mod() { if (gameplay) gameplay->release(owner); }
+        static wasm_trap_t* release_callback(void* data,wasmtime_caller_t*,const wasmtime_val_t*,size_t,wasmtime_val_t*,size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) return wasmtime_trap_new("Gameplay call budget exceeded",29);
+            if(mod.gameplay) mod.gameplay->release(mod.owner);
+            return nullptr;
+        }
+        static wasm_trap_t* capabilities_callback(void* data,wasmtime_caller_t*,const wasmtime_val_t*,size_t,wasmtime_val_t* results,size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) return wasmtime_trap_new("Gameplay call budget exceeded",29);
+            constexpr uint32_t game_bits=CRML_CAP_INPUT_BUTTONS|CRML_CAP_PLAYER_NOCLIP|CRML_CAP_PLAYER_VISIBILITY|
+                CRML_CAP_PHYSICS_DAMPING|CRML_CAP_INPUT_MOTION|CRML_CAP_PLAYER_MOTION|
+                CRML_CAP_PLAYER_READ|CRML_CAP_CAMERA_READ|CRML_CAP_UI_READ|CRML_CAP_UI_ACTIVATE|
+                CRML_CAP_MEDIA_READ|CRML_CAP_MEDIA_SKIP|CRML_CAP_UI_PRESENTATION;
+            uint32_t available=CRML_CAP_LOG|(mod.gameplay?(mod.gameplay->capabilities()&game_bits):0u);
+            if(mod.info.has(CRML_CAP_INPUT_ACTIONS) && mod.input && mod.input->available()) available|=CRML_CAP_INPUT_ACTIONS;
+            results[0].kind=WASMTIME_I32;results[0].of.i32=int32_t(mod.info.capabilities&available);
+            return nullptr;
+        }
+        static wasm_trap_t* actions_callback(void* data,wasmtime_caller_t*,const wasmtime_val_t*,size_t,wasmtime_val_t* results,size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) return wasmtime_trap_new("Gameplay call budget exceeded",29);
+            uint32_t bound{};
+            for(size_t i=0;i<mod.info.actions.size();++i) if(mod.info.actions[i]) bound|=1u<<i;
+            const uint32_t state=mod.input && mod.input->available()?mod.input->sample(mod.info.actions):0u;
+            results[0].kind=WASMTIME_I32;results[0].of.i32=int32_t(state&bound);
+            return nullptr;
+        }
         size_t log_bytes = 0;
         size_t log_calls = 0;
         bool alive = true;
@@ -213,6 +261,13 @@ struct Runtime::Impl {
                     return wasmtime_trap_new(error,sizeof(error)-1);
                 }
             }
+            if constexpr(Op==5) {
+                const physics::SelectionQuery query{{args[0].of.f32,args[1].of.f32,args[2].of.f32},args[3].of.f32};
+                if(!query.valid()) {
+                    constexpr char error[]="Physics selection region out of range";
+                    return wasmtime_trap_new(error,sizeof(error)-1);
+                }
+            }
             if constexpr(Op==1) {
                 results[0].kind=WASMTIME_I64;
                 results[0].of.i64=mod.gameplay?static_cast<int64_t>(mod.gameplay->physics_target(mod.owner)):0;
@@ -223,6 +278,7 @@ struct Runtime::Impl {
                     if constexpr(Op==2) result=mod.gameplay->physics_apply(mod.owner,static_cast<uint64_t>(args[0].of.i64),args[1].of.f32,static_cast<uint32_t>(args[2].of.i32));
                     if constexpr(Op==3) result=mod.gameplay->physics_status(mod.owner);
                     if constexpr(Op==4) result=mod.gameplay->physics_restore(mod.owner);
+                    if constexpr(Op==5) result=mod.gameplay->physics_select_near(mod.owner,args[0].of.f32,args[1].of.f32,args[2].of.f32,args[3].of.f32);
                 }
                 results[0].kind=WASMTIME_I32;results[0].of.i32=result;
             }
@@ -263,6 +319,97 @@ struct Runtime::Impl {
             wasmtime_extern_delete(&memory);
             results[0].kind=WASMTIME_I32;results[0].of.i32=status;return nullptr;
         }
+        template<class State, unsigned Op>
+        static wasm_trap_t* state_callback(void* data,wasmtime_caller_t* caller,const wasmtime_val_t* args,
+                                          size_t,wasmtime_val_t* results,size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            auto fail=[](const char* message) {return wasmtime_trap_new(message,strlen(message));};
+            if(++mod.gameplay_calls>8) return fail("Gameplay call budget exceeded");
+            constexpr unsigned offset_arg=Op==2?1:0;
+            if(static_cast<uint32_t>(args[offset_arg+1].of.i32)!=sizeof(State))
+                return fail("Snapshot output size does not match ABI");
+            wasmtime_extern_t memory{};
+            if(!wasmtime_caller_export_get(caller,"memory",6,&memory)) return fail("Missing guest memory");
+            if(memory.kind!=WASMTIME_EXTERN_MEMORY) {wasmtime_extern_delete(&memory);return fail("Invalid guest memory");}
+            const auto offset=static_cast<uint32_t>(args[offset_arg].of.i32);
+            auto* context=wasmtime_caller_context(caller);
+            const auto length=wasmtime_memory_data_size(context,&memory.of.memory);
+            if(offset>length || length-offset<sizeof(State)) {
+                wasmtime_extern_delete(&memory);return fail("Snapshot output outside guest memory");
+            }
+            State state{};
+            int status=-1;
+            if(mod.gameplay) {
+                if constexpr(Op==0) status=mod.gameplay->player_read(state);
+                if constexpr(Op==1) status=mod.gameplay->camera_read(state);
+                if constexpr(Op==2) status=mod.gameplay->physics_read(mod.owner,static_cast<uint64_t>(args[0].of.i64),state);
+                if constexpr(Op==3) status=mod.gameplay->ui_read(state);
+                if constexpr(Op==4) status=mod.gameplay->media_read(state);
+            }
+            if(status!=1) state={};
+            std::memcpy(wasmtime_memory_data(context,&memory.of.memory)+offset,&state,sizeof(state));
+            wasmtime_extern_delete(&memory);
+            results[0].kind=WASMTIME_I32;results[0].of.i32=status;
+            return nullptr;
+        }
+        static wasm_trap_t* ui_activate_callback(void* data,wasmtime_caller_t*,const wasmtime_val_t* args,
+                                                 size_t,wasmtime_val_t* results,size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            auto fail=[](const char* message) {return wasmtime_trap_new(message,strlen(message));};
+            if(++mod.gameplay_calls>8) return fail("Gameplay call budget exceeded");
+            const auto generation=static_cast<uint64_t>(args[0].of.i64);
+            const auto action=static_cast<uint32_t>(args[1].of.i32);
+            if(!generation || action!=CRML_UI_ACTION_CONTINUE) return fail("Invalid UI action arguments");
+            results[0].kind=WASMTIME_I32;
+            results[0].of.i32=mod.gameplay?mod.gameplay->ui_activate(mod.owner,generation,action):-1;
+            return nullptr;
+        }
+        static wasm_trap_t* ui_present_callback(void* data,wasmtime_caller_t* caller,const wasmtime_val_t* args,
+                                                size_t,wasmtime_val_t* results,size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            auto fail=[](const char* message) {return wasmtime_trap_new(message,strlen(message));};
+            if(++mod.gameplay_calls>8) return fail("Gameplay call budget exceeded");
+            const auto generation=static_cast<uint64_t>(args[0].of.i64);
+            const auto kind=static_cast<uint32_t>(args[1].of.i32);
+            const auto offset=static_cast<uint32_t>(args[2].of.i32);
+            const auto length=static_cast<uint32_t>(args[3].of.i32);
+            const auto hidden=static_cast<uint32_t>(args[4].of.i32);
+            const auto duration=static_cast<uint32_t>(args[5].of.i32);
+            if(!generation || (kind!=CRML_UI_TARGET_ID && kind!=CRML_UI_TARGET_CLASS) ||
+               !length || length>CRML_UI_TARGET_NAME_MAX || hidden>1 ||
+               (hidden?(!duration || duration>CRML_UI_PRESENT_MAX_MS):duration!=0))
+                return fail("Invalid UI presentation arguments");
+            wasmtime_extern_t memory{};
+            if(!wasmtime_caller_export_get(caller,"memory",6,&memory)) return fail("Missing guest memory");
+            if(memory.kind!=WASMTIME_EXTERN_MEMORY) {wasmtime_extern_delete(&memory);return fail("Invalid guest memory");}
+            auto* context=wasmtime_caller_context(caller);
+            const auto size=wasmtime_memory_data_size(context,&memory.of.memory);
+            if(offset>size || size-offset<length) {
+                wasmtime_extern_delete(&memory);return fail("UI presentation name outside guest memory");
+            }
+            std::array<char,CRML_UI_TARGET_NAME_MAX> name{};
+            std::memcpy(name.data(),wasmtime_memory_data(context,&memory.of.memory)+offset,length);
+            wasmtime_extern_delete(&memory);
+            for(uint32_t i=0;i<length;++i) {
+                const auto c=static_cast<unsigned char>(name[i]);
+                if(!((c>='A' && c<='Z') || (c>='a' && c<='z') || (c>='0' && c<='9') || c=='_' || c=='-'))
+                    return fail("Invalid UI presentation name");
+            }
+            results[0].kind=WASMTIME_I32;
+            results[0].of.i32=mod.gameplay?mod.gameplay->ui_present(mod.owner,generation,kind,
+                std::string_view(name.data(),length),hidden!=0,duration):-1;
+            return nullptr;
+        }
+        static wasm_trap_t* media_skip_callback(void* data,wasmtime_caller_t*,const wasmtime_val_t* args,
+                                                size_t,wasmtime_val_t* results,size_t) noexcept {
+            auto& mod=*static_cast<Mod*>(data);
+            if(++mod.gameplay_calls>8) return wasmtime_trap_new("Gameplay call budget exceeded",29);
+            const auto generation=static_cast<uint64_t>(args[0].of.i64);
+            if(!generation) return wasmtime_trap_new("Invalid media generation",24);
+            results[0].kind=WASMTIME_I32;
+            results[0].of.i32=mod.gameplay?mod.gameplay->media_skip(mod.owner,generation):-1;
+            return nullptr;
+        }
         static wasm_trap_t* log_callback(void* data, wasmtime_caller_t* caller, const wasmtime_val_t* args,
                                          size_t, wasmtime_val_t*, size_t) noexcept {
             auto& mod = *static_cast<Mod*>(data);
@@ -297,12 +444,13 @@ struct Runtime::Impl {
     };
     Log log;
     Gameplay* gameplay{};
+    Input* input{};
     uint64_t next_owner{1};
     Engine engine{nullptr, wasm_engine_delete};
     std::vector<std::unique_ptr<Mod>> mods;
     size_t failed = 0;
     bool loaded = false;
-    explicit Impl(Log sink, Gameplay* game) : log(std::move(sink)), gameplay(game) {
+    explicit Impl(Log sink, Gameplay* game, Input* keys) : log(std::move(sink)), gameplay(game), input(keys) {
         auto* config = wasm_config_new();
         wasmtime_config_consume_fuel_set(config, true);
         wasmtime_config_max_wasm_stack_set(config, 256 * 1024);
@@ -318,6 +466,7 @@ struct Runtime::Impl {
         mod->info = std::move(info);
         mod->log = &log;
         mod->gameplay = gameplay;
+        mod->input = input;
         mod->owner = next_owner++;
         const auto bytes = read(directory / mod->info.module, max_module);
         if (bytes.size() < 8 || bytes.compare(0, 8, std::string("\0asm\1\0\0\0", 8)) != 0)
@@ -328,7 +477,15 @@ struct Runtime::Impl {
         mod->store.reset(wasmtime_store_new(engine.get(), nullptr, nullptr));
         wasmtime_store_limiter(mod->store.get(), 16 * 1024 * 1024, 4096, 1, 1, 1);
         Linker linker(wasmtime_linker_new(engine.get()), wasmtime_linker_delete);
-        if (mod->info.log) {
+        {
+            Owned<wasm_functype_t,wasm_functype_delete> type(wasm_functype_new_0_1(wasm_valtype_new_i32()),wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"capabilities",12,type.get(),Mod::capabilities_callback,mod.get(),nullptr));
+            if(mod->info.has(CRML_CAP_INPUT_ACTIONS))
+                check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"input_actions",13,type.get(),Mod::actions_callback,mod.get(),nullptr));
+            Owned<wasm_functype_t,wasm_functype_delete> cleanup(wasm_functype_new_0_0(),wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"release",7,cleanup.get(),Mod::release_callback,mod.get(),nullptr));
+        }
+        if (mod->info.has(CRML_CAP_LOG)) {
             wasm_valtype_t* types[]{wasm_valtype_new_i32(), wasm_valtype_new_i32(), wasm_valtype_new_i32()};
             wasm_valtype_vec_t params{}, results{};
             wasm_valtype_vec_new(&params, 3, types);
@@ -336,30 +493,33 @@ struct Runtime::Impl {
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new(&params, &results), wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "log", 3, type.get(), Mod::log_callback, mod.get(), nullptr));
         }
-        if (mod->info.noclip) {
+        if (mod->info.has(CRML_CAP_PLAYER_NOCLIP)) {
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_1_1(wasm_valtype_new_f32(), wasm_valtype_new_i32()), wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "noclip_poll", 11, type.get(), Mod::noclip_callback, mod.get(), nullptr));
         }
-        if (mod->info.input) {
+        if (mod->info.has(CRML_CAP_INPUT_BUTTONS)) {
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_0_1(wasm_valtype_new_i32()), wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "input_buttons", 13, type.get(), Mod::input_callback, mod.get(), nullptr));
         }
-        if (mod->info.visibility) {
+        if (mod->info.has(CRML_CAP_PLAYER_VISIBILITY)) {
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_0_1(wasm_valtype_new_i32()), wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "visibility_poll", 15, type.get(), Mod::visibility_callback, mod.get(), nullptr));
         }
-        if (mod->info.visibility) {
+        if (mod->info.has(CRML_CAP_PLAYER_VISIBILITY)) {
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_1_1(wasm_valtype_new_i32(), wasm_valtype_new_i32()), wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(), "crml_v1", 7, "visibility_set", 14, type.get(), Mod::visibility_set_callback, mod.get(), nullptr));
         }
-        if(mod->info.physics) {
-            const char* names[]{"physics_select", "physics_target", "physics_apply", "physics_status", "physics_restore"};
-            const wasmtime_func_callback_t callbacks[]{Mod::physics_callback<0>,Mod::physics_callback<1>,Mod::physics_callback<2>,Mod::physics_callback<3>,Mod::physics_callback<4>};
-            for(unsigned op=0;op<5;++op) {
+        if(mod->info.has(CRML_CAP_PHYSICS_DAMPING)) {
+            const char* names[]{"physics_select", "physics_target", "physics_apply", "physics_status", "physics_restore", "physics_select_near"};
+            const wasmtime_func_callback_t callbacks[]{Mod::physics_callback<0>,Mod::physics_callback<1>,Mod::physics_callback<2>,Mod::physics_callback<3>,Mod::physics_callback<4>,Mod::physics_callback<5>};
+            for(unsigned op=0;op<6;++op) {
                 wasm_valtype_vec_t params{},results{};
                 if(op==2) {
                     wasm_valtype_t* types[]{wasm_valtype_new_i64(),wasm_valtype_new_f32(),wasm_valtype_new_i32()};
                     wasm_valtype_vec_new(&params,3,types);
+                } else if(op==5) {
+                    wasm_valtype_t* types[]{wasm_valtype_new_f32(),wasm_valtype_new_f32(),wasm_valtype_new_f32(),wasm_valtype_new_f32()};
+                    wasm_valtype_vec_new(&params,4,types);
                 } else wasm_valtype_vec_new_empty(&params);
                 wasm_valtype_t* output[]{op==1?wasm_valtype_new_i64():wasm_valtype_new_i32()};
                 wasm_valtype_vec_new(&results,1,output);
@@ -367,11 +527,52 @@ struct Runtime::Impl {
                 check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,names[op],strlen(names[op]),type.get(),callbacks[op],mod.get(),nullptr));
             }
         }
-        if(mod->info.motion_input) {
+        {
+            const char* names[]{"player_read","camera_read","physics_read","ui_read","media_read"};
+            const uint32_t bits[]{CRML_CAP_PLAYER_READ,CRML_CAP_CAMERA_READ,CRML_CAP_PHYSICS_DAMPING,CRML_CAP_UI_READ,CRML_CAP_MEDIA_READ};
+            const wasmtime_func_callback_t callbacks[]{Mod::state_callback<crml_player_state,0>,
+                Mod::state_callback<crml_camera_state,1>,Mod::state_callback<crml_physics_state,2>,
+                Mod::state_callback<crml_ui_state,3>,Mod::state_callback<crml_media_state,4>};
+            for(unsigned op=0;op<5;++op) if(mod->info.has(bits[op])) {
+                wasm_valtype_vec_t params{},results{};
+                if(op==2) {
+                    wasm_valtype_t* types[]{wasm_valtype_new_i64(),wasm_valtype_new_i32(),wasm_valtype_new_i32()};
+                    wasm_valtype_vec_new(&params,3,types);
+                } else {
+                    wasm_valtype_t* types[]{wasm_valtype_new_i32(),wasm_valtype_new_i32()};
+                    wasm_valtype_vec_new(&params,2,types);
+                }
+                wasm_valtype_t* output[]{wasm_valtype_new_i32()};wasm_valtype_vec_new(&results,1,output);
+                Owned<wasm_functype_t,wasm_functype_delete> type(wasm_functype_new(&params,&results),wasm_functype_delete);
+                check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,names[op],strlen(names[op]),type.get(),callbacks[op],mod.get(),nullptr));
+            }
+        }
+        if(mod->info.has(CRML_CAP_UI_ACTIVATE)) {
+            wasm_valtype_t* types[]{wasm_valtype_new_i64(),wasm_valtype_new_i32()};
+            wasm_valtype_vec_t params{},results{};
+            wasm_valtype_vec_new(&params,2,types);
+            wasm_valtype_t* output[]{wasm_valtype_new_i32()};wasm_valtype_vec_new(&results,1,output);
+            Owned<wasm_functype_t,wasm_functype_delete> type(wasm_functype_new(&params,&results),wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"ui_activate",11,type.get(),Mod::ui_activate_callback,mod.get(),nullptr));
+        }
+        if(mod->info.has(CRML_CAP_UI_PRESENTATION)) {
+            wasm_valtype_t* types[]{wasm_valtype_new_i64(),wasm_valtype_new_i32(),wasm_valtype_new_i32(),
+                wasm_valtype_new_i32(),wasm_valtype_new_i32(),wasm_valtype_new_i32()};
+            wasm_valtype_vec_t params{},results{};
+            wasm_valtype_vec_new(&params,6,types);
+            wasm_valtype_t* output[]{wasm_valtype_new_i32()};wasm_valtype_vec_new(&results,1,output);
+            Owned<wasm_functype_t,wasm_functype_delete> type(wasm_functype_new(&params,&results),wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"ui_present",10,type.get(),Mod::ui_present_callback,mod.get(),nullptr));
+        }
+        if(mod->info.has(CRML_CAP_MEDIA_SKIP)) {
+            Owned<wasm_functype_t,wasm_functype_delete> type(wasm_functype_new_1_1(wasm_valtype_new_i64(),wasm_valtype_new_i32()),wasm_functype_delete);
+            check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"media_skip",10,type.get(),Mod::media_skip_callback,mod.get(),nullptr));
+        }
+        if(mod->info.has(CRML_CAP_INPUT_MOTION)) {
             Owned<wasm_functype_t, wasm_functype_delete> type(wasm_functype_new_0_1(wasm_valtype_new_i32()),wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"input_motion",12,type.get(),Mod::motion_input_callback,mod.get(),nullptr));
         }
-        if(mod->info.motion) {
+        if(mod->info.has(CRML_CAP_PLAYER_MOTION)) {
             Owned<wasm_functype_t, wasm_functype_delete> camera(wasm_functype_new_1_1(wasm_valtype_new_i32(),wasm_valtype_new_i32()),wasm_functype_delete);
             check(wasmtime_linker_define_func(linker.get(),"crml_v1",7,"motion_camera",13,camera.get(),Mod::motion_camera_callback,mod.get(),nullptr));
             wasm_valtype_t* types[]{wasm_valtype_new_i32(),wasm_valtype_new_f32(),wasm_valtype_new_f32(),wasm_valtype_new_f32()};
@@ -405,9 +606,9 @@ struct Runtime::Impl {
         mod.store.reset();
     }
 };
-Runtime::Runtime(Log log, Gameplay* gameplay) : impl_(std::make_unique<Impl>(std::move(log), gameplay)) {}
+Runtime::Runtime(Log log, Gameplay* gameplay, Input* input) : impl_(std::make_unique<Impl>(std::move(log), gameplay, input)) {}
 Runtime::~Runtime() = default;
-void Runtime::load(const std::filesystem::path& root) {
+void Runtime::load(const std::filesystem::path& root,const std::function<void(uint32_t)>& prepare) {
     if (impl_->loaded) throw std::runtime_error("Runtime already loaded");
     impl_->loaded = true;
     if (!std::filesystem::is_directory(root)) throw std::runtime_error("Mods directory does not exist");
@@ -420,13 +621,24 @@ void Runtime::load(const std::filesystem::path& root) {
     }
     std::sort(paths.begin(), paths.end());
     std::set<std::string> ids;
+    std::vector<std::pair<std::filesystem::path,Manifest>> packages;
+    uint32_t requested{};
     for (const auto& path : paths) {
         try {
             if (GetFileAttributesW(path.c_str()) & FILE_ATTRIBUTE_REPARSE_POINT) throw std::runtime_error("Mod directory must not be a link");
             auto info = manifest(path / "mod.ini");
             if (!ids.insert(info.id).second) throw std::runtime_error("Duplicate mod id");
-            impl_->mods.push_back(impl_->load_one(path, std::move(info)));
+            requested|=info.capabilities;
+            packages.emplace_back(path,std::move(info));
         } catch (const std::exception& error) {
+            ++impl_->failed;
+            impl_->log("Rejected " + clean(path.filename().string()) + ": " + clean(error.what()));
+        }
+    }
+    if(prepare) prepare(requested);
+    for(auto& [path,info]:packages) {
+        try {impl_->mods.push_back(impl_->load_one(path,std::move(info)));}
+        catch(const std::exception& error) {
             ++impl_->failed;
             impl_->log("Rejected " + clean(path.filename().string()) + ": " + clean(error.what()));
         }

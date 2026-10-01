@@ -1,12 +1,13 @@
 #include "compatibility.h"
+#include "controller_hook.h"
 #include "input_filter.h"
 #include "physics_session.h"
 #include "physics_trial.h"
 #include "physics_selection.h"
 #include "physics_target_diagnostics.h"
 #include "physics_lifetime_diagnostics.h"
-#include "physics_observation.h"
-#include "engine_observer.h"
+#include "diagnostics/physics_observation.h"
+#include "diagnostics/engine_observer.h"
 #include "overlay.h"
 #include <MinHook.h>
 #include <Windows.h>
@@ -24,10 +25,9 @@ using namespace crml::observer;
 constexpr char game_sha[]="2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0";
 constexpr char backend_sha[]="ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51";
 using Dispatch=void(*)(void*,uint16_t,void*);
-using Move=void(*)(void*,void*,void*,void*,void*,void*);
 using Destroy=void(*)(void*);
 using Release=void(*)(void*,uint64_t);
-Dispatch dispatch_original{}; Move move_original{};
+Dispatch dispatch_original{};
 Destroy destroy_original{}; Release release_original{};
 uintptr_t image{},backend_image{};
 uint64_t salt{};
@@ -58,6 +58,16 @@ int guest_state{};
 float requested_damping=8.f;
 uint32_t requested_duration=5000;
 uint64_t requested_target{};
+SelectionQuery requested_query{};
+// Values copied by the owning simulation callback. Worker-side imports never
+// resolve engine objects or call backend getters.
+struct StateSample {
+    uint64_t selection{}, tick{}, retirement{}, world{}, scene{}, revision{};
+    crml_physics_state value{};
+} state_sample;
+// Invalid callbacks cannot acquire state_lock to clear the cached value in all
+// cases. A revision makes that invalidation visible without racing its fields.
+std::atomic<uint64_t> sample_invalidation{};
 struct StateGuard {
     bool held=TryAcquireSRWLockExclusive(&state_lock)!=FALSE;
     ~StateGuard() {if(held) ReleaseSRWLockExclusive(&state_lock);}
@@ -74,6 +84,8 @@ void record(unsigned action,unsigned result,float before=0,float after=0) noexce
 }
 #ifdef CRML_PHYSICS_SESSION_TESTING
 int test_focus=-1;
+bool test_escape{};
+uint64_t test_read_clock{};
 #endif
 bool focused() noexcept {
 #ifdef CRML_PHYSICS_SESSION_TESTING
@@ -83,7 +95,7 @@ bool focused() noexcept {
 }
 bool down(int key) noexcept {
 #ifdef CRML_PHYSICS_SESSION_TESTING
-    if(test_focus>=0) return false;
+    if(test_focus>=0) return key==VK_ESCAPE && test_escape;
 #endif
     return probe::input::down(static_cast<unsigned>(key));
 }
@@ -149,6 +161,28 @@ public:
         record(2,unsigned(result.status)|(result.attempted?0x100u:0),expected,value);
         return result.status==WriteStatus::ok && !retired.load();
     }
+    crml_physics_state sample(const Target& target) noexcept {
+        crml_physics_state result{};
+        EntityBodySnapshot fresh{};
+        if(resolve(target,fresh)!=ReadStatus::ok) return {};
+        DampingReadback damping{};MotionSnapshot motion{};
+        if(read_damping_accessors(context_.owner,fresh.body,accessors(),damping)==AccessRead::ok) {
+            result.flags|=CRML_PHYSICS_STATE_DAMPING;
+            result.linear_damping=damping.linear;result.angular_damping=damping.angular;
+        }
+        if(read_body_motion(context_.owner,fresh.body,accessors().vtable,motion)==MotionRead::ok) {
+            result.flags|=CRML_PHYSICS_STATE_SPEED;
+            result.linear_speed=motion.linear_speed;result.angular_speed=motion.angular_speed;
+        }
+        // Resolve full identities again after the accessor calls. A copied
+        // sample must not survive target retirement or component replacement.
+        EntityBodySnapshot again{};
+        if(!result.flags || resolve(target,again)!=ReadStatus::ok
+           || again.owner!=fresh.owner || again.body.actor!=fresh.body.actor
+           || again.body.actor_identity!=fresh.body.actor_identity) return {};
+        result.version=1;
+        return result;
+    }
 private:
     ReadStatus resolve(const Target& target,EntityBodySnapshot& out) noexcept {
         if(target!=selected || retired.load()) return ReadStatus::retired;
@@ -164,12 +198,12 @@ private:
     SimulationContext context_;
 };
 void select(const SimulationContext& context,uint64_t now,bool begin) noexcept {
-    if(begin) {selected={};watched_owner=0;retired=true;after_until=next_motion=0;search.cancel();selection_scanned=0;selection_candidates=0;selection_nearest=-1;selection_second=-1;++search_serial;diagnosed_candidates=0;}
+    if(begin) {state_sample={};selected={};watched_owner=0;retired=true;after_until=next_motion=0;search.cancel();selection_scanned=0;selection_candidates=0;selection_nearest=-1;selection_second=-1;++search_serial;diagnosed_candidates=0;}
     if(player.world!=token(context.world) || !player.tick || now<player.tick || now-player.tick>500) {search.cancel();ui=3;record(0,1);return;}
     SelectionScope scope{token(context.world),token(context.owner),player.entity,retirement_serial.load(),body_slot_count(context.owner)};
     std::memcpy(scope.position,player.position,sizeof(scope.position));
     selection_slots=scope.slots;
-    if(begin && search.begin(scope,now)==SelectionResult::invalid) {ui=3;record(0,2);return;}
+    if(begin && search.begin(scope,now,guest_mode?requested_query:SelectionQuery{})==SelectionResult::invalid) {ui=3;record(0,2);return;}
     if(begin) diagnose(context,player.entity,0,0,1,player.position,0,true);
     if(retiring.load()) {search.cancel();ui=7;record(0,5);return;}
     const auto result=search.step(scope,now,[&](uint32_t i,SelectionCandidate& candidate) {
@@ -177,8 +211,8 @@ void select(const SimulationContext& context,uint64_t now,bool begin) noexcept {
         if(read_body(context.owner,i,accessors().vtable,body)!=BodyRead::ok
            || read_body_entity(context.world,context.owner,body,link)!=LinkRead::ok) return false;
         float at[3]{}; if(!position(context.world,link.entity,at,false)) return false;
-        float distance{}; for(unsigned a=0;a<3;++a) distance+=(at[a]-search.scope().position[a])*(at[a]-search.scope().position[a]);
-        if(!std::isfinite(distance) || distance>4) return false;
+        const auto distance=search.query().distance_squared(search.scope().position,at);
+        if(!std::isfinite(distance) || distance>search.query().radius*search.query().radius) return false;
         const auto count=local_body_count({context.owner,body,link});
         const auto entity_reason=entity_exclusion(context.world,link.entity,player.entity);
         const unsigned exclusion=entity_reason?entity_reason:count!=1 || link.local_index!=0?3:body.alternate?4:0;
@@ -200,8 +234,8 @@ void select(const SimulationContext& context,uint64_t now,bool begin) noexcept {
        || token(fresh.body.actor)!=choice.actor || fresh.body.alternate || !single_body(fresh)
        || entity_exclusion(context.world,choice.entity,player.entity)
        || !position(context.world,choice.entity,at)) {ui=7;record(0,5);return;}
-    float distance{};for(unsigned a=0;a<3;++a) distance+=(at[a]-player.position[a])*(at[a]-player.position[a]);
-    if(!std::isfinite(distance) || distance>4 || body_slot_count(context.owner)!=scope.slots) {ui=7;record(0,5);return;}
+    const auto distance=search.query().distance_squared(search.scope().position,at);
+    if(!std::isfinite(distance) || distance>search.query().radius*search.query().radius || body_slot_count(context.owner)!=scope.slots) {ui=7;record(0,5);return;}
     selected={++serial,fresh.link.entity,fresh.body.handle,0}; selected_tick=now;
     world_token=token(context.world); owner_token=token(context.owner); actor_token=token(fresh.body.actor);
     watched_body.store(selected.body); watched_owner.store(owner_token); retired.store(false);
@@ -217,9 +251,12 @@ void dispatch(void* view,uint16_t id,void* descriptor) {
     if(!ready.load()) return;
     ++dispatches;
     SimulationContext context{};
-    if(!read_simulation_context(reinterpret_cast<uintptr_t>(view),reinterpret_cast<uintptr_t>(descriptor),image+0x190e4d0,context)) {++rejected_contexts;return;}
-    if(!TryAcquireSRWLockExclusive(&state_lock)) return;
+    if(!read_simulation_context(reinterpret_cast<uintptr_t>(view),reinterpret_cast<uintptr_t>(descriptor),image+0x190e4d0,context)) {++rejected_contexts;++sample_invalidation;return;}
+    if(!TryAcquireSRWLockExclusive(&state_lock)) {++sample_invalidation;return;}
     const auto now=GetTickCount64(); const auto beat=heartbeat.load();
+    // Even between sampling intervals, a callback from a different world or
+    // scene must not keep publishing the previous world's still-young sample.
+    if(token(context.world)!=world_token || token(context.owner)!=owner_token) state_sample={};
     const bool keep=accepting.load() && focused() && beat && now>=beat && now-beat<=500 && !down(VK_ESCAPE);
     const auto requested=commands.exchange(0);
     if(requested && (requested!=4 || trial.pending() || selected.epoch)) record(5,requested);
@@ -245,6 +282,16 @@ void dispatch(void* view,uint16_t id,void* descriptor) {
     }
     if(selected.epoch && !retired.load() && now>=next_motion) {
         next_motion=now+100;
+        state_sample={};
+        if(guest_mode && keep && !(requested&4) && !guest_releasing.load()
+           && guest_state!=5 && guest_state!=7 && guest_state!=8 && guest_state!=9) {
+            const auto before=retirement_serial.load();
+            const auto revision=sample_invalidation.load();
+            const auto value=native.sample(selected);
+            if(value.flags && !retired.load() && !retiring.load() && before==retirement_serial.load()
+               && revision==sample_invalidation.load())
+                state_sample={selected.epoch,now,before,world_token,owner_token,revision,value};
+        }
         EntityBodySnapshot fresh{};MotionSnapshot motion{};
         auto status=MotionRead::target;
         if(token(context.world)==world_token && token(context.owner)==owner_token && !retiring.load()
@@ -268,15 +315,17 @@ void dispatch(void* view,uint16_t id,void* descriptor) {
             guest_state=0;guest_owner=0;guest_releasing=false;
         } else if(!selected.epoch && !search.pending()) guest_owner=0;
     }
+    if(!keep || !selected.epoch || retired.load() || guest_releasing.load()
+       || guest_state==5 || guest_state==7 || guest_state==8 || guest_state==9) state_sample={};
     ReleaseSRWLockExclusive(&state_lock);
 }
-void movement(void* view,void* world,void* collision,void* callback,void* scene,void* time) {
-    move_original(view,world,collision,callback,scene,time);
+void movement(void* view,void* world) noexcept {
     if(!ready.load()) return;
     probe::Sample sample{}; bool valid=false;
     __try { valid=probe::inspect(view,world,*reinterpret_cast<uint16_t*>(image+0x5c00ca4),sample)==probe::Observation::player; }
     __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { valid=false; }
     if(valid && TryAcquireSRWLockExclusive(&state_lock)) {
+        if(player.world!=token(sample.world) || player.entity!=sample.entity) state_sample={};
         player.world=token(sample.world); player.entity=sample.entity; player.tick=GetTickCount64();
         std::memcpy(player.position,sample.position,12); ReleaseSRWLockExclusive(&state_lock);
     }
@@ -307,11 +356,10 @@ struct Hook {uint32_t rva; std::array<unsigned char,18> bytes; void* detour; voi
 const Hook hooks[]{
     {0x190e4d0,{0x49,0x8b,0x40,0x58,0x4c,0x8b,0x40,0x10,0x48,0x8b,0x50,0x08,0x48,0x8b,0x08,0xe9,0xbc,0x3a},reinterpret_cast<void*>(&dispatch),reinterpret_cast<void**>(&dispatch_original)},
     {0x2ce2d00,{0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57,0x48,0x83,0xec,0x20,0x48,0x8b,0xd9},reinterpret_cast<void*>(&destroy),reinterpret_cast<void**>(&destroy_original)},
-    {0x2d83e20,{0x48,0x89,0x5c,0x24,0x10,0x57,0x48,0x83,0xec,0x20,0x48,0x8b,0x81,0xd0,0x01,0,0,0x48},reinterpret_cast<void*>(&release),reinterpret_cast<void**>(&release_original)},
-    {0x1b98950,{0x48,0x8b,0xc4,0x4c,0x89,0x48,0x20,0x4c,0x89,0x40,0x18,0x48,0x89,0x50,0x10,0x53,0x56,0x57},reinterpret_cast<void*>(&movement),reinterpret_cast<void**>(&move_original)}
+    {0x2d83e20,{0x48,0x89,0x5c,0x24,0x10,0x57,0x48,0x83,0xec,0x20,0x48,0x8b,0x81,0xd0,0x01,0,0,0x48},reinterpret_cast<void*>(&release),reinterpret_cast<void**>(&release_original)}
 };
 }
-std::string Session::start(const std::filesystem::path& root,bool wasm) {
+std::string Session::start(const std::filesystem::path& root,bool wasm,bool shared) {
     wasm_=wasm;guest_mode=wasm;
     wchar_t path[32768]{}; const auto size=GetModuleFileNameW(nullptr,path,32768);
     const auto actual_sha=size && size<32768?module_fingerprint(path):std::string{};
@@ -323,6 +371,7 @@ std::string Session::start(const std::filesystem::path& root,bool wasm) {
     for(const auto& hook:hooks) if(!compatibility::matches(reinterpret_cast<void*>(image+hook.rva),hook.bytes.data(),hook.bytes.size())) return "Physics trial refused: changed hook entry";
     const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return "Physics trial refused: hook initialization";
     if(!probe::input::start()) return "Physics trial refused: keyboard observation unavailable";
+    if(!controller::start(image) || !controller::observe(&movement)) return "Physics service refused: controller observation unavailable";
     size_t created{};
     for(const auto& hook:hooks) {
         if(MH_CreateHook(reinterpret_cast<void*>(image+hook.rva),hook.detour,hook.original)!=MH_OK) break;
@@ -335,15 +384,19 @@ std::string Session::start(const std::filesystem::path& root,bool wasm) {
     started_=GetTickCount64(); LARGE_INTEGER clock{}; QueryPerformanceCounter(&clock); salt=clock.QuadPart;
     auto name="physics-trial-"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(started_)+".jsonl";
     log_.open(root/name,std::ios::out|std::ios::binary);
-    if(!log_) return "Physics trial refused: cannot open log";
+    if(!log_ && !wasm) return "Physics trial refused: cannot open log";
     std::ostringstream header;
     header<<"{\"type\":\"header\",\"schema\":1,\"mode\":\"native-physics-trial\",\"sha256\":\""<<actual_sha<<"\",\"physx_sha256\":\""<<backend_sha<<"\",\"mods_suspended\":"<<(wasm?"false":"true")<<"}\n";
     const auto header_text=header.str();log_<<header_text;bytes_=header_text.size();
-    log_.flush(); if(!log_) return "Physics trial refused: cannot write log";
-    overlay_=probe::overlay_create(image,true,wasm);
-    if(!overlay_) return "Physics trial refused: overlay unavailable";
+    log_.flush(); if(!log_ && !wasm) return "Physics trial refused: cannot write log";
+    if(!shared) overlay_=probe::overlay_create(image,true,wasm);
+    if(!overlay_ && !wasm) return "Physics trial refused: overlay unavailable";
     events.open();
-    for(const auto& hook:hooks) if(MH_EnableHook(reinterpret_cast<void*>(image+hook.rva))!=MH_OK) return "Physics trial refused: hook enable";
+    for(const auto& hook:hooks) if(MH_EnableHook(reinterpret_cast<void*>(image+hook.rva))!=MH_OK) {
+        // Leave enabled trampolines pinned and pass-through. Removing one here
+        // could invalidate a concurrent callback's original-call target.
+        return "Physics service refused: hook enable";
+    }
     accepting=true; ready=true; active_=true;
     return (wasm?"Wasm physics service ready; F11/Esc cancel; log: ":"Native physics trial ready: F9 select, F10 apply for five seconds, F11/Esc restore; log: ")+name;
 }
@@ -352,10 +405,16 @@ uint32_t Session::input_buttons() noexcept {
     return unsigned(down(VK_F7)) | (unsigned(down(VK_F8))<<1);
 }
 int Session::physics_select(uint64_t owner) noexcept {
+    return physics_select_near(owner,0,0,0,2);
+}
+int Session::physics_select_near(uint64_t owner,float x,float y,float z,float radius) noexcept {
     if(!active_ || !wasm_ || !owner || !accepting.load() || !focused() || down(VK_ESCAPE)) return -1;
+    const SelectionQuery query{{x,y,z},radius};
+    if(!query.valid()) return -3;
     StateGuard guard;if(!guard.held) return -2;
     if(guest_releasing.load() || commands.load() || trial.pending() || search.pending()
        || (guest_owner.load() && guest_owner.load()!=owner)) return -2;
+    requested_query=query;
     guest_owner=owner;guest_state=1;request_tick=GetTickCount64();commands.fetch_or(1);return 0;
 }
 uint64_t Session::physics_target(uint64_t owner) noexcept {
@@ -364,6 +423,35 @@ uint64_t Session::physics_target(uint64_t owner) noexcept {
     const auto now=GetTickCount64();
     return guest_owner.load()==owner && !guest_releasing.load() && !commands.load() && !retired.load()
         && !trial.pending() && ui.load()==0 && selected.epoch && now>=selected_tick && now-selected_tick<=15000?selected.epoch:0;
+}
+int Session::physics_read(uint64_t owner,uint64_t handle,crml_physics_state& out) noexcept {
+    out={};
+    if(!active_ || !wasm_ || !owner || !accepting.load() || !focused() || down(VK_ESCAPE)) return -1;
+    StateGuard guard;if(!guard.held) return -2;
+    if(guest_owner.load()!=owner) return guest_owner.load()?-2:-3;
+    if(!handle || handle!=selected.epoch || retired.load()) return -3;
+    if(guest_releasing.load() || commands.load() || search.pending() || guest_state==5) return -2;
+    if(guest_state==7 || guest_state==8 || guest_state==9) return -3;
+    auto now=GetTickCount64();
+#ifdef CRML_PHYSICS_SESSION_TESTING
+    if(test_read_clock) now=test_read_clock;
+#endif
+    if(now<selected_tick || (!trial.pending() && now-selected_tick>15000)) return -3;
+    if(retiring.load() || state_sample.selection!=handle || !state_sample.value.flags
+       || state_sample.world!=world_token || state_sample.scene!=owner_token
+       || state_sample.revision!=sample_invalidation.load()
+       || now<state_sample.tick || now-state_sample.tick>500
+       || state_sample.retirement!=retirement_serial.load()) return 0;
+    const auto copy=state_sample.value;
+    const auto age=static_cast<uint32_t>(now-state_sample.tick);
+    // Retirement runs without state_lock; recheck before publishing the copy.
+    if(guest_releasing.load() || commands.load()) return -2;
+    if(!accepting.load()) return -1;
+    if(retired.load()) return -3;
+    if(retiring.load() || state_sample.retirement!=retirement_serial.load()
+       || state_sample.revision!=sample_invalidation.load()) return 0;
+    out=copy;out.age_ms=age;
+    return 1;
 }
 int Session::physics_apply(uint64_t owner,uint64_t handle,float value,uint32_t duration) noexcept {
     if(!active_ || !wasm_ || !owner || !accepting.load() || !focused() || down(VK_ESCAPE)) return -1;
@@ -397,14 +485,19 @@ void Session::poll() {
     const bool focus=focused();
     const unsigned current=focus?(unsigned(down(VK_F9))|unsigned(down(VK_F10))*2|unsigned(down(VK_F11)||down(VK_ESCAPE))*4):0;
     const auto edges=(current&~keys_)&(wasm_?4u:7u); keys_=current;
-    if(now-started_>=600000 || !log_.is_open() || !log_) accepting=false;
+    if(!wasm_ && (now-started_>=600000 || !log_.is_open() || !log_)) accepting=false;
     if(!accepting.load() || !focus) commands.fetch_or(4);
-    else if(edges && probe::overlay_diagnostics().frames) {
+    else if(edges && (wasm_ || probe::overlay_diagnostics().frames)) {
         Event e{};e.kind=Kind::body;e.edge=4;e.flags=edges;e.qpc=now;e.thread=GetCurrentThreadId();events.push(e);
         request_tick=now;commands.fetch_or(edges);
     }
-    probe::overlay_update(overlay_,focus,ui.load(),true,down(VK_INSERT));
-    if(!log_.is_open() || !log_) return;
+    if(overlay_) probe::overlay_update(overlay_,focus,ui.load(),true,down(VK_INSERT));
+    if(!log_.is_open() || !log_) {
+        events.close();
+        TargetDiagnostic discarded{};
+        while(target_diagnostics.pop(discarded)) {}
+        return;
+    }
     std::array<Event,128> batch{};
     const auto count=events.drain(batch.data(),batch.size());
     for(size_t i=0;i<count;++i) {
@@ -414,14 +507,12 @@ void Session::poll() {
             <<",\"scene\":\""<<e.object<<"\",\"entity\":\""<<e.entity<<"\",\"body\":\""<<e.detail
             <<"\",\"before\":"<<std::bit_cast<float>(uint32_t(e.value))<<",\"after\":"<<std::bit_cast<float>(uint32_t(e.value>>32))<<"}\n";
         auto line=text.str();
-        if(bytes_+line.size()>4*1024*1024-2048) {accepting=false;commands.fetch_or(4);log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";log_.close();break;}
-        log_<<line;bytes_+=line.size();
+        if(!write_log(line)) break;
     }
     TargetDiagnostic target{};
     for(unsigned i=0;i<TargetDiagnostics::capacity && log_.is_open() && log_ && target_diagnostics.pop(target);++i) {
         std::ostringstream text;write_target_diagnostic(text,target);const auto line=text.str();
-        if(bytes_+line.size()>4*1024*1024-2048) {accepting=false;commands.fetch_or(4);log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";log_.close();break;}
-        log_<<line;bytes_+=line.size();
+        if(!write_log(line)) break;
     }
     if(log_.is_open() && log_ && now-last_stats_>=1000) {
         std::ostringstream text;
@@ -434,13 +525,93 @@ void Session::poll() {
             <<",\"lifetime_missed\":"<<lifetime_diagnostics.missed()
             <<",\"overlay\":\""<<probe::overlay_diagnostics().status<<"\"}\n";
         const auto line=text.str();
-        if(bytes_+line.size()>4*1024*1024-2048) {accepting=false;commands.fetch_or(4);log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";log_.close();}
-        else {log_<<line;bytes_+=line.size();last_stats_=now;}
+        if(write_log(line)) last_stats_=now;
     }
     if(log_.is_open() && log_) log_.flush();
 }
+bool Session::write_log(const std::string& line) {
+    if(bytes_+line.size()>4*1024*1024-2048) {
+        if(!wasm_) {accepting=false;commands.fetch_or(4);}
+        log_<<"{\"type\":\"end\",\"reason\":\"size_limit\"}\n";
+        log_.close();events.close();return false;
+    }
+    log_<<line;bytes_+=line.size();return bool(log_);
+}
 Session::~Session() { accepting=false; commands.fetch_or(4); if(overlay_) probe::overlay_destroy(overlay_); }
 #ifdef CRML_PHYSICS_SESSION_TESTING
+bool test_session_readback() {
+    Session service;service.active_=service.wasm_=true;
+    accepting=true;test_focus=1;test_escape=false;test_read_clock=20000;
+    commands=0;guest_owner=100;guest_releasing=false;guest_state=3;
+    retired=false;retiring=0;search.cancel();selected={77,88,0x100000099ull,0};selected_tick=19000;
+    world_token=101;owner_token=102;
+    state_sample={77,20000,retirement_serial.load(),world_token,owner_token,sample_invalidation.load(),{1,0,3,0,.5f,.25f,2.f,3.f}};
+    bool ok=true;
+    crml_physics_state output{};
+    auto check_failure=[&](int expected,uint64_t owner=100,uint64_t handle=77) {
+        std::memset(&output,0xff,sizeof(output));
+        const auto result=service.physics_read(owner,handle,output);
+        const crml_physics_state zero{};
+        return result==expected && std::memcmp(&output,&zero,sizeof(output))==0;
+    };
+    ok=ok && service.physics_read(100,77,output)==1 && output.version==1 && output.flags==3
+        && output.age_ms==0 && output.reserved==0 && output.linear_damping==.5f
+        && output.angular_damping==.25f && output.linear_speed==2.f && output.angular_speed==3.f;
+    ok=ok && check_failure(-2,200) && check_failure(-3,100,0) && check_failure(-3,100,78);
+    AcquireSRWLockExclusive(&state_lock);
+    ok=ok && check_failure(-2);
+    ReleaseSRWLockExclusive(&state_lock);
+    test_read_clock=20500;
+    ok=ok && service.physics_read(100,77,output)==1 && output.age_ms==500;
+    test_read_clock=20501;ok=ok && check_failure(0);
+    test_read_clock=19999;ok=ok && check_failure(0);
+    test_read_clock=20000;
+    state_sample.selection=76;ok=ok && check_failure(0);state_sample.selection=77;
+    ++world_token;ok=ok && check_failure(0);--world_token;
+    ++owner_token;ok=ok && check_failure(0);--owner_token;
+    ++sample_invalidation;ok=ok && check_failure(0);state_sample.revision=sample_invalidation.load();
+    const auto previous_dispatch=dispatch_original;const auto previous_ready=ready.load();
+    dispatch_original=+[](void*,uint16_t,void*){};ready=true;
+    dispatch(nullptr,0,nullptr);
+    ok=ok && check_failure(0);
+    dispatch_original=previous_dispatch;ready=previous_ready;state_sample.revision=sample_invalidation.load();
+    state_sample.value.flags=0;ok=ok && check_failure(0);state_sample.value.flags=3;
+    ++retirement_serial;ok=ok && check_failure(0);state_sample.retirement=retirement_serial.load();
+    retiring=1;ok=ok && check_failure(0);retiring=0;
+    retired=true;ok=ok && check_failure(-3);retired=false;
+    commands=2;ok=ok && check_failure(-2);commands=0;
+    service.release(100);ok=ok && check_failure(-2);guest_releasing=false;commands=0;
+    for(const int status:{5,7,8,9}) {guest_state=status;ok=ok && check_failure(status==5?-2:-3);}
+    guest_state=3;
+    test_focus=0;ok=ok && check_failure(-1);test_focus=1;
+    test_escape=true;ok=ok && check_failure(-1);test_escape=false;
+    accepting=false;ok=ok && check_failure(-1);accepting=true;
+    service.wasm_=false;ok=ok && check_failure(-1);service.wasm_=true;
+    // Keep the issued token useful during an active operation, even if the
+    // selection's initial 15-second acquisition lifetime has elapsed.
+    class Backend final:public DampingBackend {
+    public:
+        float value=.5f;
+        Reading read(const Target&) noexcept override {return {ReadStatus::ok,value};}
+        bool write(const Target&,float expected,float replacement) noexcept override {
+            if(value!=expected) return false;value=replacement;return true;
+        }
+    } backend;
+    selected_tick=4999;
+    ok=ok && check_failure(-3);
+    ok=ok && trial.apply(backend,selected,2.f,19900,1000)==TrialResult::applied;
+    guest_state=4;ui=1;
+    ok=ok && service.physics_target(100)==0 && service.physics_read(100,77,output)==1;
+    ok=ok && trial.poll(backend,20000,false)==TrialResult::restored && backend.value==.5f;
+    selected_tick=19000;guest_state=6;
+    ok=ok && service.physics_read(100,77,output)==1;
+    // A new selection or released owner cannot reuse the previous sample.
+    selected.epoch=78;ok=ok && check_failure(-3) && check_failure(0,100,78);
+    guest_owner=0;ok=ok && check_failure(-3);
+    state_sample={};selected={};world_token=owner_token=0;retired=true;guest_state=0;ui=-1;
+    service.active_=service.wasm_=false;test_focus=-1;test_read_clock=0;
+    return ok;
+}
 bool test_session_prologues() {
     const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return false;
     bool ok=true;
@@ -481,7 +652,14 @@ bool test_session_prologues() {
         Session service;service.active_=service.wasm_=true;
         accepting=true;test_focus=1;commands=0;guest_owner=0;guest_releasing=false;
         selected={};search.cancel();
+        ok=ok && service.physics_select_near(100,0,0,0,0)==-3 && !guest_owner.load() && !commands.load();
+        ok=ok && service.physics_select_near(100,1,-2,3,4)==0
+            && requested_query.offset[0]==1 && requested_query.offset[1]==-2
+            && requested_query.offset[2]==3 && requested_query.radius==4;
+        ok=ok && service.physics_select_near(200,0,0,0,2)==-2 && requested_query.radius==4;
+        commands=0;guest_owner=0;
         ok=ok && service.physics_select(100)==0 && service.physics_select(200)==-2;
+        ok=ok && requested_query.radius==2 && requested_query.offset[0]==0;
         ok=ok && service.physics_target(200)==0 && service.physics_status(200)==-2;
         commands=0;selected={0x100000001ull,99,0x300000003ull,0};selected_tick=GetTickCount64();ui=0;retired=false;
         ok=ok && service.physics_target(100)==selected.epoch;
@@ -500,6 +678,13 @@ bool test_session_prologues() {
         retired=false;selected_tick=GetTickCount64()-16000;
         ok=ok && service.physics_target(100)==0 && service.physics_apply(100,selected.epoch,8,5000)==-3;
         test_focus=0;ok=ok && service.physics_select(100)==-1;
+        // Production service lifetime is independent of both recording limits.
+        test_focus=1;accepting=true;commands=0;service.started_=0;
+        service.poll();ok=ok && accepting.load() && !(commands.load()&4);
+        service.log_.open("NUL");service.bytes_=4*1024*1024;
+        ok=ok && !service.write_log("limit") && accepting.load() && !(commands.load()&4);
+        service.wasm_=false;service.poll();
+        ok=ok && !accepting.load() && (commands.load()&4);
         service.active_=service.wasm_=false;selected={};guest_owner=0;commands=0;test_focus=-1;
     }
     return ok;

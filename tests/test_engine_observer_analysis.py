@@ -68,6 +68,21 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(report['accessor_probe']['available'], True)
         self.assertEqual(report['accessor_probe']['matched_samples'], 1)
 
+    def test_focused_camera_capture_with_gameplay_services(self):
+        rows = self.camera_fixture()
+        rows[0].update(mode='camera-observation', mods_suspended=False)
+        rows[0]['hooks'] = [h for h in rows[0]['hooks'] if h['name'] in CAMERA_PHASES]
+        rows = [r for r in rows if r['type'] != 'event' or r['kind'] in CAMERA_PHASES + ('camera_state', 'camera_slot')]
+        for sequence, row in enumerate(rows):
+            if row['type'] == 'event': row['sequence'] = sequence
+        report = analyze(stream(rows))
+        self.assertEqual(report['status'], 'ready_for_manual_review')
+        self.assertFalse(report['body_probe']['available'])
+        self.assertEqual(report['body_probe']['status'], 'not_recorded')
+        self.assertFalse(report['camera_probe']['ownership_or_mutation_verified'])
+        rows[0]['hooks'].append({'name': 'movement', 'rva': 1})
+        with self.assertRaises(ValueError): analyze(stream(rows))
+
     def test_camera_malformed_records_and_incomplete_capture(self):
         for field, value in [('flags', 256 | 7), ('value', '5'), ('entity', '0'), ('thread', 99)]:
             rows = self.camera_fixture()

@@ -123,19 +123,83 @@ Open work includes command decoding, shader/pass selection, descriptor and pipel
 
 ## UI models and events
 
-`coregame::ui_events::system::handleLuaCallbacks` declares `UIPendingEvents` and `LuaEvents`. Registration installs `0x17e06a0`, which transfers to `0x17df510`. That body traverses pending state, prepares serialized values, obtains event storage through `0x1a016f0`, and publishes records. Separate fixed/variable cleanup and page registration/stream-out systems appear in the atlas.
+The engine UI uses Cohtml/Gameface views, authored page resources and native model/event bindings. Three maps separate these responsibilities:
 
-`nl_coherent_texture_view_add_data_bindings`, callback `0x19da040`, reads `bindings` and `listBindings` tables and fields including `keyName`, `modelName`, `transformID`, and `type`. It builds temporary arrays and calls `0x1b4ff30`, whose downstream helpers copy/retain array contents before the temporary data is cleaned up. This is an engine UI data-model bridge, beyond drawing an independent overlay.
+- [UI resources](research/ui-resource-map.json): packed HTML/JavaScript, typed resource loading, URL routing and response ownership.
+- [Page lifecycle](research/ui-page-lifecycle-map.json): authored `UIPageComponent`, reflected page construction, renderer registration, readiness and removal.
+- [Model lifetime](research/ui-model-lifetime-map.json): copied binding descriptions, queued requests, model construction and context teardown.
 
-The imported Cohtml dependency and its V8 dependencies concern UI middleware; they do not identify the gameplay VM. Model/page ownership, binding replacement, interactive texture-view updates, and complete value encoding remain open. None of these functions is exposed as a Wasm import by this research pass.
+### Resources and native rendering
+
+`data/uiresources/game/ui/ui.ui` is a serialized `ui::PageResource`, not a standalone HTML file. The recorded build contains 3,631 file records, including 743 embedded resources, and a shared 21,244,434-byte source buffer. Each file record identifies a path, resource reference, source offset and length. HTML, JavaScript and SVG can reside in that buffer; stylesheets and texture resources also use external resource references. The decoder at `0x346bea0` establishes the corresponding native file array and byte buffer. Trailing binding, navigation and event arrays remain only partly decoded, so this is not a complete custom-page writer.
+
+The engine's `ui::BlobResourceHandler` resolves requested URLs against registered page resources. Its regular request entry, `0x34446b0`, copies an embedded resource into middleware-owned response storage and finishes the response within that call. External resources and textures take separate paths; streaming requests use a different response interface. The [resource map](research/ui-resource-map.json) records those boundaries and both executable and middleware fingerprints.
+
+The general middleware interface allows requests on different threads and permits deferred responses, including races with abort notifications. `Finish` invalidates the response object. These rules come from the official [resource-handler reference](https://docs.coherent-labs.com/cpp-gameface/api_reference/classes/classcohtml_1_1_i_async_resource_handler/) and [response reference](https://docs.coherent-labs.com/cpp-gameface/api_reference/classes/classcohtml_1_1_i_async_resource_response/). They do not establish binary compatibility: this game's reviewed response vtable has nine slots, with `Finish` at `+0x40`; current middleware declarations contain additional methods. Use the fingerprinted binary evidence for call layouts, and do not treat the synchronous embedded branch as a guarantee for every resource request.
+
+Page creation follows a separate lifecycle: request the authored resource, instantiate the reflected page class, attach it to the UI manager, create the Cohtml view, then register its render representation. The manager chooses direct or queued render registration according to the current thread. Stream-out queues component removal; later cleanup detaches the view and releases the page. A resource being loaded does not mean a page is ready to receive model or event calls.
+
+### Models and callbacks
+
+`nl_coherent_texture_view_add_data_bindings`, callback `0x19da040`, reads `bindings` and `listBindings` tables and fields including `keyName`, `modelName`, `transformID`, and `type`. Producer `0x1b4ff30` deep-copies the descriptions into an owning request. Its consumer replaces the target context's binding arrays; it does not create an independent mod namespace. A missing view can consume the request without applying bindings.
+
+Model setup resolves the middleware view, initializes its binding manager, and processes resource and custom descriptors. Duplicate model keys can be refused rather than overwritten. Context removal detaches the view and destroys its event state, binding manager and owned arrays. Complete value tags, existing-view updates and callback-release acknowledgement remain open.
+
+`coregame::ui_events::system::handleLuaCallbacks` dispatches through `0x17e06a0` to `0x17df510`, which prepares serialized values and publishes event records using storage from `0x1a016f0`. This event path is distinct from resource-response completion and from page readiness.
+
+### Development page extension
+
+`runtime/diagnostics/native_ui_panel.html` is a self-authored development extension for the engine-owned options menu. It defines a **Mods** tab with example toggle, amount and reset controls using the game's existing classes and Cohtml renderer. Its controls do not grant engine mutation or establish arbitrary page creation. This development extension is not a public Wasm UI API.
+
+Build with `build.bat -MovementProbe -Test`. With the game closed, install the resulting runtime, copy `dist/examples/native-ui/native-ui-panel.html` into the installed `crml/` directory, and create an empty `crml/native-ui.enabled` file. The regular player package does not enable this extension. Disable other UI-replacement mods for an isolated check; they can rewrite the same document or replace its resource handler.
+
+Open **Options → Mods** with the mouse. Click the toggle, click or drag the amount bar, and use reset to restore **OFF / 50**. Values belong to the loaded page and have no gameplay effect or disk persistence. Controller navigation for the new rows is not implemented. Close and reopen Options, then reload a save and revisit the menu: the tab should remain usable without duplicate rows, and ordinary game options should continue working.
+
+The tab requires a separate options-stack state before hiding the original content. If that state cannot be entered, the extension leaves the original options visible. Native option selection must not remain active behind a custom page. Cancellation and page teardown retain cleanup responsibility and wait while an unrelated state is observed above the extension's state.
+
+The [UI stack queue map](research/ui-stack-queue-map.json) traces native `stack.push` and `stack.back`: both enqueue commands for a later engine update. A request must retain its owner while entry or exit is pending; the state immediately after a call is not an acknowledgement. Each transition is submitted once, then observed on later updates. Cancellation during pending entry must retain cleanup responsibility until that entry has completed.
+
+The queue processes commands in order, but `back` applies to the current state at execution time and has no expected-state guard. Observing the current state before submission does not establish atomic isolation from other queued menu changes. This tab remains an isolated development experiment; concurrent menu extensions are unsupported.
+
+The game's visibility binding can cache a page through `cloneNode(true)`. This preserves markup and marker attributes but drops JavaScript event listeners. Mounting therefore checks node identity and replaces stale cloned controls instead of treating a marker as proof that handlers are attached.
+
+The interceptor requires the exact reviewed executable, middleware and original HTML fingerprints. A mismatch passes the original document through. Captures are limited to four pending responses, eight MiB per document and 32 KiB of extension markup. It forwards unrelated routes and unsupported response modes. `crml/native-ui.jsonl` records bounded counters for observed requests, transformed documents, source mismatches, completion and outstanding responses; it records no document contents or URLs. A transformed response proves that bytes were delivered, not that widgets were rendered. Actual display and navigation require an in-game check.
+
+To disable the extension, close the game and remove `crml/native-ui.enabled`. The next launch uses the original page. Stopping native interception during a session does not remove an already loaded document; its controls remain owned by that page until cleanup or replacement. Deferred response ownership is retained, but concurrent method calls on the same response are not an established contract.
+
+A general bridge still needs bounded mod-owned descriptions, owner-scoped event delivery, verified readiness and execution phases, and cleanup across navigation, page replacement and reload. Native callback pointers, shared engine model containers and unrestricted JavaScript must not cross the Wasm boundary. The Cohtml and V8 dependencies describe the UI middleware; they do not identify the gameplay scripting VM.
 
 ## Audio controls
 
-`nl_audio_execute_control` at `0x3345940` validates the entity/components and control string, hashes the control name, and appends the resulting 32-bit value to a component buffer. The hash starts at `0x811c9dc5`, ORs each byte with `0x20`, XORs it into the accumulator, then multiplies by `0x1000193`. OR-ing with `0x20` is the observed operation; it should not be replaced with a general Unicode or ASCII-lowercase routine.
+The [audio control map](research/audio-control-map.json) connects an entity control request to authored event resources, backend playing IDs, stopping and emitter cleanup. These are reviewed static paths; CRML does not yet expose audio playback or stopping as Wasm imports.
 
-`sndencore::wwise::flush_execution_control_queue::system` installs dispatcher `0x3307570`. It calls `0x32f53b0` for each matching entry. The entire helper through its return at `0x32f5418` swaps two 16-byte pointer/count/capacity records when distinct, then clears the source count. It is a **buffer handoff**, not the final backend play call. Neighboring functions at `0x32f5420` and `0x32f54e0` are separate routines and must not be attributed to this helper merely because they occur in the same disassembly range.
+### Request and consumption
 
-The atlas separately names Wwise execution, playing instances, RTPC/state/switch operations, listeners, music callbacks and acoustics. Completing the chain requires tracing the consumer after the handoff, its backend object identity, and callback/cancellation lifetimes.
+`nl_audio_execute_control` at `0x3345940` takes an entity and a nonempty control-name string. It resolves component hash `0x352890c4`, **ActiveExecutionControlOutput**, and appends a 32-bit hash to its buffer. It returns no Lua value or playing ID. The hash starts at `0x811c9dc5`, sign-extends each string byte, ORs it with `0x20`, XORs the accumulator, then multiplies by `0x1000193` modulo 2^32. Zero is rejected. This is not a general Unicode or ASCII-lowercase routine.
+
+The separate `flush_execution_control_queue` dispatcher at `0x3307570` calls `0x32f53b0`, which swaps 16-byte pointer/count/capacity records for **QueuedExecutionOutput** (`0x724ec178`) and the active output, then clears the queued count. The Lua binding writes the active buffer directly; a bridge cannot assume that every request passes through the queued buffer or append safely from an arbitrary thread.
+
+`update_event_control` dispatches through `0x3305f00` to `0x32f5120`. Its definitions branch performs the following work:
+
+1. Read control hashes from the active output and compare them with authored definition records. `AudioDisabled` skips processing; definition state at `+0x38` also gates this branch.
+2. For a matching definition, remove callback bookkeeping and stop previously tracked playing IDs, then clear their count.
+3. Post the definition's resolved event ID on the active backend object through `0x33e6d70`. A nonzero return is retained as a playing ID; zero is not added.
+
+An unmatched name or unresolved event ID produces no new instance. Hash `0x13254bc4` bypasses the definition-name comparison and applies to every definition; its string spelling is unresolved. An optional authored control component also has a stateful branch through `0x32f4e00`. Consequently, an audio *control* is not equivalent to an arbitrary sound filename or an unconditional play operation.
+
+### Resources and backend identity
+
+`event_definitions_stream_in` reaches `0x32f3930`. Helper `0x32f3830` acquires each event resource through the shared resource manager, reads its backend event ID at `+0xbc`, retains the resource in active-event storage, and releases the temporary reference. Invalid or missing resources resolve to zero. Named definition records have stride `0x30`: resource reference at `+0x00`, control hash at `+0x18`, resolved event ID at `+0x1c`, and a playing-ID pointer/count/capacity record at `+0x20`.
+
+`ActiveGameObject` has stride `0xa0`; its first eight bytes hold the backend object identity. The post wrapper receives this identity separately from the event ID and calls `0x352b1a0`, then records the result through `0x33e8290`. A context-local suppression list can also reject an event before posting. An ECS entity handle, a resource reference, a backend object ID and a playing ID are distinct values with different lifetimes.
+
+### Stop and emitter cleanup
+
+`nl_audio_stop_playing_id` at `0x3344220` reads a playing ID and numeric fade duration. For a nonzero ID, wrapper `0x33e79c0` multiplies the duration by `1000`, truncates it to an integer and submits backend command `0x21` through `0x35321f0`. This strongly supports seconds-to-milliseconds conversion, but backend timing has not been measured in gameplay. The binding also removes engine playing-ID bookkeeping through `0x33e7150`. It does not wait for audible completion.
+
+Emitter stream-out reaches `0x32f4380`: it collects playing IDs for deferred bookkeeping cleanup, requests object-level stopping, queues the backend object for retirement, and replaces the active object ID with the all-ones sentinel. The separate cleanup system reaches `0x32f3350`, removes the collected playing IDs, retires queued backend objects through `0x33e5ae0`, and clears both queue counts. Stop submission, bookkeeping removal and object retirement are separate steps.
+
+The first bounded candidate is executing an existing authored control on a live emitter. Before exposing it, the bridge needs evidence for execution phase and thread ownership, resource residency, callback completion, reload behavior and cancellation ownership. Raw playing IDs must not grant a mod permission to stop another mod's or the game's audio. The map does not establish custom sound-bank loading, arbitrary file playback, or a complete callback API.
 
 ## Animation events
 
@@ -200,6 +264,9 @@ This is a concrete request-processing entry, not a recovered save-file schema or
 $gameDir = Read-Host 'Path to your CONTROL Resonant installation'
 python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/engine-paths-map.json
 python tools/verify_engine_map.py "$gameDir\PhysX_64.dll" docs/research/physx-shape-map.json
+python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/ui-page-lifecycle-map.json
+python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/ui-model-lifetime-map.json
+python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/ui-resource-map.json --middleware "$gameDir\cohtml.WindowsDesktop.dll"
 ```
 
-Static reference checks compare encoded references with the fingerprinted binary. They do not execute the functions or establish their calling conventions and object lifetimes.
+Static reference checks compare encoded references with the fingerprinted binary. The UI resource map contains a separate middleware fingerprint and reference set: `--middleware` checks that set against the DLL rather than the executable. Omitting it checks only the executable portion and reports that middleware was not checked. These commands do not execute engine functions or establish callable ABIs, object lifetimes or gameplay behavior.

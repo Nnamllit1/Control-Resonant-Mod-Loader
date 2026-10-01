@@ -53,7 +53,7 @@ bool test_camera_callbacks();
 
 class Recorder {
 public:
-    std::string start(const std::filesystem::path& root);
+    std::string start(const std::filesystem::path& root, bool camera_only=false);
     void poll();
     bool active() const noexcept { return output_.is_open(); }
     ~Recorder();

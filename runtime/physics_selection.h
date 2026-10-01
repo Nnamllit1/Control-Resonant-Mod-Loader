@@ -11,13 +11,30 @@ struct SelectionScope {
     float position[3]{};
 };
 struct SelectionCandidate { uint64_t entity{}, body{}, actor{}; float distance_squared{}; };
+// World-aligned offset from the player position captured when the search starts.
+// The guest chooses the region; identity/eligibility and work bounds stay native.
+struct SelectionQuery {
+    float offset[3]{};
+    float radius{2.f};
+    bool valid() const noexcept {
+        return std::isfinite(offset[0]) && std::isfinite(offset[1]) && std::isfinite(offset[2])
+            && std::hypot(offset[0],offset[1],offset[2])<=20.f
+            && std::isfinite(radius) && radius>0 && radius<=20.f;
+    }
+    float distance_squared(const float (&anchor)[3],const float (&position)[3]) const noexcept {
+        float result{};
+        for(unsigned i=0;i<3;++i) {const auto delta=position[i]-anchor[i]-offset[i];result+=delta*delta;}
+        return result;
+    }
+};
 enum class SelectionResult { pending, selected, none, ambiguous, changed, invalid, timeout };
 class SelectionSearch {
 public:
-    SelectionResult begin(const SelectionScope& scope, uint64_t now) noexcept {
+    SelectionResult begin(const SelectionScope& scope, uint64_t now,SelectionQuery query={}) noexcept {
+        query_=query;
         scope_=scope; started_=last_=now; next_=matches_=0; candidate_={};
         nearest_=second_=std::numeric_limits<float>::infinity();
-        return result_=valid(scope)?SelectionResult::pending:SelectionResult::invalid;
+        return result_=valid(scope) && query.valid()?SelectionResult::pending:SelectionResult::invalid;
     }
     // visit resolves an eligible nearby candidate from current engine state.
     // yield bounds elapsed work in addition to the hard per-callback slot cap.
@@ -34,7 +51,7 @@ public:
         for(unsigned work=0;next_<scope.slots && work<4096;++work) {
             SelectionCandidate candidate{};
             if(visit(next_++,candidate)) {
-                if(!std::isfinite(candidate.distance_squared) || candidate.distance_squared<0 || candidate.distance_squared>4)
+                if(!std::isfinite(candidate.distance_squared) || candidate.distance_squared<0 || candidate.distance_squared>query_.radius*query_.radius)
                     return result_=SelectionResult::invalid;
                 ++matches_;
                 if(candidate.distance_squared<nearest_) {
@@ -57,12 +74,14 @@ public:
     float second_distance() const noexcept { return matches_>1?std::sqrt(second_):-1.f; }
     const SelectionCandidate& candidate() const noexcept { return candidate_; }
     const SelectionScope& scope() const noexcept { return scope_; }
+    const SelectionQuery& query() const noexcept { return query_; }
 private:
     static bool valid(const SelectionScope& s) noexcept {
         return s.world && s.owner && s.player && s.slots && s.slots<=(1u<<20)
             && std::isfinite(s.position[0]) && std::isfinite(s.position[1]) && std::isfinite(s.position[2]);
     }
     SelectionScope scope_{};
+    SelectionQuery query_{};
     SelectionCandidate candidate_{};
     uint64_t started_{},last_{};
     uint32_t next_{},matches_{};

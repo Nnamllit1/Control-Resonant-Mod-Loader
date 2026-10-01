@@ -1,0 +1,340 @@
+{
+  "schema": 1,
+  "title": "Bundle spawn request construction, queue ownership and deferred entity creation",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static instruction and ownership trace; no native callable ABI or gameplay spawning guarantee.",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x23910e3",
+      "target": "0x188e260",
+      "label": "script wrapper submits bundle request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188e32c",
+      "target": "0x3282ab0",
+      "label": "bundle-name lookup through content registry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188e3d0",
+      "target": "0x188ff60",
+      "label": "collect root and shared child collections"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188ffb1",
+      "target": "0x931980",
+      "label": "shared collection runtime type check"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18900d6",
+      "target": "0x3282ab0",
+      "label": "shared child name lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188e450",
+      "target": "0x1b08eb0",
+      "label": "construct per-instance content descriptors"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b0904a",
+      "target": "0x3288640",
+      "label": "format unique instance name with registry counter"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b09081",
+      "target": "0x3287a20",
+      "label": "derive instance identifier from generated name"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b091b2",
+      "target": "0x32825b0",
+      "label": "register newly allocated content descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188e683",
+      "target": "0x1895c20",
+      "label": "construct shared retained dependency object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1895cc3",
+      "target": "0x188dd50",
+      "label": "build dependency group from gathered components"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188dddc",
+      "target": "0x31cd540",
+      "label": "dependency-group population"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188dde4",
+      "target": "0x31cd780",
+      "label": "dependency-group activation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1895cce",
+      "target": "0x1891160",
+      "label": "wrap dependency group in shared ownership"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188e6ec",
+      "target": "0x188f120",
+      "label": "enqueue root request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188e77a",
+      "target": "0x188f270",
+      "label": "enqueue child requests"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188f1ab",
+      "target": "0x1895d20",
+      "label": "construct root 0x58-byte request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188f1b9",
+      "target": "0x18934e0",
+      "label": "append root request to registry queue"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188f332",
+      "target": "0x1895a40",
+      "label": "construct child request with parent initializer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1895baf",
+      "target": "0x1895d20",
+      "label": "child shares request constructor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188f39e",
+      "target": "0x18977b0",
+      "label": "grow pending request storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188f7eb",
+      "target": "0x18964a0",
+      "label": "consume queued request batch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x188f806",
+      "target": "0x1894f30",
+      "label": "destroy consumed request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x189688a",
+      "target": "0x1d635c0",
+      "label": "allocate runtime entity handles after queue submission"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d635dd",
+      "target": "0x1d4ac80",
+      "label": "entity generator allocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1896e36",
+      "target": "0x1b07bb0",
+      "label": "stage content components for generated entity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1896e95",
+      "target": "0x1892090",
+      "label": "stage spawning metadata"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1896eca",
+      "target": "0x3f4f90",
+      "label": "register deferred ownership cleanup callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1896fd8",
+      "target": "0x1892690",
+      "label": "stage retained dependency command"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1894f46",
+      "target": "0x477ed0",
+      "label": "destroy request initializer array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b0895a",
+      "target": "0x3282760",
+      "label": "unregister owned instance content descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b08964",
+      "target": "0x4c1e70",
+      "label": "destroy owned descriptor component storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b08973",
+      "target": "0x3202210",
+      "label": "free owned instance content descriptor"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1893686",
+      "target": "0x188f780",
+      "label": "registered scheduler dispatcher to request consumer"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1894f94",
+      "target": "0x1b08940",
+      "label": "request destructor releases owned content descriptor"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x931990",
+      "target": "0x3ce5b28",
+      "label": "SharedEntityCollectionComponent type name"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3ab67fc",
+      "target": "0x3f800000",
+      "label": "default orientation quaternion w=1"
+    }
+  ],
+  "entry": {
+    "binding": "spawn_bundle_with_instigator",
+    "callback_rva": "0x2390e10",
+    "request_rva": "0x188e260",
+    "arguments": [
+      "Lua argument 1 is read as a string and resolved through the content-name registry.",
+      "Lua argument 2 is converted to an eight-byte value and inserted in a typed initializer; exact accepted entity representation is unresolved.",
+      "Optional argument 3 supplies a four-float position vector; missing value becomes zero.",
+      "Optional argument 4 supplies a four-float orientation; normalized when norm is positive, otherwise identity quaternion (0,0,0,1)."
+    ],
+    "wrapper_result": "Returns zero Lua results after success; compares native output against an engine-generated failure ID and raises a script error on failure.",
+    "native_output": "Leading identifier of the first generated content descriptor; runtime entity allocation happens later in the queue consumer. Not a live entity handle or completion token."
+  },
+  "collection_resolution": {
+    "rva": "0x188ff60",
+    "source_layout": {
+      "0x8": "64-bit component count",
+      "0x10": "inline array of component pointers"
+    },
+    "selected_type": "content::SharedEntityCollectionComponent",
+    "type_getter_rva": "0x931980",
+    "selected_layout": {
+      "0x8": "child reference array pointer",
+      "0x10": "32-bit child count",
+      "child_stride": "0x18"
+    },
+    "observations": [
+      "Type selected by virtual runtime type index at vtable+0x88.",
+      "Root is appended only after the SharedEntityCollectionComponent is found.",
+      "Resolvable child references append collection pointers; missing children are skipped in this loop.",
+      "Name references contain ID at +0, cached pointer at +8, registry epoch at +0x10 and lock byte at +0x14; stale epoch re-resolves through 0x3282ab0.",
+      "These content references are distinct from resource objects whose reference count is +0x64."
+    ]
+  },
+  "instance_descriptors": {
+    "builder_rva": "0x1b08eb0",
+    "record_stride": "0x20",
+    "observations": [
+      "Increments registry counter supplied as SpawningPoolRegistry+0x40 for each collection.",
+      "Formats an instance name and derives an eight-byte identifier with 0x3287a20.",
+      "Allocates a descriptor containing generated ID, component count and pointers; registers it through 0x32825b0.",
+      "Clones component payloads via reflection virtual operations rather than borrowing the complete template array.",
+      "Destructor 0x1b08940 unregisters the generated ID if an owned allocation exists, destroys component storage and frees the descriptor."
+    ]
+  },
+  "pending_queue": {
+    "owner": "coregame::env::SpawningPoolRegistry",
+    "fields": {
+      "0x48": "request array pointer",
+      "0x50": "32-bit request count",
+      "0x54": "32-bit request capacity"
+    },
+    "record_size": "0x58",
+    "constructor_rva": "0x1895d20",
+    "destructor_rva": "0x1894f30",
+    "request_fields": {
+      "0x00": "opaque constructor argument; zero on the reviewed script root/child path",
+      "0x08..0x27": "moved 0x20-byte instance descriptor owner",
+      "0x28": "retained dependency object pointer",
+      "0x30": "shared ownership control block pointer",
+      "0x38": "typed initializer array pointer",
+      "0x40": "32-bit initializer count",
+      "0x44": "32-bit initializer capacity",
+      "0x48": "group key forwarded from the script owner/context identifier",
+      "0x50": "optional requested runtime entity; -1 requests allocation in consumer"
+    },
+    "initializer_stride": "0x50",
+    "transfer": "Constructor and append paths clear moved-from owner slots. These records cannot be duplicated with memcpy as independent owners.",
+    "consumption": "0x188f780 passes the batch to 0x18964a0, destroys every request and sets count to zero. Empty queue does not imply initialized entities."
+  },
+  "deferred_creation": {
+    "processor_rva": "0x18964a0",
+    "observations": [
+      "Groups requests by +0x48 and gathers their instance descriptor pointers.",
+      "Separates supplied +0x50 handles from entries whose low 32 bits equal 0xffffffff.",
+      "Allocates missing full eight-byte runtime entity handles via EntityGeneratorApi 0x1d635c0, distinct from generated content IDs.",
+      "Appends handles into command-buffer pages and uses a temporary command-buffer entity index with a deferred flag.",
+      "Stages content components through 0x1b07bb0 and spawning metadata through 0x1892090.",
+      "Moves the shared dependency owner out of request+0x28/+0x30 into command storage and clears the source.",
+      "Registers cleanup callback 0x1893ec0 for the moved shared owner; it decrements strong and weak control-block counts and invokes destruction at final release.",
+      "Invokes each typed initializer callback at record+0x40 against the deferred entity index; callback execution is not arbitrary user-supplied script code."
+    ],
+    "scheduler": "Dispatcher 0x1893610 derives command buffer from engine worker index, stride 0x1b8 and world+0x585e8; callers must not substitute an arbitrary worker thread."
+  },
+  "future_bridge": {
+    "primitive": "Owner-scoped asynchronous bundle request with template ID, finite transform, optional validated instigator and an opaque request token.",
+    "required_states": [
+      "pending",
+      "ready",
+      "failed",
+      "cancelled",
+      "world_changed"
+    ],
+    "requirements": [
+      "Observe the correct scheduler boundary and establish exclusive access to the pending queue.",
+      "Keep generated content IDs, runtime entity handles, backend body IDs and Wasm tokens separate.",
+      "Recover completion after command flush, component initialization and resource readiness.",
+      "Track all children and retained resources under the requesting mod, including pending requests.",
+      "Resolve cancellation and despawn ordering, including owner unload and world replacement."
+    ],
+    "available_in_wasm": false,
+    "unresolved": [
+      "complete typed initializer ABI",
+      "queue synchronization and allowed calling phase",
+      "resource readiness and failed-load propagation",
+      "root/child completion event",
+      "pre-flush cancellation",
+      "post-flush teardown and intentional persistent entities"
+    ]
+  }
+}

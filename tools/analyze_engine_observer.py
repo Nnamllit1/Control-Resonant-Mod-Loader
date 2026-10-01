@@ -127,6 +127,7 @@ def records(stream):
 
 def analyze(stream):
     header = None
+    camera_only = False
     end = None
     sequence = 0
     dropped = 0
@@ -172,8 +173,11 @@ def analyze(stream):
             notes.add('Final partial line ignored; capture tail is incomplete.')
             break
         if header is None:
-            require(kind == 'header' and row.get('schema') in (1, 2, 3, 4, 5) and row.get('mode') == 'observe-only'
-                    and row.get('mods_suspended') is True, 'Unsupported or non-observational capture')
+            camera_only = row.get('mode') == 'camera-observation'
+            require(kind == 'header' and row.get('schema') in (1, 2, 3, 4, 5) and
+                    ((camera_only and row['schema'] == 5 and row.get('mods_suspended') is False) or
+                     (row.get('mode') == 'observe-only' and row.get('mods_suspended') is True)),
+                    'Unsupported or non-observational capture')
             require(number(row, 'qpc_frequency') > 0, 'Missing clock frequency')
             number(row, 'qpc_origin')
             require(isinstance(row.get('sha256'), str) and len(row['sha256']) == 64, 'Invalid fingerprint')
@@ -183,8 +187,12 @@ def analyze(stream):
                 for phase in CAMERA_PHASES:
                     phases[phase] = {'enters': 0, 'returns': 0, 'threads': set(),
                                      'paired': 0, 'duration_ticks_total': 0, 'duration_ticks_max': 0}
+            if camera_only:
+                expected_phases = CAMERA_PHASES
+                phases = {name: phases[name] for name in CAMERA_PHASES}
+                notes.add('Camera-only observation: gameplay mods may run concurrently; other engine systems were not recorded.')
             require({h['name'] for h in row['hooks']} == set(expected_phases), 'Incomplete hook manifest')
-            if row['schema'] >= 2:
+            if row['schema'] >= 2 and not camera_only:
                 require(isinstance(row.get('physx_sha256'), str) and len(row['physx_sha256']) == 64, 'Missing physics backend fingerprint')
                 phases['post_physics'] = {'enters': 0, 'returns': 0, 'threads': set(),
                                           'paired': 0, 'duration_ticks_total': 0, 'duration_ticks_max': 0}
@@ -207,6 +215,7 @@ def analyze(stream):
         first_time = time if first_time is None else min(first_time, time)
         last_time = time if last_time is None else max(last_time, time)
         name, edge, span = row['kind'], number(row, 'edge', 2), number(row, 'span')
+        require(not camera_only or name in CAMERA_PHASES + ('camera_state', 'camera_slot'), 'Unexpected non-camera record in focused capture')
         obj, entity = identifier(row, 'object'), identifier(row, 'entity')
         value, detail, flags = identifier(row, 'value'), identifier(row, 'detail'), number(row, 'flags', (1 << 32) - 1)
         if name in phases:
@@ -432,10 +441,10 @@ def analyze(stream):
         info['mean_ms'] = info.pop('duration_ticks_total') * 1000 / header['qpc_frequency'] / paired if paired else None
         info['max_ms'] = info.pop('duration_ticks_max') * 1000 / header['qpc_frequency'] if paired else None
     failed = end is not None and end['reason'] in ('hook_enable_failed', 'io_error')
-    if header['schema'] >= 2 and not body_observations:
+    if header['schema'] >= 2 and not camera_only and not body_observations:
         failed = True
         notes.add('No accepted dynamic-body snapshots; body observation remains unvalidated.')
-    if header['schema'] >= 3 and not entity_observations:
+    if header['schema'] >= 3 and not camera_only and not entity_observations:
         failed = True
         notes.add('No accepted body/entity associations; prop identity remains unvalidated.')
     if entity_observations:
@@ -443,13 +452,14 @@ def analyze(stream):
     getter_matches = sum(o['matched_samples'] for o in accessor_observations.values())
     getter_mismatches = sum(o['mismatched_samples'] for o in accessor_observations.values())
     mismatch_seen = getter_mismatches > 0 or accessor_scan_rejections['mismatch'] > 0
-    if header['schema'] >= 4 and (not getter_matches or mismatch_seen):
+    if header['schema'] >= 4 and not camera_only and (not getter_matches or mismatch_seen):
         failed = True
         notes.add('Native getter agreement is missing or a mismatch was recorded; investigate before using property writes.')
     if header['schema'] >= 5 and not camera_pairs['readable_pairs']:
         failed = True
         notes.add('No readable paired camera snapshots; camera lifetime and timing remain unestablished.')
-    return {'schema': 1, 'sha256': header['sha256'], 'status': 'incomplete' if failed or missing or not player_samples or not resource_ids or dropped else 'ready_for_manual_review',
+    incomplete = failed or missing or dropped or (not camera_only and (not player_samples or not resource_ids))
+    return {'schema': 1, 'sha256': header['sha256'], 'mode': header['mode'], 'status': 'incomplete' if incomplete else 'ready_for_manual_review',
             'not_a_gameplay_or_api_validation': True,
             'duration_seconds': (last_time - first_time) / header['qpc_frequency'] if first_time is not None else 0,
             'last_stats_elapsed_seconds': last_stats_elapsed / 1000 if last_stats_elapsed is not None else None,
@@ -462,19 +472,19 @@ def analyze(stream):
             'resource_observations': list(resource_observations.values()),
             'physics_wrapper_threads': {obj: {kind: sorted(threads) for kind, threads in groups.items()} for obj, groups in physics.items()},
             'physics_windows': windows,
-            'body_probe': {'available': header['schema'] >= 2, 'scans': body_scans,
-                           'status': 'observed' if body_observations else 'no_accepted_samples' if header['schema'] >= 2 else 'not_recorded',
+            'body_probe': {'available': header['schema'] >= 2 and not camera_only, 'scans': body_scans,
+                           'status': 'observed' if body_observations else 'no_accepted_samples' if header['schema'] >= 2 and not camera_only else 'not_recorded',
                            'observed_slot_replacements': body_replacements,
                            'scans_with_rejection': dict(body_scan_rejections),
                            'bodies': list(body_observations.values()),
                            'ownership_or_mutation_verified': False},
-            'entity_probe': {'available': header['schema'] >= 3, 'scans': entity_scans,
-                             'status': 'observed' if entity_observations else 'no_accepted_samples' if header['schema'] >= 3 else 'not_recorded',
+            'entity_probe': {'available': header['schema'] >= 3 and not camera_only, 'scans': entity_scans,
+                             'status': 'observed' if entity_observations else 'no_accepted_samples' if header['schema'] >= 3 and not camera_only else 'not_recorded',
                              'scans_with_rejection': dict(entity_scan_rejections),
                              'associations': list(entity_observations.values()),
                              'ownership_or_mutation_verified': False},
-            'accessor_probe': {'available': header['schema'] >= 4, 'scans': accessor_scans,
-                              'status': 'not_recorded' if header['schema'] < 4 else 'mismatch_observed' if mismatch_seen else 'agreement_observed' if getter_matches else 'no_accepted_samples',
+            'accessor_probe': {'available': header['schema'] >= 4 and not camera_only, 'scans': accessor_scans,
+                              'status': 'not_recorded' if header['schema'] < 4 or camera_only else 'mismatch_observed' if mismatch_seen else 'agreement_observed' if getter_matches else 'no_accepted_samples',
                               'matched_samples': getter_matches, 'mismatched_samples': getter_mismatches,
                               'scans_with_rejection': dict(accessor_scan_rejections),
                               'bodies': list(accessor_observations.values()),

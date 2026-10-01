@@ -18,7 +18,7 @@ CONTROLResonant.exe
 
 `loader/` contains the Windows entry point, export table, and x64 forwarding stubs. Static inspection of the recorded executable found an ordinal-2 import from `XINPUT1_4.dll`. The proxy preserves the named API ordinals and additional unnamed exports observed on the development system.
 
-`DllMain` does no initialization. The first call to `XInputGetState` resolves the original library by absolute System32 path and schedules a worker. Forwarders preserve integer, vector, and stack arguments. The worker loads the trusted runtime with a restricted DLL search path. Both modules remain resident until process exit.
+`DllMain` does no initialization. The first forwarded XInput call resolves the original library by absolute System32 path and schedules a worker. Forwarders preserve integer, vector, and stack arguments. The worker loads the trusted runtime with a restricted DLL search path. Both modules remain resident until process exit.
 
 The proxy and runtime remain loaded for the lifetime of the game process. See [troubleshooting](troubleshooting.md) for startup problems.
 
@@ -26,13 +26,27 @@ The proxy and runtime remain loaded for the lifetime of the game process. See [t
 
 `runtime/` owns discovery, validation, Wasmtime stores, budgets, logging, and lifecycle. `sdk/` defines the guest contract independently from the Windows loader. `crml_host` embeds the same core as the DLL, so sandbox behavior can be tested without launching the game.
 
-The isolated Wasm physics service accepts bounded commands on that worker and consumes them after the native physics dispatcher returns. A mod owns an opaque selection token, never an engine pointer. The service resolves the current entity/body generation again before every access and retains restoration state independently of the guest. Mod traps and shutdown request cleanup without calling guest code from an engine hook. Only one mod can own the operation at a time. See the [damping API](api.md#experimental-prop-damping) for limits and result semantics.
+`runtime/diagnostics/` contains the engine and fall observers, entity inspector, and camera/physics observation helpers as ordinary C++ sources and headers. They remain compiled into the targets that use them; native test entry points stay in `tests/`. The relocation does not change their startup gates or remove observation code reused by gameplay services.
 
-Packages load in directory-name order. One failed package does not stop the rest. The current runtime is single-threaded, has no hot reload, and has no guest-to-guest shared memory.
+Keyboard actions use an independent read-only provider rather than requiring a movement service. Each Wasm store retains its own capability mask, action bindings and native ownership ID. Availability queries cannot grant permissions, and explicit cleanup applies only to the calling mod's leases. Startup validates manifests and prepares requested services before any guest executes. An invalid manifest cannot request engine services; a module that later fails compilation may have requested a service, but cannot acquire a lease.
+
+Movement and physics share `controller_hook.cpp`: one native trampoline forwards the six controller arguments through the movement adapter, then lets physics observe the original view after return. Visibility retains its renderer-phase hook. `gameplay_router.h` routes requests and cleanup to independent providers. Read-only input observers reuse the movement suppression hook without replacing its owner. When movement and physics coexist, only movement owns the status panel; physics results remain available through `physics_status` and logs.
+
+Read-only player and camera services start from `player.read` and `camera.read` manifest requests. The player service reuses the controller adapter to copy authenticated position before the original call; requesting it alone enables no movement override, keyboard suppression or overlay. Camera observation shares one camera-update trampoline with the diagnostic recorder and copies the selected view after the original call. Neither service depends on a diagnostic file remaining open.
+
+The worker reads these caches through fixed-width structures from `sdk/include/crml_state.h`. It never follows engine pointers on behalf of a snapshot request, and no engine callback runs Wasm. Output pointers refer only to the calling store's linear memory. The host checks exact structure sizes and memory bounds before calling a provider, clears output on non-success, and counts reads against the same eight-call budget as other gameplay imports. Local generation counters identify observed player/camera changes without exposing engine handles.
+
+Snapshots are at most 500 ms old and are sampled independently, not as one synchronized engine frame. Player reads require foreground focus; camera reads depend on fresh completed updates and are not focus-gated. Camera position, basis and optional lens values describe the selected `CameraView`; renderer overrides such as `CameraManView` can produce a different final view. Snapshot availability does not establish camera ownership or authorize writes. See the [snapshot API](api.md#player-camera-and-physics-snapshots) for layouts, flags and result codes.
+
+The Wasm physics service accepts bounded commands on that worker and consumes them after the native physics dispatcher returns. A mod owns an opaque selection token, never an engine pointer. The service resolves the current entity/body generation again before every access and retains restoration state independently of the guest. Mod traps and shutdown request cleanup without calling guest code from an engine hook. Only one mod can own the operation at a time. See the [damping API](api.md#experimental-prop-damping) for limits and result semantics.
+
+`physics_read` copies the selected body's damping and speed observations captured on the physics callback. The caller must own the selection token; reads do not extend its lifetime or change a property. Retirement and scene changes invalidate cached observations, and focus loss or Escape makes the read unavailable while cleanup proceeds. Flags distinguish available damping and speed groups. Angular damping and speed are read-only; the bounded write operation remains temporary linear damping on one body.
+
+Packages load in directory-name order. One failed package does not stop the rest. Guest lifecycle execution is single-threaded, with no hot reload or guest-to-guest shared memory.
 
 ## Game bridge
 
-The opt-in experimental bridge observes the character-controller routine on the thread used by the game. Wasm remains on the runtime worker and requests an owner-bound movement lease. The hook validates the current player, substitutes private per-call arguments, and forwards the original routine. It never runs Wasm inside the hook. Unknown builds and mismatched arguments leave movement untouched.
+The opt-in experimental bridge observes the character-controller routine on the thread used by the game. Wasm remains on the runtime worker and requests an owner-bound movement lease. The hook validates the current player, substitutes private per-call arguments, and forwards the original routine. It never runs Wasm inside the hook. Unapproved executables, changed hook signatures and mismatched arguments leave movement untouched.
 
 The runtime worker publishes the panel's visibility and status. Native DirectX 12 hooks copy a cached text texture into the current back buffer before presentation. Queue selection requires observed transitions of that specific buffer; unrelated queue submissions cannot select it. Each buffer has its own commands and completion fence, and resize hooks release retained buffers after completion. The renderer follows the [DirectX 12 presentation state requirements](https://learn.microsoft.com/en-us/windows/win32/direct3d12/swap-chains).
 

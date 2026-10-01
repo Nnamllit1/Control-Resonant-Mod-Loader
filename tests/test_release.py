@@ -30,7 +30,11 @@ class ReleaseTests(unittest.TestCase):
         self.write(self.root / 'compatibility.json', json.dumps({'profiles': [{'sha256': 'a' * 64}]}).encode())
         self.write(self.root / 'THIRD_PARTY.md', b'Licenses')
         self.write(self.root / 'sdk/include/crml.h', b'SDK')
-        for example in ('hello', 'movement', 'visibility', 'physics-damping'):
+        self.write(self.root / 'sdk/include/crml_abi.h', b'ABI constants')
+        self.write(self.root / 'sdk/include/crml_state.h', b'State ABI layouts')
+        self.write(self.root / 'sdk/include/crml_ui.h', b'UI ABI layouts')
+        self.write(self.root / 'sdk/include/crml_media.h', b'Media ABI layouts')
+        for example in ('hello', 'movement', 'visibility', 'physics-damping', 'input-actions', 'state-watch', 'startup-skip'):
             self.write(self.root / 'examples' / example / 'mod.ini', b'Mod source')
         for name in ('xinput1_4.dll', 'crml/crml_runtime.dll', 'crml/wasmtime.dll', 'crml/crml_host.exe',
                      'crml/crml_wat.exe', 'crml/mods/hello/mod.ini', 'crml/mods/hello/hello.wasm',
@@ -85,6 +89,13 @@ class ReleaseTests(unittest.TestCase):
                 self.assertEqual('xinput1_4.dll' in names, name == expected_archives[0])
         with zipfile.ZipFile(self.out / expected_archives[1]) as sdk:
             self.assertIn('examples/hello/mod.ini', sdk.namelist())
+            self.assertIn('examples/input-actions/mod.ini', sdk.namelist())
+            self.assertIn('sdk/include/crml_abi.h', sdk.namelist())
+            self.assertIn('sdk/include/crml_state.h', sdk.namelist())
+            self.assertIn('examples/state-watch/mod.ini', sdk.namelist())
+            self.assertIn('examples/startup-skip/mod.ini', sdk.namelist())
+            self.assertIn('sdk/include/crml_ui.h', sdk.namelist())
+            self.assertIn('sdk/include/crml_media.h', sdk.namelist())
             self.assertIn('tools/crml_host.exe', sdk.namelist())
             self.assertIn('tools/crml_wat.exe', sdk.namelist())
             self.assertIn('README-LUA.txt', sdk.namelist())
@@ -102,6 +113,20 @@ class ReleaseTests(unittest.TestCase):
             release.verify(self.out, self.version)
         with self.assertRaisesRegex(ValueError, 'already exists'):
             self.package()
+
+    def test_ui_bridge_payload_required_and_mod_separate(self):
+        self.write(self.dist / 'crml/build-features.json', json.dumps({
+            'movement_wasm': True, 'lua_probe': False, 'ui_bridge': True}).encode())
+        with self.assertRaisesRegex(ValueError, 'bootstrap'):
+            self.package()
+        self.assertFalse(self.out.exists())
+        self.write(self.dist / 'crml/ui-bootstrap.html', b'Trusted bootstrap')
+        self.write(self.dist / 'crml/native-ui.enabled', b'')
+        self.write(self.dist / 'crml/native-ui-panel.html', b'Unreleased diagnostic')
+        self.package()
+        self.assert_archive_members(release.archive_names(self.version)[0],
+                                    self.runtime_members() | {'crml/ui-bootstrap.html'})
+        release.verify(self.out, self.version)
 
     def test_optional_noclip_packages_and_legacy_verification(self):
         self.package(include_noclip=True)

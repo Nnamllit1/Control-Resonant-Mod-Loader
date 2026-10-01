@@ -1,7 +1,8 @@
 #include "compatibility.h"
-#include "engine_observer.h"
-#include "physics_observation.h"
-#include "camera_observation.h"
+#include "diagnostics/engine_observer.h"
+#include "diagnostics/physics_observation.h"
+#include "diagnostics/camera_observation.h"
+#include "camera_update_hook.h"
 #include <MinHook.h>
 #include <bcrypt.h>
 #include <algorithm>
@@ -9,6 +10,7 @@
 #include <cstring>
 #include <iomanip>
 #include <sstream>
+#include <span>
 #ifdef CRML_OBSERVER_TESTING
 #include <stdexcept>
 #endif
@@ -88,7 +90,6 @@ using Simulate=void(*)(void*,float);
 Move move_original{};
 One flush_original{},renderer_original{},wait_original{},complete_original{},post_original{};
 Three script_original{};
-Three camera_original{};
 using CameraSwitch=void(*)(void*,int,uint8_t);
 using CameraSelect=void(*)(int);
 using Two=void(*)(void*,void*);
@@ -241,13 +242,13 @@ void camera_context(void* context,size_t camera_offset,uint64_t span,uint8_t edg
     if(global) camera_sample(world,global,span,edge);
     else camera_sample(0,0,span,edge); // Never authenticate a missing callback field via fallback lookup.
 }
-void camera_update(void* context,void* render,void* listener) {
+void camera_update(::crml::camera_update::Update original,void* context,void* render,void* listener) {
     const auto world=enabled.load()?pointer_at(reinterpret_cast<uintptr_t>(context)):0;
     const auto span=enter(Kind::camera_update,world);
     const auto now=GetTickCount64();auto next=next_camera_ms.load();
     const bool sample=span && now>=next && next_camera_ms.compare_exchange_strong(next,now+100);
     if(sample) camera_context(context,0x28,span,1);
-    camera_original(context,render,listener);
+    original(context,render,listener);
     if(sample) camera_context(context,0x28,span,2);
     leave(Kind::camera_update,span,world);
 }
@@ -326,7 +327,7 @@ void post(void* owner) {
 }
 struct Hook { uint32_t rva; const char* name; std::array<unsigned char,18> prefix; void* detour; void** original; };
 const Hook hooks[]={
-    {0x1baa070,"camera_update",{0x4c,0x8b,0xdc,0x49,0x89,0x73,0x18,0x57,0x41,0x56,0x41,0x57,0x48,0x81,0xec,0x90,0,0},reinterpret_cast<void*>(&camera_update),reinterpret_cast<void**>(&camera_original)},
+    {0x1baa070,"camera_update",{0x4c,0x8b,0xdc,0x49,0x89,0x73,0x18,0x57,0x41,0x56,0x41,0x57,0x48,0x81,0xec,0x90,0,0},reinterpret_cast<void*>(&camera_update),nullptr},
     {0x1ba8900,"camera_switch",{0x48,0x89,0x5c,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x4c,0x24,8,0x57,0x41,0x54},reinterpret_cast<void*>(&camera_switch),reinterpret_cast<void**>(&camera_switch_original)},
     {0x1ba7ea0,"camera_select",{0x40,0x53,0x48,0x83,0xec,0x20,0x48,0x8b,5,0x33,0x91,7,4,0x45,0x33,0xc0,0x8b,0xd9},reinterpret_cast<void*>(&camera_select),reinterpret_cast<void**>(&camera_select_original)},
     {0x1ada8c0,"camera_init",{0x48,0x8b,0xc4,0x48,0x89,0x58,8,0x48,0x89,0x70,0x10,0x48,0x89,0x78,0x18,0x4c,0x89,0x70},reinterpret_cast<void*>(&camera_init),reinterpret_cast<void**>(&camera_init_original)},
@@ -360,25 +361,31 @@ bool Recorder::line(const std::string& text) {
     if(bytes_+text.size()+1>max_bytes-4096) return false;
     output_<<text<<'\n'; bytes_+=text.size()+1; return bool(output_);
 }
-std::string Recorder::start(const std::filesystem::path& root) {
+std::string Recorder::start(const std::filesystem::path& root,bool camera_only) {
+    // Camera hooks precede the broad observer hooks. A focused recorder can
+    // coexist with gameplay services without taking their controller/physics hooks.
+    const auto selected=std::span(hooks).first(camera_only?5:std::size(hooks));
+    // Entry zero is shared with production snapshots. Its owner validates the
+    // prologue once; recorder lifetime must not remove or disable that hook.
+    const auto owned=selected.subspan(1);
     wchar_t path[32768]{}; const auto length=GetModuleFileNameW(nullptr,path,32768);
     const auto actual_sha=length && length<32768?fingerprint(path):std::string{};
     if(!compatibility::allowed(actual_sha)) return "Engine observer refused: unsupported executable fingerprint";
     wchar_t backend_path[32768]{}; const auto backend=GetModuleHandleW(L"PhysX_64.dll");
     const auto backend_length=backend?GetModuleFileNameW(backend,backend_path,32768):0;
-    if(!backend_length || backend_length>=32768 || fingerprint(backend_path)!=physx_expected)
+    if(!camera_only && (!backend_length || backend_length>=32768 || fingerprint(backend_path)!=physx_expected))
         return "Engine observer refused: unsupported physics backend fingerprint";
     dynamic_vtable=reinterpret_cast<uintptr_t>(backend)+0x15dd88;
     image_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-    for(const auto& hook:hooks) if(!compatibility::matches(reinterpret_cast<void*>(image_base+hook.rva),hook.prefix.data(),hook.prefix.size()))
+    for(const auto& hook:owned) if(!compatibility::matches(reinterpret_cast<void*>(image_base+hook.rva),hook.prefix.data(),hook.prefix.size()))
         return std::string("Engine observer refused: changed or already hooked entry ")+hook.name;
     const auto initialized=MH_Initialize();
     if(initialized!=MH_OK && initialized!=MH_ERROR_ALREADY_INITIALIZED) return "Engine observer refused: hook initialization failed";
     size_t created=0;
-    for(const auto& hook:hooks) {
+    for(const auto& hook:owned) {
         const auto result=MH_CreateHook(reinterpret_cast<void*>(image_base+hook.rva),hook.detour,hook.original);
         if(result!=MH_OK) {
-            for(size_t i=0;i<created;++i) MH_RemoveHook(reinterpret_cast<void*>(image_base+hooks[i].rva));
+            for(size_t i=0;i<created;++i) MH_RemoveHook(reinterpret_cast<void*>(image_base+owned[i].rva));
             return std::string("Engine observer refused: ")+hook.name+" "+MH_StatusToString(result);
         }
         ++created;
@@ -389,20 +396,24 @@ std::string Recorder::start(const std::filesystem::path& root) {
     // Keep physical bytes equal to the accounting in line(), including newlines.
     output_.open(root/filename,std::ios::out|std::ios::trunc|std::ios::binary);
     if(!output_) {
-        for(const auto& hook:hooks) MH_RemoveHook(reinterpret_cast<void*>(image_base+hook.rva));
+        for(const auto& hook:owned) MH_RemoveHook(reinterpret_cast<void*>(image_base+hook.rva));
         return "Engine observer refused: cannot open diagnostic log";
     }
     std::ostringstream header;
-    header<<"{\"type\":\"header\",\"schema\":5,\"mode\":\"observe-only\",\"sha256\":\""<<actual_sha
-          <<"\",\"physx_sha256\":\""<<physx_expected
+    header<<"{\"type\":\"header\",\"schema\":5,\"mode\":\""<<(camera_only?"camera-observation":"observe-only")<<"\",\"sha256\":\""<<actual_sha
+          <<"\",\"physx_sha256\":\""<<(camera_only?"":physx_expected)
           <<"\",\"pid\":"<<GetCurrentProcessId()<<",\"qpc_frequency\":"<<frequency.QuadPart
           <<",\"qpc_origin\":"<<stamp.QuadPart<<",\"max_bytes\":"<<max_bytes<<",\"max_ms\":"<<max_milliseconds
-          <<",\"mods_suspended\":true,\"hooks\":[";
-    for(size_t i=0;i<std::size(hooks);++i) { if(i)header<<','; header<<"{\"name\":\""<<hooks[i].name<<"\",\"rva\":"<<hooks[i].rva<<'}'; }
+          <<",\"mods_suspended\":"<<(camera_only?"false":"true")<<",\"hooks\":[";
+    for(size_t i=0;i<selected.size();++i) { if(i)header<<','; header<<"{\"name\":\""<<selected[i].name<<"\",\"rva\":"<<selected[i].rva<<'}'; }
     header<<"]}";
     if(!line(header.str())) { finish("io_error"); return "Engine observer refused: cannot write header"; }
     output_.flush(); buffer.open();
-    for(const auto& hook:hooks) {
+    if(!::crml::camera_update::start(image_base) || !::crml::camera_update::adapt(&camera_update)) {
+        for(const auto& hook:owned) MH_RemoveHook(reinterpret_cast<void*>(image_base+hook.rva));
+        finish("hook_enable_failed");return "Engine observer refused: shared camera update unavailable";
+    }
+    for(const auto& hook:owned) {
         const auto result=MH_EnableHook(reinterpret_cast<void*>(image_base+hook.rva));
         if(result!=MH_OK) {
             // Already enabled trampolines stay pinned/pass-through. No unsafe removal during a call.
@@ -410,7 +421,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
         }
     }
     enabled.store(true,std::memory_order_release);
-    return "Observe-only engine validation active; mods, noclip and visibility suspended; log: "+filename;
+    return (camera_only?"Read-only camera observation active alongside mods; log: ":"Observe-only engine validation active; mods, noclip and visibility suspended; log: ")+filename;
 }
 void Recorder::finish(const char* reason) {
     enabled.store(false,std::memory_order_release); buffer.close();
@@ -450,7 +461,7 @@ bool camera_test_args{},camera_test_throw{};
 }
 bool test_camera_callbacks() {
     camera_test_calls={};camera_test_args=true;camera_test_throw=false;
-    camera_original=+[](void*,void* a,void* b) {++camera_test_calls[0];camera_test_args&=a==reinterpret_cast<void*>(2) && b==reinterpret_cast<void*>(3);};
+    const auto camera_original=+[](void*,void* a,void* b) {++camera_test_calls[0];camera_test_args&=a==reinterpret_cast<void*>(2) && b==reinterpret_cast<void*>(3);};
     camera_switch_original=+[](void*,int mode,uint8_t option) {
         ++camera_test_calls[1];camera_test_args&=mode==-7 && option==99;
         if(camera_test_throw) throw std::runtime_error("fixture native unwind");
@@ -458,8 +469,8 @@ bool test_camera_callbacks() {
     camera_select_original=+[](int mode) {++camera_test_calls[2];camera_test_args&=mode==-7;};
     camera_init_original=+[](void* view,void*) {++camera_test_calls[3];camera_test_args&=view==reinterpret_cast<void*>(2);};
     camera_remove_original=+[](void* view,void*) {++camera_test_calls[4];camera_test_args&=view==reinterpret_cast<void*>(2);};
-    const auto invoke=[](void* context) {
-        camera_update(context,reinterpret_cast<void*>(2),reinterpret_cast<void*>(3));
+    const auto invoke=[camera_original](void* context) {
+        camera_update(camera_original,context,reinterpret_cast<void*>(2),reinterpret_cast<void*>(3));
         camera_switch(context,-7,99);camera_select(-7);
         camera_init(reinterpret_cast<void*>(2),context);camera_remove(reinterpret_cast<void*>(2),context);
     };
@@ -480,7 +491,7 @@ bool test_camera_callbacks() {
     }
     ok&=states==11 && slots==0 && switch_enter==2 && switch_return==1 && propagated && camera_test_args;
     ok&=camera_test_calls==std::array<unsigned,5>{2,3,2,2,2};
-    camera_original=nullptr;camera_switch_original=nullptr;camera_select_original=nullptr;
+    camera_switch_original=nullptr;camera_select_original=nullptr;
     camera_init_original=nullptr;camera_remove_original=nullptr;camera_test_throw=false;
     return ok;
 }

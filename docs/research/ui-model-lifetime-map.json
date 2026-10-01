@@ -1,0 +1,466 @@
+{
+  "schema": 1,
+  "title": "Engine texture-view binding requests and native model/context lifetime",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static producer, consumer, model setup and teardown evidence. Not a callable UI API or gameplay-verified injection path.",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b4ffe6",
+      "target": "0x1b57110",
+      "label": "copy ordinary binding record"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b50076",
+      "target": "0x1b571f0",
+      "label": "copy list binding record"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b50106",
+      "target": "0x1b57110",
+      "label": "copy third binding record category"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b501ad",
+      "target": "0x1b557d0",
+      "label": "enqueue owned bindings request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b501b8",
+      "target": "0x1b57530",
+      "label": "destroy moved temporary request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b55848",
+      "target": "0x1b54360",
+      "label": "move variant into request list node"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b55fd3",
+      "target": "0x1b537d0",
+      "label": "engine worker dispatches pending UI requests"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b53829",
+      "target": "0x1b54540",
+      "label": "execute one request variant"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b5384f",
+      "target": "0x1b57530",
+      "label": "destroy completed request payload"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b53858",
+      "target": "0x3202210",
+      "label": "free completed request list node"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b54898",
+      "target": "0x1b57740",
+      "label": "tag8 installs binding arrays"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b57787",
+      "target": "0x1b560d0",
+      "label": "find target texture view by numeric ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b577b8",
+      "target": "0x1b572a0",
+      "label": "copy owned binding triple for target"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b577e5",
+      "target": "0x1b54c60",
+      "label": "assign context ordinary binding array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b5780f",
+      "target": "0x1b54fb0",
+      "label": "assign context list binding array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b57838",
+      "target": "0x1b54c60",
+      "label": "assign context third binding array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b57578",
+      "target": "0x19e9280",
+      "label": "request destructor releases third binding array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b57582",
+      "target": "0x19e9310",
+      "label": "request destructor releases list binding array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b5758c",
+      "target": "0x19e9280",
+      "label": "request destructor releases ordinary binding array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b575f7",
+      "target": "0x1b57530",
+      "label": "whole request-list teardown destroys pending variants"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19db18c",
+      "target": "0x1b4fef0",
+      "label": "script reset bindings producer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b4ff10",
+      "target": "0x1b557d0",
+      "label": "enqueue tag7 reset request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b54815",
+      "target": "0x3f4cd0",
+      "label": "resolve reset GlobalID to entity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b5488b",
+      "target": "0x1b56ac0",
+      "label": "queue binding component removal after generation check"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b5414b",
+      "target": "0x1bbcfd0",
+      "label": "construct owned view context"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbcfec",
+      "target": "0x3482650",
+      "label": "base UI view context construction"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbd047",
+      "target": "0x17e5150",
+      "label": "construct context binding manager"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbd054",
+      "target": "0x17c1bf0",
+      "label": "construct context event state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbd158",
+      "target": "0x17e72f0",
+      "label": "register owned built-in transform adapter"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbd4ea",
+      "target": "0x34429c0",
+      "label": "resolve native middleware view for binding initialization"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbd4f5",
+      "target": "0x17e6eb0",
+      "label": "reset binding manager and associate current native view"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbd5ae",
+      "target": "0x31cab80",
+      "label": "acquire typed UI resource"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbd69e",
+      "target": "0x17e52d0",
+      "label": "install UI resource binding descriptors"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbd704",
+      "target": "0x17e52d0",
+      "label": "install context custom binding descriptors"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e5353",
+      "target": "0x17f3b10",
+      "label": "decode ordinary binding typed value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e5384",
+      "target": "0x17e74e0",
+      "label": "insert named ordinary binding"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e756b",
+      "target": "0x32d27b0",
+      "label": "derive binding key for uniqueness lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e76d2",
+      "target": "0x17da250",
+      "label": "construct owned model-binding value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e7799",
+      "target": "0x17eef20",
+      "label": "copy constructed value into manager tree node"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b52528",
+      "target": "0x3482bc0",
+      "label": "detach native view before context deletion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b52543",
+      "target": "0x3202210",
+      "label": "free detached owned context"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbf922",
+      "target": "0x1bbf780",
+      "label": "context destructor destroys event state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbf92e",
+      "target": "0x1bbf630",
+      "label": "context destructor destroys binding manager"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbf93b",
+      "target": "0x19e9280",
+      "label": "context destructor releases third bindings"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbf948",
+      "target": "0x19e9310",
+      "label": "context destructor releases list bindings"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbf955",
+      "target": "0x19e9280",
+      "label": "context destructor releases ordinary bindings"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbf95e",
+      "target": "0x34829c0",
+      "label": "base context destruction follows derived state cleanup"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b548cc",
+      "target": "0x1b547db",
+      "label": "tag7 consumer table entry"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b548d0",
+      "target": "0x1b54895",
+      "label": "tag8 consumer table entry"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b575bc",
+      "target": "0x1b57574",
+      "label": "tag8 destructor table entry"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b56be0",
+      "target": "0xc5ae4bd3",
+      "label": "reset binding component hash"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x48d13b0",
+      "target": "0x1bbf8c0",
+      "label": "view context virtual destructor"
+    }
+  ],
+  "scope": "Native engine UI texture-view path using Cohtml. This is not the CRML overlay, nor proof of arbitrary main-menu or HUD page insertion.",
+  "binding_request": {
+    "script_binding": "nl_coherent_texture_view_add_data_bindings",
+    "script_callback_rva": "0x19da040",
+    "producer_rva": "0x1b4ff30",
+    "parameters": [
+      "native texture-view registry",
+      "32-bit view ID",
+      "ordinary binding span",
+      "list binding span",
+      "third binding span"
+    ],
+    "span_layout": {
+      "0x0": "64-bit count",
+      "0x8": "data pointer"
+    },
+    "ordinary_stride": "0xd4",
+    "list_stride": "0xac",
+    "ordinary_fields": {
+      "0x00": "owned compact string",
+      "0x28": "owned compact string",
+      "0x50": "owned compact string",
+      "0x78": "32-bit value type",
+      "0x7c": "16-byte inline value storage",
+      "0x8c": "owned compact string"
+    },
+    "list_fields": {
+      "0x00": "owned compact string",
+      "0x28": "owned compact string",
+      "0x50": "32-bit value type",
+      "0x54": "16-byte inline value storage",
+      "0x64": "owned compact string"
+    },
+    "field_boundary": "Wrapper references keyName, modelName, transformID and type. Complete string-field correspondence and all value tags remain to be decoded.",
+    "request_payload": {
+      "0x00": "32-bit target view ID",
+      "0x08": "ordinary array pointer/count/capacity",
+      "0x18": "list array pointer/count/capacity",
+      "0x28": "third array pointer/count/capacity",
+      "0x170": "signed variant tag; bindings=8"
+    },
+    "ownership": "Producer deep-copies strings with 0x318edf0 through typed copy constructors. Enqueue moves the owning variant into a node; temporary destruction is required."
+  },
+  "queue": {
+    "owner": "CoherentTextureViews environment",
+    "sentinel_offset": "0x10",
+    "count_offset": "0x18",
+    "node_size": "0x188",
+    "node_fields": {
+      "0x00": "next",
+      "0x08": "previous",
+      "0x10": "variant payload"
+    },
+    "insertion_rva": "0x1b557d0",
+    "consumer_rva": "0x1b537d0",
+    "variant_dispatch_rva": "0x1b54540",
+    "scheduling": "Registered dispatcher 0x1b55f60 derives the worker-local command buffer using engine worker index, stride0x1b8 and world+0x585e8.",
+    "completion": "Consumer unlinks, destroys and frees a request only when variant handler returns true. It otherwise remains pending.",
+    "unavailable_target": "Tag8 handler returns true even when the target view is absent. Request removal therefore does not prove that bindings were applied.",
+    "teardown_rva": "0x1b575c0"
+  },
+  "view_context": {
+    "constructor_rva": "0x1bbcfd0",
+    "destructor_rva": "0x1bbf8c0",
+    "size": "0x388",
+    "vtable_rva": "0x48d13b0",
+    "fields": {
+      "0x130": "owned ordinary binding array",
+      "0x140": "owned list binding array",
+      "0x150": "owned third binding array",
+      "0x160": "binding manager, size0x90",
+      "0x1f0": "event/interaction state"
+    },
+    "registry_record": {
+      "size": "0xa0",
+      "id_offset": "0x00",
+      "state_offset": "0x10",
+      "context_offset": "0x18"
+    },
+    "binding_assignment": "Tag8 resolves the numeric view ID and assigns all three context arrays with typed vector-assignment helpers. This replaces the prior array contents; it does not append an independent mod-owned namespace.",
+    "setup_rva": "0x1bbd4c0",
+    "setup_steps": [
+      "Resolve the native middleware view through 0x34429c0.",
+      "Reset binding-manager containers and associate the native view using 0x17e6eb0.",
+      "Acquire UI resource with 0x31cab80 and apply resource descriptor spans through 0x17e52d0.",
+      "Apply context custom descriptor spans through the same 0x17e52d0.",
+      "Initialize additional event/interaction state separately."
+    ],
+    "no_op_helpers": [
+      "0x17e52b0",
+      "0x17e52c0"
+    ],
+    "setup_boundary": "The two no-op helpers are retained in the call graph but must not be advertised as useful setters. Assigning context arrays alone has not established when an already-initialized view rebuilds models."
+  },
+  "model_insertion": {
+    "batch_rva": "0x17e52d0",
+    "typed_value_decoder_rva": "0x17f3b10",
+    "entry_rva": "0x17e74e0",
+    "observations": [
+      "Ordinary records first decode type and inline/string data into a tagged value. Failed decoding skips insertion.",
+      "Insertion requires a non-null middleware view at binding-manager+0x80.",
+      "The first string argument is converted to a 64-bit key using 0x32d27b0.",
+      "An existing key in the manager tree causes early return instead of overwrite.",
+      "Accepted entries construct an owned model value via 0x17da250 and copy it into a 0xf8-byte tree node.",
+      "The context constructor owns a built-in world-to-screen transform adapter; arbitrary Wasm callback pointers cannot substitute for this native adapter ABI."
+    ],
+    "unresolved": [
+      "exact middleware binding method slots",
+      "complete typed-value tag table",
+      "which string is the unique namespace key",
+      "error/completion reporting",
+      "update versus reconstruction behavior"
+    ]
+  },
+  "cleanup": {
+    "view_removal": [
+      "A removal request marks registry record state2.",
+      "Advance state2 invokes 0x3482bc0, virtual context destruction, frees the allocation, nulls record+0x18 and writes state3.",
+      "Cleanup scans state3 records, destroys owned record string data and compacts the array."
+    ],
+    "destructor_order": [
+      "event/interaction state at+0x1f0",
+      "binding manager at+0x160",
+      "binding arrays +0x150,+0x140,+0x130",
+      "base UI context"
+    ],
+    "reset_binding_request": {
+      "binding": "nl_coherent_texture_view_reset_bindings",
+      "producer_rva": "0x1b4fef0",
+      "tag": 7,
+      "target": "GlobalID rather than the numeric texture-view ID",
+      "effect": "Resolve GlobalID via0x3f4cd0, validate entity generation/capacity, and append command-buffer removal of component hash0xc5ae4bd3 using0x1b56ac0.",
+      "boundary": "This is an entity structural operation. It is not evidence of an immediate per-mod model clear or whole view destruction."
+    },
+    "callback_boundary": "Owned containers and native context teardown are traced. Cohtml event-handler release acknowledgement, in-flight event callbacks and unload races remain unresolved."
+  },
+  "bridge_requirements": [
+    "Use a dedicated mod-owned native view/context; replacing a shared view binding array would overwrite other bindings.",
+    "Expose bounded guest-owned text/value/model descriptions and stable event tokens, never native strings, arrays, vtables or callback pointers.",
+    "Create model names and registry ownership under a namespace; handle duplicates explicitly.",
+    "Submit work only at the engine UI scheduler boundary; maintain private ownership until completion or rejection.",
+    "Observe DOM/script-context readiness and establish when custom binding arrays become active.",
+    "Route events to bounded owner-scoped queues and revoke tokens before teardown.",
+    "Prove event unregistration, context replacement, reload and pending-request cancellation before Wasm exposure."
+  ],
+  "available_in_wasm": false
+}

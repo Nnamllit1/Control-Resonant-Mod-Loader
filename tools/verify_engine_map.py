@@ -40,17 +40,30 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('executable', type=Path)
     parser.add_argument('map', type=Path)
+    parser.add_argument('--middleware', type=Path, help='Also verify the middleware image described by the map')
     args = parser.parse_args()
     try:
         profile = json.loads(args.map.read_text(encoding='utf-8'))
         failures = verify(read_bounded(args.executable, 256 * 1024 * 1024), profile)
+        middleware_failures = None
+        if args.middleware:
+            middleware = profile.get('middleware')
+            require(isinstance(middleware, dict), 'Map has no middleware profile')
+            middleware_failures = verify(read_bounded(args.middleware, 256 * 1024 * 1024),
+                dict(schema=1, executable_sha256=middleware['sha256'], checks=middleware['checks']))
     except (OSError, ValueError, KeyError, TypeError) as error:
         parser.exit(1, f'Map verification failed: {error}\n')
     for failure in failures:
         print(failure)
     print(f"{len(profile['checks']) - len(failures)}/{len(profile['checks'])} static references verified.")
+    if middleware_failures is not None:
+        for failure in middleware_failures:
+            print('Middleware: ' + failure)
+        print(f"{len(middleware['checks']) - len(middleware_failures)}/{len(middleware['checks'])} middleware references verified.")
+    elif profile.get('middleware'):
+        print('Middleware references not checked; supply --middleware to verify them.')
     print('This verifies encoded references, not semantic labels, callable ABIs, or live behavior.')
-    return bool(failures)
+    return bool(failures or middleware_failures)
 
 
 if __name__ == '__main__':

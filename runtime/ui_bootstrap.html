@@ -1,0 +1,197 @@
+<!-- crml-ui-bridge-v1 -->
+<script>
+(function () {
+    'use strict';
+    if (window.__crmlUiBridge) return;
+    var nonce = '__CRML_UI_NONCE__';
+    function u64(value) {
+        return typeof value === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(value) &&
+            (value.length < 20 || value <= '18446744073709551615');
+    }
+    function u32(value) {
+        return typeof value === 'number' && isFinite(value) && value >= 0 &&
+            value <= 4294967295 && Math.floor(value) === value;
+    }
+    if (!u64(nonce) || nonce === '0' || typeof window.XMLHttpRequest !== 'function') return;
+    var sequence = 0, acknowledged = 0, lastId = 0;
+    var timer = null, pending = null, stopped = false;
+    var lastKey = '', since = 0, epoch = 0, lastScreen = -1, continued = false;
+    var leases = [], styleNode = null, rules = '', token = 0;
+    var attribute = 'data-crml-presentation-' + nonce;
+    function priority(el) {
+        return typeof el.style.getPropertyPriority === 'function' ? el.style.getPropertyPriority('visibility') :
+            /visibility\s*:[^;]*!\s*important/i.test(el.getAttribute('style') || '') ? 'important' : '';
+    }
+    function renderRules() {
+        var text = '';
+        for (var i = 0; i < leases.length; ++i) if (!leases[i].blocked)
+            text += '[' + attribute + '="' + leases[i].token + '"]{visibility:hidden!important}';
+        if (text === rules) return;
+        rules = text;
+        if (!text) {
+            if (styleNode && styleNode.parentNode) styleNode.parentNode.removeChild(styleNode);
+            styleNode = null; return;
+        }
+        if (!styleNode) { styleNode = document.createElement('style'); document.head.appendChild(styleNode); }
+        styleNode.textContent = text;
+    }
+    function restore(lease) {
+        if (lease.element.getAttribute(attribute) === lease.token) {
+            if (lease.previous === null) lease.element.removeAttribute(attribute);
+            else lease.element.setAttribute(attribute, lease.previous);
+        }
+    }
+    function clearLeases() {
+        for (var i = 0; i < leases.length; ++i) restore(leases[i]);
+        leases = [];
+        renderRules();
+    }
+    function resolve(kind, name) {
+        var nodes = kind === 1 ? document.querySelectorAll('[id="' + name + '"]') :
+            document.getElementsByClassName(name);
+        var element = nodes.length === 1 ? nodes[0] : null;
+        return element && element.nodeType === 1 && element.style &&
+            document.documentElement.contains(element) ? element : null;
+    }
+    function reconcile(now) {
+        for (var i = leases.length - 1; i >= 0; --i) {
+            var lease = leases[i], style = lease.element.style;
+            if (now >= lease.until || now < lease.received ||
+                resolve(lease.kind, lease.name) !== lease.element) {
+                restore(lease); leases.splice(i, 1);
+            } else if (style.getPropertyValue('visibility') !== lease.value ||
+                priority(lease.element) !== lease.priority ||
+                lease.element.getAttribute(attribute) !== lease.token) lease.blocked = true;
+        }
+        renderRules();
+    }
+    function applyLeases(batch, age) {
+        if (!Array.isArray(batch) || batch.length > 8) { clearLeases(); return; }
+        var items = [], now = Date.now(), i, j;
+        for (i = 0; i < batch.length; ++i) {
+            var item = batch[i];
+            if (!item || (item.kind !== 1 && item.kind !== 2) ||
+                typeof item.name !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(item.name) ||
+                !u32(item.ttl_ms) || item.ttl_ms < 1 || item.ttl_ms > 1000) { clearLeases(); return; }
+            var element = resolve(item.kind, item.name);
+            for (j = 0; j < items.length; ++j) {
+                if ((items[j].kind === item.kind && items[j].name === item.name) ||
+                    (element && items[j].element === element)) { clearLeases(); return; }
+            }
+            items.push({kind: item.kind, name: item.name, element: element, ttl: item.ttl_ms - age});
+        }
+        var next = [];
+        for (i = 0; i < leases.length; ++i) {
+            var retained = false;
+            for (j = 0; j < items.length; ++j) {
+                if (leases[i].kind === items[j].kind && leases[i].name === items[j].name &&
+                    leases[i].element === items[j].element && items[j].ttl > 0) { retained = true; break; }
+            }
+            if (!retained) restore(leases[i]);
+        }
+        for (i = 0; i < items.length; ++i) {
+            var target = items[i];
+            if (!target.element || target.ttl <= 0) continue;
+            var existing = null;
+            for (j = 0; j < leases.length; ++j) {
+                if (leases[j].kind === target.kind && leases[j].name === target.name &&
+                    leases[j].element === target.element) { existing = leases[j]; break; }
+            }
+            if (!existing) {
+                var style = target.element.style;
+                if (priority(target.element) === 'important' || token === 4294967295) continue;
+                existing = {kind: target.kind, name: target.name, element: target.element,
+                    value: style.getPropertyValue('visibility'), priority: priority(target.element), blocked: false,
+                    previous: target.element.getAttribute(attribute), token: String(++token)};
+                target.element.setAttribute(attribute, existing.token);
+            }
+            existing.received = now; existing.until = now + target.ttl; next.push(existing);
+        }
+        leases = next;
+        renderRules();
+    }
+    function model(name) {
+        var item = window[name];
+        return item && typeof item === 'object' ? item.value : undefined;
+    }
+    function snapshot() {
+        var splash = model('ui_stacks_program_flow_states_splash_screen_current');
+        var value = model('ui_splash_screen_current');
+        var screen = splash === true && u32(value) && value >= 1 && value <= 8 ? value : 0;
+        if (!screen && splash === false && model('ui_stacks_program_flow_state') === 'main_menu') screen = 9;
+        if (screen !== lastScreen) { lastScreen = screen; continued = false; }
+        var ready = (screen === 1 || screen === 5 || screen === 8) && splash === true &&
+            model('ui_splash_screen_sequence_loading') === false &&
+            model('ui_splash_screen_sequence_fading_out') === false &&
+            window.engine && typeof window.engine.trigger === 'function';
+        var key = screen + ':' + (ready ? '1' : '0');
+        var now = Date.now();
+        if (key !== lastKey || now < since) { clearLeases(); lastKey = key; since = now; ++epoch; }
+        reconcile(now);
+        return {screen: screen, actions: ready && !continued && now - since >= 750 ? 1 : 0, epoch: epoch};
+    }
+    function stop() {
+        if (stopped) return;
+        stopped = true;
+        clearLeases();
+        if (timer !== null) window.clearInterval(timer);
+        var request = pending;
+        pending = null;
+        if (request) {
+            request.onload = request.onerror = request.ontimeout = request.onabort = null;
+            try { request.abort(); } catch (_) {}
+        }
+        window.removeEventListener('unload', stop);
+    }
+    function receive(text, requestEpoch, sentAt) {
+        var command;
+        try { command = JSON.parse(text); } catch (_) { return; }
+        if (!command || !u32(command.id)) return;
+        var fresh = command.id !== 0 && command.id > lastId;
+        if (fresh) { lastId = command.id; acknowledged = command.id; }
+        if (!u64(command.generation) || command.generation === '0' || !u32(command.screen)) return;
+        var current = snapshot();
+        var age = Date.now() - sentAt;
+        if (age < 0) { clearLeases(); return; }
+        if (stopped || current.epoch !== requestEpoch || current.screen !== command.screen) return;
+        try { if (command.leases !== undefined) applyLeases(command.leases, age); }
+        catch (_) { try { clearLeases(); } catch (_) {} }
+        if (!fresh || !u32(command.action) || command.action !== 1 || current.actions !== 1) return;
+        continued = true;
+        try { window.engine.trigger('splash_continue_pressed'); } catch (_) { continued = false; }
+    }
+    function poll() {
+        if (stopped) return;
+        // Track visits during pending requests too.
+        var current = snapshot();
+        if (pending) return;
+        if (sequence === 4294967295) { stop(); return; }
+        var number = ++sequence;
+        var sentAt = Date.now();
+        var request;
+        try {
+            request = new window.XMLHttpRequest();
+            pending = request;
+            function finish(deliver) {
+                if (stopped || pending !== request || sequence !== number) return;
+                pending = null;
+                if (deliver && request.status === 200 && typeof request.responseText === 'string' &&
+                    request.responseText.length <= 2048) receive(request.responseText, current.epoch, sentAt);
+            }
+            request.onload = function () { finish(true); };
+            request.onerror = request.ontimeout = request.onabort = function () { finish(false); };
+            request.open('GET', 'coui://base/crml/ui/v1/' + nonce + '/' + number + '/' +
+                current.screen + '/' + current.actions + '/' + acknowledged, true);
+            request.timeout = 1500;
+            request.send();
+        } catch (_) {
+            if (pending === request) pending = null;
+            if (request) try { request.abort(); } catch (_) {}
+        }
+    }
+    window.__crmlUiBridge = {stop: stop};
+    window.addEventListener('unload', stop);
+    timer = window.setInterval(poll, 250);
+    poll();
+}());
+</script>

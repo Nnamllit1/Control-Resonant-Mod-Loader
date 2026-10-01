@@ -186,6 +186,31 @@ class ReportTests(unittest.TestCase):
 
 
 class EngineMapTests(unittest.TestCase):
+    def test_middleware_cli_requires_its_own_fingerprint_and_reports_omission(self):
+        import json
+        import verify_engine_map as maps
+        data, profile = self.make_map()
+        profile['middleware'] = {'sha256': profile['executable_sha256'], 'checks': profile['checks']}
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            exe, dll, mapping = folder/'game.exe', folder/'ui.dll', folder/'map.json'
+            exe.write_bytes(data)
+            dll.write_bytes(data)
+            mapping.write_text(json.dumps(profile))
+            with patch.object(sys, 'argv', ['verify', str(exe), str(mapping)]), contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertFalse(maps.main())
+                self.assertIn('Middleware references not checked', output.getvalue())
+            args = ['verify', str(exe), str(mapping), '--middleware', str(dll)]
+            with patch.object(sys, 'argv', args), contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertFalse(maps.main())
+                self.assertIn('5/5 middleware references verified', output.getvalue())
+            data[0x500] ^= 1
+            dll.write_bytes(data)
+            with patch.object(sys, 'argv', args), contextlib.redirect_stderr(io.StringIO()) as errors:
+                with self.assertRaises(SystemExit):
+                    maps.main()
+                self.assertIn('fingerprint differs', errors.getvalue())
+
     def make_map(self):
         data = pe_fixture()
         data[0x230:0x235] = b'\xe8' + struct.pack('<i', 0x1080 - 0x1035)

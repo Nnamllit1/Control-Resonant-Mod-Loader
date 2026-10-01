@@ -1,5 +1,5 @@
-#include "engine_observer.h"
-#include "physics_observation.h"
+#include "diagnostics/engine_observer.h"
+#include "diagnostics/physics_observation.h"
 #include <cstring>
 #include <iostream>
 #include <memory>

@@ -184,6 +184,8 @@ Identities and pose digests are salted for the capture. No native addresses or r
 
 For camera investigation alone, load a playable save, turn the camera briefly, reload that save, and turn it again. Normal gameplay should remain unchanged; there is no free-camera toggle in observation mode. A reload is useful for lifetime observations but does not guarantee that every camera entity or the Lua VM is replaced.
 
+For a focused camera capture alongside Wasm mods, create an empty `crml/camera-observation.enabled` file before startup instead of enabling the broad engine observer. The recorder installs only the five camera hooks, avoiding the controller and physics hooks owned by gameplay services. Remove the file with the game closed to stop future captures. The same analyzer accepts its `camera-observation` header and reports non-camera systems as not recorded. This recorder does not move or select a camera; gameplay mods can still change game state during the capture.
+
 ## Scheduler and lifetime requirements
 
 Polling helper `0x2cdbbf0` calls `0x3271510`, which selects work through `0x3272a70` and executes it through `0x3272ad0` before returning. The executor invokes a virtual callback, processes dependency counters, and has recursive execution branches. The trace establishes a scheduler execution path, not every concrete callback target or the complete task graph.

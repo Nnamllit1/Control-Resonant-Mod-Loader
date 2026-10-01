@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "title": "Native boot playback and startup UI transitions",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Reviewed static control flow. Boot skip consumption was observed live; full startup presentation and transition behavior remain experimental.",
+  "documentation": "../api.md#media-observation-and-skipping",
+  "checks": [
+    {"kind":"pointer64","rva":"0x5a0b018","target":"0x3a9c540","label":"Logical startup resource path metadata"},
+    {"kind":"call_rel32","rva":"0x3d3620","target":"0x188c450","label":"Construct local boot playback object"},
+    {"kind":"call_rel32","rva":"0x3d3647","target":"0x188c4f0","label":"Start boot resource playback"},
+    {"kind":"call_rel32","rva":"0x3d3703","target":"0x3d4bc0","label":"Enter startup loop with same playback object"},
+    {"kind":"call_rel32","rva":"0x3d4c08","target":"0x188cef0","label":"Initialization-gated normal exit query"},
+    {"kind":"call_rel32","rva":"0x3d4c18","target":"0x188c6c0","label":"Pump playback during initialization"},
+    {"kind":"call_rel32","rva":"0x3d4c88","target":"0x188cef0","label":"Separate input-path query remains unchanged"},
+    {"kind":"call_rel32","rva":"0x3d4c94","target":"0x188cf20","label":"Read playback time in milliseconds"},
+    {"kind":"u32","rva":"0x3d4cac","target":"0x7d0","label":"Native user skipping requires playback beyond 2000 ms"},
+    {"kind":"call_rel32","rva":"0x3d3780","target":"0x188c4c0","label":"Normal parent destroys playback object after loop"},
+    {"kind":"call_rel32","rva":"0x1e3cd58","target":"0x17dbc40","label":"Splash sequence checks template-ready event"},
+    {"kind":"call_rel32","rva":"0x1e3d102","target":"0x17dbc40","label":"Continue event consumed before screen transition guard"}
+  ],
+  "boot": {
+    "name_source": "Logical resource reference in original startup metadata; mapped to the reviewed boot adapter, not captured from each playback instance",
+    "active_query_rva": "0x188cef0",
+    "elapsed_query_rva": "0x188cf20",
+    "skip_return_address_rva": "0x3d4c0d",
+    "observation_return_address_rva": "0x3d4c8d",
+    "lifetime": "Loop-local playback object. Initialization readiness must already be true; skip uses the normal loop exit, then the original parent destructor and renderer-owned release path.",
+    "limits": "Runtime startup may miss this one-time playback. Does not cover in-game timelines or arbitrary video resources. Shipping skipsplashscreen and skipvideos registrations have false availability predicates; their consumers do not establish usable launch options."
+  },
+  "ui": {
+    "current_model": "ui/splash-screen/current",
+    "template_ready_event": "rmd-html-templates-loaded",
+    "continue_event": "splash_continue_pressed",
+    "transition_guard_seconds": 0.5,
+    "final_fade_seconds": 1.0,
+    "completion_gate": "GameState mask 0x402 must clear; individual flag meanings are not established",
+    "title": "UserInteraction state 8 uses CSS animation and transition delays; it is separate from native boot playback",
+    "quick_menu_model": "ui/main_menu/quick_entry_animation",
+    "quick_menu_limit": "Changes main-menu entrance timing; does not finish boot playback or bypass engine readiness",
+    "photosensitivity": {
+      "update_rva": "0x1e3ccf0",
+      "continue_branch_rva": "0x1e3d3f5",
+      "wait_flag_offset": "0x21",
+      "completion_query_rva": "0x2260250",
+      "coordinator_global_rva": "0x5cce430",
+      "preferences_complete_offset": "0x2b",
+      "task_names_rva": "0x2260420",
+      "behavior": "Continue starts waiting for preferences completion and queues an audio request. It does not start preference loading. The coordinator performs asynchronous reads of preferences/data and preferences/savegame before reporting completion.",
+      "repeat_risk": "A Continue present on the completion tick can re-enter the waiting branch. Cross-frame persistence of the event is not established; repeated acknowledgements alone do not prove native consumption.",
+      "presentation": "The engine DOM has a splash class. Hiding that presentation preserves layout and loading work; it does not complete the coordinator, alter the native state machine or eliminate initialization latency."
+    }
+  }
+}

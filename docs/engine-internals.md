@@ -91,6 +91,56 @@ ECS metadata separately names `MaterialResourceID`, `MaterialResource`, `Materia
 
 The GPU-facing work remains open: command decoding, shader selection, pipeline-state objects, descriptor binding, visibility, pass scheduling, and resource retirement. None of the recovered load methods is established as a safe draw or material-edit API yet.
 
+## Bundle requests and deferred entities
+
+The [spawn request map](research/spawn-request-map.json) traces the script-facing request through content lookup, owned instance data, pending requests, and ECS command construction. These are static findings for the fingerprinted executable. Spawning is not available through the Wasm API.
+
+```text
+bundle name + instigator + transform
+    -> content-name lookup / shared child collections
+    -> generated instance IDs + cloned content descriptors
+    -> pending request records + shared dependency owner
+    -> engine worker consumes requests
+    -> runtime entity handles + deferred component commands
+    -> command flush / initialization / streaming
+```
+
+The first five transitions have concrete producers and consumers. Completion after flushing, initialization failure, cancellation, and world teardown remain unresolved. A request being accepted is different from a usable entity appearing in the world.
+
+### Request arguments and content identity
+
+The `spawn_bundle_with_instigator` wrapper at `0x2390e10` reads a bundle name, an eight-byte instigator value, an optional position vector, and an optional orientation. Missing position becomes zero. The orientation is normalized when its squared norm is positive; otherwise the wrapper supplies the identity quaternion `(0, 0, 0, 1)`. The exact Lua entity representation accepted for the instigator remains to be established.
+
+Request helper `0x188e260` resolves the name through the content registry using `0x3282ab0`. This path uses name references with a cached pointer, registry epoch and lock byte; it is not the resource-object reference-count interface at `+0x64`. Helper `0x188ff60` searches for `content::SharedEntityCollectionComponent` by runtime type index, appends the root collection, then resolves its child references. Child records have stride `0x18`; unresolved child references are skipped by this loop.
+
+Builder `0x1b08eb0` increments the registry's instance counter, formats a new name, derives its identifier, allocates a descriptor, and clones component data through reflection operations. The descriptor is registered with the content registry. Its destructor at `0x1b08940` unregisters that ID, destroys owned component storage, and frees the descriptor. Borrowing the template's pointers would omit this ownership work.
+
+The native request helper returns the first generated descriptor's identifier. It is **not a runtime entity handle or proof of completion**: runtime handle allocation occurs later in the request consumer. The Lua wrapper returns no values on success and raises an error when the helper returns its failure identifier.
+
+### Pending request ownership
+
+`SpawningPoolRegistry` stores a pending array at `+0x48`, a 32-bit count at `+0x50`, and capacity at `+0x54`. Each request occupies `0x58` bytes:
+
+| Offset | Observed purpose |
+| --- | --- |
+| `+0x08..+0x27` | Owned instance descriptor record |
+| `+0x28`, `+0x30` | Shared dependency object and its ownership control block |
+| `+0x38`, `+0x40`, `+0x44` | Typed initializer array, count, capacity |
+| `+0x48` | Group key forwarded from the script owner/context identifier |
+| `+0x50` | Optional requested runtime entity; `-1` selects later allocation |
+
+Constructor `0x1895d20` and the append paths move these owners and clear their source slots. A byte copy does not create a second valid owner. Root and child requests share this representation, while children receive additional typed initialization. Initializers occupy `0x50` bytes each and contain an engine callback at `+0x40`; this is an internal component-construction mechanism, not an interface for guest callback pointers.
+
+Consumer `0x188f780` processes the pending array through `0x18964a0`, destroys each consumed request with `0x1894f30`, and resets the count. During processing, the shared dependency owner moves into command-buffer storage. Cleanup callback `0x1893ec0` releases its strong and weak control-block references. The queue becoming empty therefore does not mean all resources were released or all entities finished initialization.
+
+### Entity allocation and the scheduling boundary
+
+Batch processor `0x18964a0` groups instance descriptors by the request's `+0x48` key. It separates supplied runtime handles from requests needing allocation, calls `EntityGeneratorApi` through `0x1d635c0`, and appends the resulting handles to command-buffer pages. Content components, spawning metadata, retained dependencies and typed initializers then target a deferred entity index in that buffer.
+
+The registered dispatcher at `0x1893610` obtains the command buffer using the engine worker index, a `0x1b8` stride and world offset `0x585e8`. Finding this dispatcher does not establish that a mod worker can safely append to the queue or invoke the consumer. Queue exclusion, scheduler phase and world lifetime must be established first.
+
+A future bridge can expose an asynchronous, owner-scoped request accepting a template ID, transform and optional validated instigator. Its token must remain distinct from content IDs and runtime entity handles. Useful completion states require observing initialization and failures, tracking every child, and establishing cancellation and despawn behavior through unload and world replacement. None of those guarantees follows from a successful call to the request helper alone.
+
 ## Mod API boundary
 
 The resource and entity maps describe native engine internals. They do not expose material overrides, spawning, scripting events, or general physics operations to Wasm. Available guest operations and capability requirements are documented in the [SDK reference](api.md).
@@ -101,14 +151,16 @@ The reviewed maps preserve object-layout evidence, function roles, exact referen
 
 - [Lua resource map](research/lua-resource-map.json)
 - [Material resource map](research/material-resource-map.json)
+- [Spawn request and ownership map](research/spawn-request-map.json)
 
 ```powershell
 $gameDir = Read-Host 'Path to your CONTROL Resonant installation'
 python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/lua-resource-map.json
 python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/material-resource-map.json
+python tools/verify_engine_map.py "$gameDir\CONTROLResonant.exe" docs/research/spawn-request-map.json
 ```
 
-Each map checks 24 encoded references after requiring an exact executable fingerprint. Checks cover vtable pointers, relative calls/jumps, address loads, and constants. They detect a mismatched map; they do not prove semantic labels, thread ownership, complete function signatures, or live behavior. No game functions are executed.
+The Lua and material maps each check 24 encoded references; the spawn map checks 37. Each requires an exact executable fingerprint. Checks cover vtable pointers, relative calls/jumps, address loads, and constants. They detect a mismatched map; they do not prove semantic labels, thread ownership, complete function signatures, or live behavior. No game functions are executed.
 
 ## Player mesh and collision ownership
 

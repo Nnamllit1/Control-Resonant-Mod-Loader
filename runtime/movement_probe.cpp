@@ -1,13 +1,15 @@
 #include "movement_probe.h"
+#include "controller_hook.h"
 #include "compatibility.h"
 #include "movement_view.h"
-#include "entity_inspector.h"
+#include "player_snapshot.h"
+#include "diagnostics/entity_inspector.h"
 #include "visibility.h"
 #include "noclip.h"
 #include "overlay.h"
 #include "input_filter.h"
 #include "fall_guard.h"
-#include "fall_observer.h"
+#include "diagnostics/fall_observer.h"
 #include "boundary_guard.h"
 #include "lua_lifetime.h"
 #include "lua_probe.h"
@@ -24,8 +26,6 @@
 
 namespace crml::probe {
 namespace {
-using Move = void(*)(void*, void*, void*, void*, void*, void*);
-Move original{};
 uintptr_t image_base{};
 std::atomic<bool> recording{};
 std::atomic<uint64_t> calls{}, invalid{}, players{}, others{};
@@ -44,6 +44,8 @@ uint64_t result_tick{};
 bool result_valid{};
 Flight flight{};
 std::atomic<bool> gameplay_enabled{};
+std::atomic<bool> player_read_enabled{};
+PlayerSnapshot player_snapshot{}; // Protected by sample_lock, including invalidation.
 bool toggle_down{}; // Runtime worker only.
 uint64_t last_poll{};
 std::atomic<uint64_t> motion_requests{};
@@ -99,10 +101,10 @@ Observation observe(void* view, void* world, Sample& sample) noexcept {
     }
 }
 
-void movement(void* view, void* world, void* collisions, void* callback, void* scene, void* time) {
+void movement(controller::Move original, void* view, void* world, void* collisions, void* callback, void* scene, void* time) {
     Override replacement;
     bool override_movement = false;
-    if (recording.load(std::memory_order_relaxed) || gameplay_enabled.load(std::memory_order_relaxed)) {
+    if (recording.load(std::memory_order_relaxed) || gameplay_enabled.load(std::memory_order_relaxed) || player_read_enabled.load(std::memory_order_relaxed)) {
         calls.fetch_add(1, std::memory_order_relaxed);
         Sample sample{};
         switch (observe(view, world, sample)) {
@@ -122,6 +124,7 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
                 latest = sample;
                 latest_thread = GetCurrentThreadId();
                 latest_tick = GetTickCount64();
+                if(player_read_enabled.load(std::memory_order_relaxed)) player_snapshot.publish(sample,latest_tick);
                 if (gameplay_enabled.load(std::memory_order_relaxed)) {
                     std::array<float,3> target{};
                     const Direction keys{float(down('D'))-float(down('A')), float(down(VK_SPACE))-float(down(VK_CONTROL)), float(down('W'))-float(down('S')), down(VK_SHIFT)};
@@ -138,6 +141,11 @@ void movement(void* view, void* world, void* collisions, void* callback, void* s
             break;
         case Observation::other_entity: others.fetch_add(1, std::memory_order_relaxed); break;
         default:
+            if(player_read_enabled.load(std::memory_order_relaxed)) {
+                AcquireSRWLockExclusive(&sample_lock);
+                player_snapshot.invalidate();
+                ReleaseSRWLockExclusive(&sample_lock);
+            }
             invalid.fetch_add(1, std::memory_order_relaxed);
             rejected[static_cast<size_t>(sample.rejection)].fetch_add(1, std::memory_order_relaxed);
             break;
@@ -182,45 +190,42 @@ std::string fingerprint(const std::filesystem::path& path) {
 }
 }
 
-std::string Recorder::start(const std::filesystem::path& root) {
-    const bool motion_requested=std::filesystem::is_regular_file(root / "movement-wasm.enabled");
-    const bool visibility_requested=!motion_requested && std::filesystem::is_regular_file(root / "visibility.enabled");
-    const bool inspector_requested=!motion_requested && std::filesystem::is_regular_file(root / "entity-inspector.enabled");
-    const bool noclip_requested = !motion_requested && !inspector_requested && !visibility_requested && std::filesystem::is_regular_file(root / "noclip.enabled");
-    if (!motion_requested && !visibility_requested && !inspector_requested && !noclip_requested && !std::filesystem::is_regular_file(root / "movement-probe.enabled")) return "Experimental gameplay and movement probe disabled";
+std::string Recorder::start(const std::filesystem::path& root,uint32_t services) {
+    const bool read_requested=(services&CRML_CAP_PLAYER_READ)!=0;
+    const bool motion_requested=services ? (services&(CRML_CAP_PLAYER_MOTION|CRML_CAP_INPUT_MOTION))!=0 : std::filesystem::is_regular_file(root / "movement-wasm.enabled");
+    const bool visibility_requested=(services&CRML_CAP_PLAYER_VISIBILITY)!=0 || (!services && std::filesystem::is_regular_file(root / "visibility.enabled"));
+    const bool inspector_requested=!services && !motion_requested && std::filesystem::is_regular_file(root / "entity-inspector.enabled");
+    const bool noclip_requested = !motion_requested && !inspector_requested && ((services&CRML_CAP_PLAYER_NOCLIP)!=0 || (!services && std::filesystem::is_regular_file(root / "noclip.enabled")));
+    if (!read_requested && !motion_requested && !visibility_requested && !inspector_requested && !noclip_requested && !std::filesystem::is_regular_file(root / "movement-probe.enabled")) return "Experimental gameplay and movement probe disabled";
     wchar_t executable[32768]{};
     const auto length = GetModuleFileNameW(nullptr, executable, 32768);
     const auto actual_sha=length && length<32768?fingerprint(executable):std::string{};
     if (!compatibility::allowed(actual_sha))
         return "Movement probe refused: unsupported executable fingerprint";
     image_base = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-    auto target = reinterpret_cast<void*>(image_base + 0x1b98950);
-    constexpr unsigned char signature[] = {0x48,0x8b,0xc4,0x4c,0x89,0x48,0x20,0x4c,0x89,0x40,0x18,0x48,0x89,0x50,0x10,0x53,0x56,0x57};
-    if (!compatibility::matches(target, signature, sizeof(signature))) return "Movement probe refused: movement routine changed, unavailable or already hooked";
-    output_.open(root / "movement-probe.jsonl", std::ios::trunc);
-    if (!output_) return "Movement probe refused: cannot open diagnostic log";
+    const bool read_only=read_requested && !motion_requested && !visibility_requested && !inspector_requested && !noclip_requested;
+    if(!read_only || std::filesystem::is_regular_file(root / "movement-probe.enabled"))
+        output_.open(root / "movement-probe.jsonl", std::ios::trunc);
+    if (!output_.is_open() && !read_requested) return "Movement probe refused: cannot open diagnostic log";
     if(inspector_requested) {
         entity_output_.open(root / "entity-inspector.jsonl",std::ios::trunc);
         if(!entity_output_) { output_.close(); return "Entity inspector refused: cannot open log"; }
         entity_output_ << "{\"visibility_requested\":" << (visibility_requested?"true":"false") << ",\"schema\":1,\"mode\":\"player-inspector\",\"phase\":\"before-controller-update\",\"sha256\":\""<<actual_sha<<"\"}\n";
         inspecting.store(true);
     }
-    auto status = MH_Initialize();
-    if (status == MH_OK) status = MH_CreateHook(target, reinterpret_cast<void*>(&movement), reinterpret_cast<void**>(&original));
-    if (status == MH_OK) {
-        recording.store(true, std::memory_order_release);
-        status = MH_EnableHook(target);
-    }
-    if (status != MH_OK) {
+    if (!controller::start(image_base) || !controller::movement(&movement)) {
         recording.store(false);
         inspecting.store(false); entity_output_.close();
         output_.close();
-        return std::string("Movement probe refused: ") + MH_StatusToString(status);
+        return "Movement service refused: controller hook unavailable";
     }
+    read_=read_requested;
+    player_read_enabled.store(read_,std::memory_order_release);
     visibility_ = visibility_requested && visibility::start(image_base,&visibility_player);
-    if(visibility_) input::start();
     motion_=motion_requested && input::start(&input_active);
     gameplay_ = motion_ || (noclip_requested && fall::start(image_base,&active_player) && input::start(&input_active));
+    if(visibility_ && !input::start()) {visibility::stop();visibility_=false;}
+    recording.store(output_.is_open() || visibility_, std::memory_order_release);
     gameplay_enabled.store(gameplay_);
     bool fall_observer=false,boundary_guard=false;
     if(motion_) {
@@ -244,6 +249,7 @@ std::string Recorder::start(const std::filesystem::path& root) {
     if(noclip_requested && !gameplay_) return "Experimental noclip refused: input or fall-recovery hook unavailable; movement probe remains read-only";
     if(visibility_requested) return visibility_?"Experimental player visibility armed; requests controlled by player.visibility Wasm mods":"Visibility hook refused; observer remains active";
     if(inspector_requested) return "Read-only player entity inspector active; noclip disabled for this session";
+    if(read_) return "Read-only player state service ready";
     return gameplay_ ? "Experimental noclip bridge armed; requires player.noclip Wasm mod and F6. Live gameplay unverified."
                      : "Movement probe active; observing controller calls without changing gameplay";
 }
@@ -342,6 +348,23 @@ void Recorder::poll() {
     }
 }
 
+uint32_t Recorder::capabilities() const noexcept {
+    return (motion_ ? CRML_CAP_PLAYER_MOTION|CRML_CAP_INPUT_MOTION : 0u)
+         | (gameplay_ && !motion_ ? CRML_CAP_PLAYER_NOCLIP : 0u)
+         | (visibility_ ? CRML_CAP_PLAYER_VISIBILITY : 0u)
+         | (read_ ? CRML_CAP_PLAYER_READ : 0u)
+         | (input::observing() ? CRML_CAP_INPUT_BUTTONS : 0u);
+}
+int Recorder::player_read(crml_player_state& out) noexcept {
+    out={};
+    if(!read_) return -1;
+    const auto now=GetTickCount64();
+    const bool foreground=focused();
+    AcquireSRWLockShared(&sample_lock);
+    const auto result=player_snapshot.read(out,now,foreground);
+    ReleaseSRWLockShared(&sample_lock);
+    return result;
+}
 int Recorder::noclip_poll(uint64_t owner, float speed) noexcept {
     if (!gameplay_ || motion_ || !std::isfinite(speed) || speed < .25f || speed > 20.f) return -1;
     const bool key = focused() && down(VK_F6);
@@ -438,8 +461,8 @@ Recorder::~Recorder() {
     if(fall_output_.is_open()) {fall_trace::write(fall_output_);boundary::write(fall_output_);fall_output_.flush();}
     visibility::stop();
     inspecting.store(false);
-    recording.store(false); gameplay_enabled.store(false);
-    AcquireSRWLockExclusive(&sample_lock); flight.reset(StopReason::shutdown,GetTickCount64(),&latest); ReleaseSRWLockExclusive(&sample_lock);
+    recording.store(false); gameplay_enabled.store(false); player_read_enabled.store(false);
+    AcquireSRWLockExclusive(&sample_lock); player_snapshot.invalidate(); flight.reset(StopReason::shutdown,GetTickCount64(),&latest); ReleaseSRWLockExclusive(&sample_lock);
     overlay_destroy(overlay_);
 }
 }

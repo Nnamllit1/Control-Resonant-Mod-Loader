@@ -66,6 +66,8 @@ int main() {
         // input is injected and no keyboard state outside this process is changed.
         MSG message{}; PeekMessageW(&message,nullptr,0,0,PM_NOREMOVE);
         require(MH_Initialize()==MH_OK && input::start(&active),"Input hooks failed to install");
+        require(input::start() && input::observing(),"Read-only observer must share the suppression hook");
+        require(!input::start(+[]() noexcept {return false;}),"Another suppression owner must be rejected");
         enabled=true;
         post(WM_KEYDOWN,VK_SPACE,0x00390001);
         require(PeekMessageW(&message,HWND(-1),0,0,PM_NOREMOVE) && message.message==WM_KEYUP,"Peek W failed to consume Space");

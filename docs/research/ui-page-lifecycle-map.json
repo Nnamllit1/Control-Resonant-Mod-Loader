@@ -1,0 +1,362 @@
+{
+  "schema": 1,
+  "title": "Engine UI page construction, cohtml view registration and cleanup",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static lifecycle trace. Engine-native page creation and custom widget rendering have not been invoked or gameplay-verified by CRML.",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c9e4b",
+      "target": "0x17c7c40",
+      "label": "UI stream-in dispatcher calls resource-request worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c7ca1",
+      "target": "0x31cab80",
+      "label": "UI stream-in requests authored page resource"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c9f84",
+      "target": "0x17c80f0",
+      "label": "UI addPages dispatcher calls page construction worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c8293",
+      "target": "0x32d09b0",
+      "label": "Page worker resolves reflected class name"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c829b",
+      "target": "0x32d0d20",
+      "label": "Page worker instantiates resolved type"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c8348",
+      "target": "0x3482b50",
+      "label": "Page worker attaches initialized page to UI manager"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c8591",
+      "target": "0x17c94c0",
+      "label": "Page worker queues Page component payload"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbe8ce",
+      "target": "0x32021d0",
+      "label": "BaseUIPage factory allocates aligned engine memory"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbe8db",
+      "target": "0x1bbcfd0",
+      "label": "BaseUIPage factory calls concrete constructor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1bbcfec",
+      "target": "0x3482650",
+      "label": "BaseUIPage constructor initializes native ui Page base"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3482b8b",
+      "target": "0x3441900",
+      "label": "Page attach calls UI manager create-view path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x344193c",
+      "target": "0x3445000",
+      "label": "UI manager loads page resource by page resource ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3441ba1",
+      "target": "0x3288640",
+      "label": "UI manager formats coui URL with resource path and arguments"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3441d6c",
+      "target": "0x3439660",
+      "label": "UI manager directly registers renderer view on render thread"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3441d96",
+      "target": "0x2fb8340",
+      "label": "UI manager otherwise allocates 0x34 byte renderer command"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x34431cb",
+      "target": "0x3439660",
+      "label": "Renderer command callback registers view"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e0a7b",
+      "target": "0x17df1a0",
+      "label": "UI event registration dispatcher visits Page components"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17df1d5",
+      "target": "0x3442780",
+      "label": "Event registration checks view binding readiness"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17df1e1",
+      "target": "0x17db9f0",
+      "label": "Event registration connects native page event handlers"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ca0d6",
+      "target": "0x17c86a0",
+      "label": "Removed Page query calls page cleanup worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c86d4",
+      "target": "0x3482bc0",
+      "label": "Cleanup detaches native page before destruction"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17c86f1",
+      "target": "0x3202210",
+      "label": "Cleanup frees page after virtual destructor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3482bff",
+      "target": "0x3442900",
+      "label": "Detach unregisters page from view binding context"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3482cf2",
+      "target": "0x3441e40",
+      "label": "Detach removes page from UI manager"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3441ed3",
+      "target": "0x31ce640",
+      "label": "Manager removal releases page resource listener"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3441f11",
+      "target": "0x3443b20",
+      "label": "Manager removal directly cleans renderer view on render thread"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3441f24",
+      "target": "0x2fb8340",
+      "label": "Manager removal otherwise allocates 0x1c byte renderer command"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x48d1200",
+      "target": "0x1bbe1a0",
+      "label": "BaseUIPage reflection name callback"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x48d1238",
+      "target": "0x1bbe210",
+      "label": "BaseUIPage reflected creation callback"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x48d14a0",
+      "target": "0x3482920",
+      "label": "BaseUIPage virtual 0xf0 initializes resource state"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x48d14d0",
+      "target": "0x1bbd880",
+      "label": "BaseUIPage virtual 0x120 cleanup callback"
+    }
+  ],
+  "scope": {
+    "native_path": "Authored UIPageComponent -> resource request -> reflected ui::Page class -> engine UI manager -> cohtml view -> engine render registration",
+    "not_equivalent_to": "CRML D3D12 overlay pixels or an independent browser/window",
+    "evidence_boundary": "Checks verify instruction and vtable encodings. Semantic labels are from local disassembly and reflected type names; no scheduler-safety or callable-ABI claim follows from them."
+  },
+  "components": [
+    {
+      "name": "contentcore::UIPageComponent",
+      "hash": "0xe916864e",
+      "stride": "0x58",
+      "fields": [
+        {
+          "offset": "0x08",
+          "observation": "Nonzero selects authored dimensions instead of manager viewport dimensions."
+        },
+        {
+          "offset": "0x10",
+          "observation": "64-bit authored resource identifier, passed to resource acquisition and page initializer."
+        },
+        {
+          "offset": "0x18",
+          "observation": "Engine small-string header; length at0x1c, inline-or-heap bytes at0x20; used as reflected page-class name."
+        },
+        {
+          "offset": "0x30",
+          "observation": "Width argument for UI manager attachment."
+        },
+        {
+          "offset": "0x34",
+          "observation": "Height argument for UI manager attachment."
+        },
+        {
+          "offset": "0x38",
+          "observation": "Second engine small-string header; length at0x3c, inline-or-heap bytes at0x40; passed as page URL arguments."
+        },
+        {
+          "offset": "0x50",
+          "observation": "Byte copied to ui::Page+0x28 by virtual initialization; meaning not established."
+        }
+      ]
+    },
+    {
+      "name": "coregame::ui_page::component::Page",
+      "hash": "0x15bd079c",
+      "stride": 8,
+      "value": "Engine-owned ui::Page pointer. Published and removed via ECS commands; pointer does not cross guest API."
+    },
+    {
+      "name": "coregame::ui_page::component::Add",
+      "hash": "0xc07a94a2",
+      "observation": "Marker removed by addPages after page construction."
+    },
+    {
+      "name": "coregame::ui_page::component::PageResource",
+      "hash": "0xc73c1fe0",
+      "observation": "Resource reference removed together with Page during stream-out."
+    }
+  ],
+  "lifecycle": [
+    {
+      "stage": "stream_in",
+      "dispatcher_rva": "0x17c9ca0",
+      "worker_rva": "0x17c7c40",
+      "operation": "Request resource with loader 0x31cab80 using authored ID; queue reference and Add state through per-thread ECS command buffer."
+    },
+    {
+      "stage": "instantiate",
+      "dispatcher_rva": "0x17c9ed0",
+      "worker_rva": "0x17c80f0",
+      "operation": "Resolve class with 0x32d09b0; instantiate with 0x32d0d20; virtual slot +0xf0 copies resource ID, flag, ordering argument and context string; attach via 0x3482b50; publish resulting pointer through ECS command buffer."
+    },
+    {
+      "stage": "view_creation",
+      "function_rva": "0x3441900",
+      "operation": "Load native PageResource, configure cohtml view, navigate to formatted coui URL, retain resource and page/view associations, register render representation directly or via engine render-command queue."
+    },
+    {
+      "stage": "binding_readiness",
+      "dispatcher_rva": "0x17e08d0",
+      "worker_rva": "0x17df1a0",
+      "operation": "Readiness helper 0x3442780 checks underlying view virtual slot +0x1e0. Only then registration invokes 0x17db9f0 and queues EventHandlerRegistered marker 0x41073ce2."
+    },
+    {
+      "stage": "stream_out",
+      "dispatcher_rva": "0x17c9ab0",
+      "worker_rva": "0x17c7e60",
+      "operation": "Queue removal of Page and PageResource components; no direct object destruction in stream-out worker."
+    },
+    {
+      "stage": "cleanup",
+      "dispatcher_rva": "0x17ca040",
+      "worker_rva": "0x17c86a0",
+      "operation": "For each removed Page pointer: detach through 0x3482bc0, clear component pointer, invoke non-deleting virtual destructor, then engine allocator free 0x3202210."
+    }
+  ],
+  "factories": {
+    "lookup_rva": "0x32d09b0",
+    "instantiate_rva": "0x32d0d20",
+    "registry_rva": "0x5f6b5c0",
+    "scope": "Generic reflected type registry, not a UI-only widget factory. Lookup returns null on missing type; instantiation checks virtual constructibility before creation. Caller addPages assumes an authored valid type and dereferences the created page.",
+    "base_ui_page": {
+      "name": "coregame::BaseUIPage",
+      "type_hash": "0x50198a33",
+      "size": "0x388",
+      "alignment": 8,
+      "allocate_rva": "0x1bbe8c0",
+      "construct_rva": "0x1bbcfd0",
+      "vtable_rva": "0x48d13b0"
+    },
+    "game_ui_page": {
+      "name": "heron::game_ui_page::GameUIPage",
+      "type_hash": "0x6c1af148",
+      "size": "0x420",
+      "alignment": 8
+    }
+  },
+  "page_object_fields": [
+    {
+      "offset": "0x10",
+      "meaning": "UI manager pointer after attachment; cleared on detach."
+    },
+    {
+      "offset": "0x18",
+      "meaning": "View/page ID returned by manager; 0xffffffff when detached."
+    },
+    {
+      "offset": "0x20",
+      "meaning": "Authored resource identifier set by virtual initialization."
+    },
+    {
+      "offset": "0x28",
+      "meaning": "Initialization byte copied from UIPageComponent+0x50; semantics unresolved."
+    },
+    {
+      "offset": "0x30",
+      "meaning": "Integer ordering argument (addPages currently passes 0); forwarded into renderer registration."
+    },
+    {
+      "offset": "0xc0",
+      "meaning": "Engine-owned context string initialized from borrowed string view."
+    }
+  ],
+  "render_integration": {
+    "manager_global_rva": "0x5fa3008",
+    "view_registry_rva": "0x5fa3028",
+    "view_create": "Manager+0x20 virtual+0x18 receives initialized view parameters. Returned cohtml view navigates through virtual+0x10. Virtual slots are observed call sites, not a stable SDK declaration.",
+    "url": "coui://base/{resource_path}?{page_arguments}",
+    "url_evidence": [
+      "0x5110a40: coui://",
+      "0x5110a48: base/",
+      "0x5110e90: {}{}{}?{}"
+    ],
+    "thread_branch": "Thread ID helper 0x318e9d0 compared with global 0x5a5d6a0. Matching thread calls render registration 0x3439660 directly; other threads queue a 0x34-byte engine command with callback 0x3443190.",
+    "cleanup": "Manager removal 0x3441e40 clears page/resource association, then directly invokes 0x3443b20 or queues a 0x1c-byte command with callback 0x3443200. The page destructor alone is insufficient cleanup."
+  },
+  "custom_page_requirements": [
+    "A valid PageResource definition and its HTML/CSS/JS resources must be available through the engine resource and coui file-routing paths. A class name or arbitrary filesystem path alone does not satisfy manager resource lookup.",
+    "Creation, event registration and removal must execute in the appropriate engine phase with valid UI manager/resource lifetimes. The renderer handoff must use the engine registration/removal paths.",
+    "CRML needs mod-owned page identity, bounded update/event serialization and cleanup at unload/reload, with readiness checks before any script or binding operation.",
+    "Widget input focus must be explicit and scoped to the page. Existing global shortcuts cannot be consumed merely because UI support is installed."
+  ],
+  "open_questions": [
+    "How to mount self-authored UI resources under a unique mod namespace without replacing stock assets or accepting arbitrary filesystem access.",
+    "Whether to construct a native PageResource or reuse an existing renderer view with an isolated DOM root; neither path has been verified.",
+    "Exact cohtml API version/ABI, document-ready callbacks and event-handler deregistration guarantees.",
+    "Which lifecycle dispatch can safely service bounded native page requests, including game menu transitions and shutdown.",
+    "How HTML/CSS widgets, localization, navigation cells and focus ownership connect to engine state for a fully interactive custom page."
+  ]
+}

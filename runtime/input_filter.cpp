@@ -130,7 +130,8 @@ bool filter(RAWINPUT& event,UINT bytes) noexcept {
 void filter(BYTE* state) noexcept { for(auto key:keys) if(key) state[key]&=1; }
 
 bool start(Active callback) noexcept {
-    if(ready.load(std::memory_order_acquire)) return active_callback==callback;
+    // Observation can share an existing suppression owner without replacing it.
+    if(ready.load(std::memory_order_acquire)) return !callback || active_callback==callback;
     executable=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     const auto dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(executable);
     const auto nt=reinterpret_cast<const IMAGE_NT_HEADERS*>(executable+dos->e_lfanew);
@@ -168,6 +169,7 @@ void release_held(HWND window) noexcept {
     }
 }
 uint64_t consumed() noexcept { return filtered.load(std::memory_order_relaxed); }
+bool observing() noexcept { return ready.load(std::memory_order_acquire); }
 #ifdef CRML_INPUT_TESTING
 namespace testing { void publish(const BYTE* state,uint64_t tick) noexcept { input::publish(state,tick); } }
 #endif

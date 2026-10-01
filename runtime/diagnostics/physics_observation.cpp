@@ -1,4 +1,4 @@
-#include "physics_observation.h"
+#include "diagnostics/physics_observation.h"
 #include "movement_view.h"
 #include <Windows.h>
 #include <cmath>

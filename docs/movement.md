@@ -13,7 +13,9 @@ This mode suppresses the normal WASD, Space, Ctrl and Shift keyboard actions whi
 
 ## Installation
 
-Build, close the game, then switch modes:
+With Alpha 4.2, install the runtime and copy the compiled example into `crml/mods/movement`. Its manifest starts the movement service. Other Wasm mods can request visibility and physics alongside it.
+
+For source builds, or the legacy explicit startup marker:
 
 ```powershell
 .\build.bat -ExperimentalGameplay -Test
@@ -22,7 +24,7 @@ python tools/install.py "$gameDir" --update --movement-wasm --apply
 Copy-Item -Recurse dist/examples/movement "$gameDir/crml/mods/movement"
 ```
 
-Omit `--update` for a fresh installation. Copy the example only if the destination does not exist; preserve customized packages. The installer removes owned observer and physics-mode markers. It preserves the other mods and settings, but this mode does not start their visibility, physics-property, or legacy noclip services. Conflicting isolated-mode markers refuse startup. Unknown executable fingerprints leave the game unchanged and do not start guests in this mode.
+Omit `--update` for a fresh installation. Copy the example only if the destination does not exist; preserve customized packages. The installer removes owned diagnostic and old physics-mode markers while preserving other mods. In Alpha 4.2 their manifests still request services independently. The legacy native noclip helper remains unavailable while explicit movement is selected. Diagnostic capture markers cannot be combined with these explicit gameplay markers. Untested executables require startup consent and must still pass individual native signature checks.
 
 ## Controls and expected behavior
 
@@ -54,4 +56,4 @@ See the [API contract](api.md#experimental-movement-requests) for result semanti
 
 `crml.log` identifies the service, loaded mod and whether the boundary guard started. If its checks fail, movement remains available with normal engine recovery. `movement-probe.jsonl` uses diagnostic schema 7 with mode `wasm-movement`. `motion_requests` counts accepted set/release requests; `motion_velocity` records the sampled requested world velocity while active. `overrides` counts controller-call substitutions. `last_override` compares the requested position with the controller's result, and `last_stop` records cancellation. Input counters indicate filtering, not by themselves proof that every gameplay action was suppressed. The legacy fall/reset counters remain zero; the scoped guard has separate counters in `fall-recovery.jsonl`.
 
-The capture samples once per second for up to ten minutes and is replaced on the next launch. To remove this mode, close the game and run `python tools/install.py "$gameDir" --update --disable-movement-wasm --apply`. Ordinary startup then follows any remaining feature markers. To switch directly back to the bounded physics example, use `--physics-wasm` instead.
+The capture samples once per second for up to ten minutes and is replaced on the next launch. To disable this mod, close the game and remove its package folder. If an installer-owned movement marker remains, remove it with `python tools/install.py "$gameDir" --update --disable-movement-wasm --apply`. On Alpha 4.2 removing a marker does not disable capabilities requested by other installed mods.

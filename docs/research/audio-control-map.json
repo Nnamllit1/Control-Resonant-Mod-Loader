@@ -1,0 +1,401 @@
+{
+  "schema": 1,
+  "title": "Entity audio controls, event resources, playing IDs and emitter cleanup",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Static producer-consumer and cleanup paths; no audio mutation has been gameplay-verified.",
+  "documentation": "../engine-paths.md#audio-controls",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x3345977",
+      "target": "0x4684b0",
+      "label": "Lua control: read entity argument 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x33459ea",
+      "target": "0x327f790",
+      "label": "Lua control: find ActiveExecutionControlOutput"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3345a42",
+      "target": "0x2c4df20",
+      "label": "Lua control: read control string argument 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3345aac",
+      "target": "0x3f5590",
+      "label": "Lua control: grow 32-bit control buffer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3307729",
+      "target": "0x32f53b0",
+      "label": "Flush dispatcher: swap queued and active buffers"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3306088",
+      "target": "0x330cea0",
+      "label": "Event dispatcher: gather matching component columns"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x330613a",
+      "target": "0x32f5120",
+      "label": "Event dispatcher: consume active control buffer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f5206",
+      "target": "0x32f4e00",
+      "label": "Event consumer: optional authored control-state branch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f52ac",
+      "target": "0x32f36a0",
+      "label": "Definition replacement: update callback-control bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f52b3",
+      "target": "0x33e7980",
+      "label": "Definition replacement: stop previously tracked playing ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f52e3",
+      "target": "0x33e6d70",
+      "label": "Definition execution: post resolved event on active backend object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x33e6dea",
+      "target": "0x352b1a0",
+      "label": "Post wrapper: call audio backend and obtain playing ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x33e6dfd",
+      "target": "0x33e8290",
+      "label": "Post wrapper: register result in engine bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x352b23e",
+      "target": "0x352b280",
+      "label": "Backend post: resolve and enqueue operation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3308af0",
+      "target": "0x32f3930",
+      "label": "Definitions stream-in: resolve authored event resources"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f3a33",
+      "target": "0x32f3830",
+      "label": "Definitions stream-in: resolve default event resource"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f3a65",
+      "target": "0x32f3830",
+      "label": "Definitions stream-in: resolve each named definition resource"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f3878",
+      "target": "0x31cab80",
+      "label": "Event resource resolver: acquire resource through shared manager"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f38ed",
+      "target": "0x3315570",
+      "label": "Event resource resolver: retain resource in active-events storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f3911",
+      "target": "0x31cf8c0",
+      "label": "Event resource resolver: release temporary resource reference"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3344232",
+      "target": "0x2c4be10",
+      "label": "Lua stop: read playing ID argument 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3344241",
+      "target": "0x2c4bcb0",
+      "label": "Lua stop: read fade duration argument 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3344250",
+      "target": "0x33e79c0",
+      "label": "Lua stop: convert fade duration and request stop"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3344257",
+      "target": "0x33e7150",
+      "label": "Lua stop: remove playing ID from engine bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x33e7990",
+      "target": "0x35321f0",
+      "label": "Immediate stop: queue backend stop for playing ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3532228",
+      "target": "0x3551420",
+      "label": "Backend stop: allocate command type 0x21"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3308089",
+      "target": "0x32f4380",
+      "label": "Emitter stream-out: stop and defer cleanup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f441d",
+      "target": "0x33e7fd0",
+      "label": "Emitter stream-out: collect playing IDs for backend object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f44a3",
+      "target": "0x33e79b0",
+      "label": "Emitter stream-out: stop by backend object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f3389",
+      "target": "0x33e7260",
+      "label": "Cleanup: remove collected playing IDs from bookkeeping"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x32f33bd",
+      "target": "0x33e5ae0",
+      "label": "Cleanup: retire queued backend objects"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x33e5af6",
+      "target": "0x3533390",
+      "label": "Backend object retirement: unregister path"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x331295d",
+      "target": "0x3307570",
+      "label": "Registration: flush execution controls"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x3311b69",
+      "target": "0x3305f00",
+      "label": "Registration: update event controls"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x32f068f",
+      "target": "0x3308910",
+      "label": "Registration: event definitions stream-in"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x331126b",
+      "target": "0x3307e20",
+      "label": "Registration: game object stream-out"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x32f23af",
+      "target": "0x3305160",
+      "label": "Registration: game object cleanup"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x3305167",
+      "target": "0x32f3350",
+      "label": "Cleanup dispatcher to implementation"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x33e799c",
+      "target": "0x33e7150",
+      "label": "Immediate stop also removes engine playing-ID bookkeeping"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x33e79d2",
+      "target": "0x35321f0",
+      "label": "Fade stop transfers to backend command producer"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x33e79b0",
+      "target": "0x3531db0",
+      "label": "Object stop transfers to backend object operation"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x33459e1",
+      "target": "0x352890c4",
+      "label": "Lua control component hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x330cf05",
+      "target": "0x352890c4",
+      "label": "Event consumer active-output hash matches Lua destination"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x330769a",
+      "target": "0x724ec178",
+      "label": "Flush queued-output component hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x330ceda",
+      "target": "0x7b3c2747",
+      "label": "Event consumer ActiveGameObject component hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3b9f3dc",
+      "target": "0x447a0000",
+      "label": "Fade conversion constant is float 1000"
+    }
+  ],
+  "operation": {
+    "candidate": "Execute one existing authored audio control on a live emitter.",
+    "script_input": [
+      "entity argument 1",
+      "nonempty control-name string argument 2"
+    ],
+    "script_result": "No Lua return value or playing ID.",
+    "binding": "0x3345940",
+    "destination": "ActiveExecutionControlOutput, hash 0x352890c4; not QueuedExecutionOutput.",
+    "hash": "Seed 0x811c9dc5; sign-extend each string byte, OR 0x20, XOR accumulator, multiply 0x1000193 modulo 2^32; zero is rejected.",
+    "semantic_limit": "A control ID is an authored event/control selector, not an audio filename or arbitrary resource handle."
+  },
+  "component_layouts": [
+    {
+      "name": "ActiveExecutionControlOutput",
+      "hash": "0x352890c4",
+      "stride": "0x10",
+      "fields": {
+        "0x00": "u32 buffer pointer",
+        "0x08": "u32 count",
+        "0x0c": "u32 capacity"
+      }
+    },
+    {
+      "name": "QueuedExecutionOutput",
+      "hash": "0x724ec178",
+      "stride": "0x10",
+      "fields": {
+        "0x00": "u32 buffer pointer",
+        "0x08": "u32 count",
+        "0x0c": "u32 capacity"
+      }
+    },
+    {
+      "name": "ActiveGameObject",
+      "hash": "0x7b3c2747",
+      "stride": "0xa0",
+      "fields": {
+        "0x00": "backend object identity, u64; stream-out writes all-ones sentinel",
+        "0x08": "post/bookkeeping context"
+      }
+    },
+    {
+      "name": "CallbackControl",
+      "hash": "0xba3c4274",
+      "stride": "0x30"
+    },
+    {
+      "name": "WwiseEventDefinitionsComponent",
+      "hash": "0xbd72ba46",
+      "stride": "0x40",
+      "fields": {
+        "0x28": "definition array pointer",
+        "0x30": "definition count",
+        "0x38": "event-control processing gate"
+      }
+    }
+  ],
+  "definition_record": {
+    "stride": "0x30",
+    "fields": {
+      "0x00": "authored event resource reference",
+      "0x18": "control-name hash",
+      "0x1c": "resolved backend event ID",
+      "0x20": "playing-ID array pointer",
+      "0x28": "playing-ID count",
+      "0x2c": "playing-ID capacity"
+    }
+  },
+  "control_consumption": [
+    "0x32f5120 skips processing for AudioDisabled; an optional WwiseEventControlComponent has a separate stateful branch through 0x32f4e00.",
+    "The definitions branch compares control hash with record +0x18. Hash 0x13254bc4 bypasses this equality check and applies to every definition; its string spelling is unresolved.",
+    "For each match it removes callback bookkeeping and stops existing tracked IDs, clears their count, then posts record +0x1c if nonzero.",
+    "Only a nonzero backend result is added to the definition playing-ID list. An unknown control match or unresolved zero event produces no new instance.",
+    "0x33e6d70 includes a context-local event-ID suppression list: a matching ID returns zero without posting. Exact lifetime/intent of that list remains unresolved."
+  ],
+  "resources": {
+    "resolver": "0x32f3830",
+    "manager_acquire": "0x31cab80",
+    "resource_backend_event_id_offset": "0xbc",
+    "retain_in_active_events": "0x3315570",
+    "stream_in": "0x32f3930 resolves both a default event and each named definition.",
+    "failure": "Invalid/sentinel reference or missing acquired resource returns zero.",
+    "limit": "Resource type descriptor, bank dependencies and custom resource registration are not recovered by this map."
+  },
+  "stop": {
+    "lua_binding": "0x3344220",
+    "input": [
+      "nonzero playing ID",
+      "numeric fade duration, converted to float then multiplied by 1000 and truncated to integer backend duration"
+    ],
+    "duration_interpretation": "Seconds-to-milliseconds is strongly supported by the conversion; backend duration units are not independently gameplay-measured.",
+    "backend_command": {
+      "producer": "0x35321f0",
+      "type": "0x21",
+      "payload": {
+        "0x04": "playing ID",
+        "0x08": "integer duration",
+        "0x0c": "curve value 4 supplied by wrapper"
+      }
+    },
+    "cleanup": "Both immediate and faded stop also remove the ID from engine bookkeeping through 0x33e7150.",
+    "ownership_limit": "A raw playing ID has no mod ownership or generation boundary; it must not become an unrestricted Wasm parameter."
+  },
+  "lifetime": [
+    "Emitter stream-out 0x32f4380 gathers playing IDs, appends them to GameObjectCleanup +0x10, requests backend object stop, appends backend object ID to GameObjectCleanup +0, and invalidates ActiveGameObject +0.",
+    "Later cleanup 0x32f3350 removes accumulated playing-ID bookkeeping, then retires queued backend objects through 0x33e5ae0; both queue counts are cleared.",
+    "Stop submission and backend object retirement are distinct. Stream-out is not evidence that the backend command has already finished or that an ECS handle remains usable."
+  ],
+  "remaining_gaps": [
+    "Actual order/thread affinity of Lua appends, queue handoff, event consumption and stream-out; the Lua append uses no visible locking and writes the active buffer directly.",
+    "One known harmless authored control/emitter pair and audibility/error behavior.",
+    "Completion callbacks and end-of-event removal, command completion ordering, playing-ID reuse and mod-owned cancellation.",
+    "Backend event-bank/resource residency and lifecycle through reload.",
+    "No audio Wasm imports or native mutation lease are enabled by this map."
+  ]
+}

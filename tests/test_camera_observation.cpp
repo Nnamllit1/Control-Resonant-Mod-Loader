@@ -1,4 +1,6 @@
-#include "camera_observation.h"
+#include "diagnostics/camera_observation.h"
+#include "camera_service.h"
+#include "camera_update_hook.h"
 #include <Windows.h>
 #include <array>
 #include <cstring>
@@ -32,6 +34,52 @@ int main() {
         put(chunk,0x130,1.f);put(chunk,0x134,1.777f);
         put(global,0,int32_t(1));for(unsigned i=0;i<4;++i) put(global,4+i*8,handle);
         const auto saved_world=world,saved_chunk=chunk;const auto saved_global=global;
+        std::array<uintptr_t,6> context{};context[0]=w;context[5]=g;
+        Selected selected_view{};
+        require(selected(context.data(),selected_view)==Read::ok,"selected camera read");
+        require(selected_view.world==w && selected_view.global==g && selected_view.entity==handle && selected_view.selector==1,"selected identity authenticated");
+        require(selected_view.basis[0]==1 && selected_view.basis[4]==1 && selected_view.basis[8]==1 && selected_view.lens[0]==1,"selected copied basis and lens");
+        context[5]=0;require(selected(context.data(),selected_view)==Read::environment && !selected_view.world,"missing context environment never falls back");context[5]=g;
+        require(selected(reinterpret_cast<void*>(1),selected_view)==Read::memory && !selected_view.entity,"invalid callback context guarded");
+        SnapshotCache cache;crml_camera_state state{};
+        require(cache.read(state,100)==0 && !state.version,"empty cache");
+        const auto sample=[&](uint64_t at) {cache.begin();cache.finish(context.data(),at);};
+        sample(100);
+        require(cache.read(state,100)==1 && state.version==1 && state.age_ms==0 && state.mode==1,"fresh snapshot");
+        require(state.flags==(CRML_CAMERA_STATE_POSE|CRML_CAMERA_STATE_LENS) && state.horizontal_fov_radians==1 && state.aspect_ratio==1.777f,"bounded horizontal-radian lens snapshot");
+        const auto generation=state.generation;
+        require(generation && generation!=handle && generation!=w && generation!=g,"opaque generation not engine identity");
+        put(chunk,0x124,4.f);sample(101);
+        require(cache.read(state,101)==1 && state.generation==generation && state.position[0]==4,"pose change preserves identity generation");
+        require(cache.read(state,601)==1 && state.age_ms==500,"maximum snapshot age");
+        state.version=99;require(cache.read(state,602)==0 && !state.version && !state.generation && !state.flags,"stale cache clears output");
+        require(cache.read(state,100)==0 && !state.version,"clock inversion rejected");
+        cache.begin();require(cache.read(state,101)==0 && !state.version,"in-flight update invalidates previous sample");cache.finish(context.data(),102);
+        cache.begin();cache.begin();cache.finish(context.data(),103);
+        require(cache.read(state,103)==0 && !state.flags,"overlapping update cannot publish first return");
+        cache.finish(context.data(),104);require(cache.read(state,104)==1,"last overlapping return can recover");
+        context[5]=0;sample(105);
+        require(cache.read(state,105)==0 && !state.generation,"invalid callback clears previous sample");context[5]=g;sample(106);
+        require(cache.read(state,106)==1 && state.generation!=generation,"readable recovery has new generation");
+        auto recovered=state.generation;put(global,0,int32_t(0));sample(107);
+        require(cache.read(state,107)==1 && state.mode==0 && state.generation!=recovered,"selector transition changes generation even for same entity");
+        put(chunk,0x130,std::numeric_limits<float>::infinity());sample(108);
+        require(cache.read(state,108)==1 && state.flags==CRML_CAMERA_STATE_POSE && state.horizontal_fov_radians==0 && state.aspect_ratio==0,"bad lens omitted without fabricating pose failure");
+        put(chunk,0x130,4.f);sample(109);
+        require(cache.read(state,109)==1 && !(state.flags&CRML_CAMERA_STATE_LENS),"out-of-range FOV omitted");
+        chunk=saved_chunk;global=saved_global;sample(110);world.assign(world.size(),0);
+        require(cache.read(state,111)==1 && state.age_ms==1,"worker reads copied data without following engine memory");world=saved_world;
+        generations[1]=9;sample(112);
+        require(cache.read(state,112)==0 && !state.flags,"removed or recycled selected entity invalidates cache");generations[1]=7;
+        Service unavailable;state.version=99;
+        require(unavailable.camera_read(state)==-1 && !state.version && !unavailable.capabilities(),"unstarted service clears output and grants no capability");
+#ifdef CRML_CAMERA_SERVICE_TESTING
+        SnapshotCache exhausted;exhausted.test_generation_limit();exhausted.begin();exhausted.finish(context.data(),100);
+        require(exhausted.read(state,100)==0 && !state.generation,"generation exhaustion fails closed");
+        exhausted.begin();exhausted.finish(context.data(),101);
+        require(exhausted.read(state,101)==0,"exhausted generations do not recycle");
+        require(crml::camera_update::test_dispatch(),"shared camera hook forwards once and propagates unwind");
+#endif
         Snapshot s{};require(inspect(w,g,s)==Read::ok,"valid camera snapshot");
         require(s.selector==1 && s.world==w && s.global==g,"copied authenticated context");
         require(s.slots[0].flags==(present|live|view|free_transform),"generation and both components verified");
@@ -61,6 +109,11 @@ int main() {
         global=saved_global;
         require(inspect(w,g+8,s)==Read::environment && !s.world,"foreign callback global rejected");
         env_hashes[0]=0;require(inspect(w,0,s)==Read::environment,"missing camera environment");env_hashes[0]=0xfe90f7f8;
+        std::array<uint32_t,2> duplicate_hashes{0xfe90f7f8,0xfe90f7f8};
+        std::array<uintptr_t,2> duplicate_values{0,g};
+        put(world,0x585b0,reinterpret_cast<uintptr_t>(duplicate_hashes.data()));put(world,0x585b8,uint32_t(2));
+        put(world,0x585c0,reinterpret_cast<uintptr_t>(duplicate_values.data()));
+        require(inspect(w,0,s)==Read::environment && selected(context.data(),selected_view)==Read::environment,"duplicate environment rejected even when first value is null");world=saved_world;
         put(world,0x585b8,uint32_t(16385));require(inspect(w,0,s)==Read::environment,"bounded environment enumeration");world=saved_world;
         require(inspect(0,0,s)==Read::arguments && !s.global,"null world");
         require(inspect(1,0,s)==Read::memory && !s.global,"invalid world guarded");

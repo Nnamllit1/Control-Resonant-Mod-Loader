@@ -1,0 +1,408 @@
+{
+  "schema": 1,
+  "title": "Native Gameface page resources and regular response interception boundary",
+  "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
+  "status": "Offline format parsing and reviewed original-game request paths; no custom engine-rendered page has been gameplay-verified.",
+  "documentation": "../engine-paths.md#ui-models-and-events",
+  "checks": [
+    {
+      "kind": "pointer64",
+      "rva": "0x5110c30",
+      "target": "0x3443de0",
+      "label": "BlobResourceHandler: deleting destructor"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x5110c38",
+      "target": "0x34446b0",
+      "label": "BlobResourceHandler: regular resource request"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x5110c40",
+      "target": "0x3444ce0",
+      "label": "BlobResourceHandler: separate stream request"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x5110c48",
+      "target": "0x3444ff0",
+      "label": "BlobResourceHandler: no-op fourth slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x51184c8",
+      "target": "0x3449ab0",
+      "label": "PageResource: asynchronous resource loading entry"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x51184e8",
+      "target": "0x3449a30",
+      "label": "PageResource: blocking resource loading entry"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x5118590",
+      "target": "0x3449c60",
+      "label": "PageResource: binary deserialize virtual entry"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x5119378",
+      "target": "0x344c0f0",
+      "label": "Blocking load callable dispatch"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x51193b0",
+      "target": "0x344c180",
+      "label": "Asynchronous load callable dispatch"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x34436a9",
+      "target": "0x5110c30",
+      "label": "Handler construction installs resource-handler vtable"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x3449a6a",
+      "target": "0x5119368",
+      "label": "Blocking load constructs the reviewed callable"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x3449b12",
+      "target": "0x51193a0",
+      "label": "Asynchronous load constructs the reviewed callable"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x344c0f4",
+      "target": "0x3449b80",
+      "label": "Blocking callable reaches resource reader"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x344c184",
+      "target": "0x3449b80",
+      "label": "Asynchronous callable reaches resource reader"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x3449c60",
+      "target": "0x346bea0",
+      "label": "Binary virtual entry reaches PageResource decoder"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3449a9b",
+      "target": "0x31cf2a0",
+      "label": "PageResource blocking load uses common resource helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3449b3b",
+      "target": "0x31cef20",
+      "label": "PageResource asynchronous load uses common resource helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3449c0d",
+      "target": "0x31cee00",
+      "label": "PageResource reader publishes shared resource state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x346bf02",
+      "target": "0x484560",
+      "label": "Page decoder establishes versioned object serialization"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x346bf6e",
+      "target": "0x524800",
+      "label": "Page decoder reads entry URL string"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x346bfc8",
+      "target": "0x34822e0",
+      "label": "Page decoder sizes file-record array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x346bff3",
+      "target": "0x346b410",
+      "label": "Page decoder reads each file record"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x346c083",
+      "target": "0x807990",
+      "label": "Page decoder sizes embedded source-byte buffer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x346b477",
+      "target": "0x524800",
+      "label": "File-record decoder reads path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x34446f8",
+      "target": "0x3440090",
+      "label": "Regular request normalizes request URL"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x344473f",
+      "target": "0x34402e0",
+      "label": "Regular request resolves alternate texture path form"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x34447aa",
+      "target": "0x40eea0",
+      "label": "Regular request compares normalized path with registered file"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x34448b2",
+      "target": "0x3938468",
+      "label": "Embedded response copies resource bytes to response buffer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x34448e6",
+      "target": "0x31ca2e0",
+      "label": "External-file branch requests typed resource identity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x344495b",
+      "target": "0x31cab80",
+      "label": "External-file branch obtains resource through manager"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x34449cd",
+      "target": "0x3938468",
+      "label": "External resource response copies owned resource buffer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3444d2d",
+      "target": "0x3440090",
+      "label": "Separate stream request also normalizes URL"
+    }
+  ],
+  "middleware": {
+    "filename": "cohtml.WindowsDesktop.dll",
+    "sha256": "c026d81afd768a1734139fbfc00b3dfaaac72fba48642b0abe5f0818a6dfd2a6",
+    "async_response_abstract_vtable": "0x605a88",
+    "virtual_slot_count": 9,
+    "evidence": "Exported IAsyncResourceResponse vtable: one deleting destructor followed by eight pure-virtual entries, then another object. This fixes table length, not every method signature.",
+    "checks": [
+      {
+        "kind": "pointer64",
+        "rva": "0x605a88",
+        "target": "0x28442c",
+        "label": "Abstract async-response slot 0"
+      },
+      {
+        "kind": "pointer64",
+        "rva": "0x605a90",
+        "target": "0x18d3b0",
+        "label": "Abstract async-response slot 1"
+      },
+      {
+        "kind": "pointer64",
+        "rva": "0x605a98",
+        "target": "0x18d3b0",
+        "label": "Abstract async-response slot 2"
+      },
+      {
+        "kind": "pointer64",
+        "rva": "0x605aa0",
+        "target": "0x18d3b0",
+        "label": "Abstract async-response slot 3"
+      },
+      {
+        "kind": "pointer64",
+        "rva": "0x605aa8",
+        "target": "0x18d3b0",
+        "label": "Abstract async-response slot 4"
+      },
+      {
+        "kind": "pointer64",
+        "rva": "0x605ab0",
+        "target": "0x18d3b0",
+        "label": "Abstract async-response slot 5"
+      },
+      {
+        "kind": "pointer64",
+        "rva": "0x605ab8",
+        "target": "0x18d3b0",
+        "label": "Abstract async-response slot 6"
+      },
+      {
+        "kind": "pointer64",
+        "rva": "0x605ac0",
+        "target": "0x18d3b0",
+        "label": "Abstract async-response slot 7"
+      },
+      {
+        "kind": "pointer64",
+        "rva": "0x605ac8",
+        "target": "0x18d3b0",
+        "label": "Abstract async-response slot 8"
+      }
+    ]
+  },
+  "packed_asset": {
+    "path": "data/uiresources/game/ui/ui.ui",
+    "decoded_size": 26459058,
+    "sha256": "57db918d2ab472004e71c09f95355cefbfc344b56ef43a9c5efdf479df6eb9ea",
+    "container": "Versioned ui::PageResource serialization, not a standalone HTML document.",
+    "metadata_types": [
+      "r::FileInfoMetadata",
+      "r::ResourceMetadata",
+      "ui::PageMetadata"
+    ],
+    "object_header": {
+      "magic": "0xd34db33f",
+      "encoding_version": 2,
+      "byte_size_offset": 8,
+      "type_hash_offset": 12,
+      "class_version_offset": 16,
+      "page_type_hash": "0x70635a61",
+      "page_class_version": 7
+    },
+    "file_table": {
+      "count": 3631,
+      "count_offset": "0x4b",
+      "first_record_offset": "0x4f",
+      "record_type_hash": "0x4edae845",
+      "record_class_version": 3,
+      "shape": "20-byte object header, u32 path-byte count, path bytes, 32-byte serialized resource reference, u64 source offset, u64 source length, 4-byte closing magic.",
+      "embedded_records": 743,
+      "external_records": 2888,
+      "embedded_resource_sentinel": "0xffffffffffffffff"
+    },
+    "source_blob": {
+      "size_field_offset": "0x8d499",
+      "data_offset": "0x8d49d",
+      "size": 21244434
+    },
+    "format_limits": "The table and all embedded source bounds were checked. Trailing binding, navigation, event and other serialized arrays are not fully reconstructed; this is not a general PageResource writer."
+  },
+  "embedded_sources": [
+    {
+      "path": "uiresources/game/ui/ui.html",
+      "offset": 0,
+      "size": 5321014,
+      "sha256": "5d236f36c75f1765c9c8e454392ac9210dd37c8e97fd98c39deebd5b5d8f15c7",
+      "unique_closing_body_offset": 5320996
+    },
+    {
+      "path": "uiresources/game/ui/globals_island.bundle.js",
+      "offset": 5321014,
+      "size": 450078,
+      "sha256": "ce02dc133ffedd432e1246149114905e29b1a283f2b3e99485d67b9030397eec"
+    },
+    {
+      "path": "uiresources/game/ui/optionscomponent.template.html",
+      "offset": 12962280,
+      "size": 3767055,
+      "sha256": "e2a4910b3673a2fd7e6a99429d1466a61ac6a1a915ef07d0d172f1591334227e"
+    }
+  ],
+  "resource_load": {
+    "vtable": "0x51184b8",
+    "request_load": "0x3449ab0",
+    "blocking_load": "0x3449a30",
+    "reader": "0x3449b80",
+    "decoder": "0x346bea0",
+    "file_record_decoder": "0x346b410",
+    "publication": "0x31cee00"
+  },
+  "live_layout": {
+    "handler": "ui::BlobResourceHandler",
+    "handler_size": "0x48",
+    "vtable": "0x5110c30",
+    "registered_pages_tree_offset": "0x18",
+    "tree_node_page_pointer_offset": "0x20",
+    "page_fields": {
+      "0x1a8": "file-record array pointer",
+      "0x1b0": "file-record count",
+      "0x1b8": "embedded source-byte buffer pointer",
+      "0x1c0": "embedded byte count"
+    },
+    "file_record_stride": "0x120",
+    "file_record_fields": {
+      "0x00": "in-place path string",
+      "0x108": "external resource reference or invalid sentinel",
+      "0x110": "u64 source offset",
+      "0x118": "u64 source length"
+    }
+  },
+  "regular_request": {
+    "entry": "0x34446b0",
+    "windows_x64_arguments": {
+      "rcx": "handler this",
+      "rdx": "request interface pointer",
+      "r8": "response interface pointer"
+    },
+    "request_url_virtual_offset": "0x10",
+    "url_normalizer": "0x3440090",
+    "normalization": "Normalizes URL/path and strips the base prefix before comparing registered resource paths. Query/fragment handling occurs in the normalizer; matching arbitrary user paths is not a supported mod API.",
+    "embedded_branch": "When matching record source length is nonzero, read page blob + record source offset, allocate response storage, copy exactly source length bytes, finish success and return.",
+    "response_slots_reviewed": [
+      {
+        "offset": "0x08",
+        "observed_contract": "Allocate writable response buffer for byte length passed in RDX; return buffer pointer in RAX.",
+        "callsite": "0x34448a6"
+      },
+      {
+        "offset": "0x10",
+        "observed_contract": "Texture/user-image response descriptor on separate texture branch; not used for embedded HTML/JS. Full descriptor ownership is unresolved.",
+        "callsite": "0x3444ca5"
+      },
+      {
+        "offset": "0x28",
+        "observed_contract": "Set response status to integer 200 before successful byte-buffer responses.",
+        "callsite": "0x344489a"
+      },
+      {
+        "offset": "0x40",
+        "observed_contract": "Finish response with integer result 0 on success or 1 on failure. This is the final method slot in this middleware build.",
+        "callsite": "0x3444824"
+      }
+    ],
+    "unknown_response_slots": [
+      "0x18",
+      "0x20",
+      "0x30",
+      "0x38"
+    ],
+    "lifetime": "The embedded regular-request branch allocates, copies and finishes within the original call. It does not retain the request or response pointer. This does not establish a universal synchronous contract for other handlers, middleware builds or streaming requests.",
+    "other_paths": "External font/data resources use the shared resource manager; texture branches call the native renderer and use a different response method. These must remain delegated to the original handler.",
+    "stream_request": "Separate entry 0x3444ce0 uses a different response interface, with finish at +0x10. Do not apply the regular-response layout to it.",
+    "abort_slot": "Handler vtable +0x18 points to 0x3444ff0, a no-op ret. Interface naming suggests abort, but the body establishes no cancellation ownership protocol."
+  },
+  "minimal_panel_candidate": {
+    "route": "Append bounded self-authored markup/script to the existing ui.html response before its unique closing body tag, using the game-owned Gameface renderer.",
+    "alternative": "Serve a namespaced self-authored child resource through the same native resource handler, while delegating unrelated requests unchanged.",
+    "limits": "This adds content to an existing page; it does not prove arbitrary ECS page creation, page-stack activation, input focus, navigation binding or Wasm-to-JavaScript event delivery.",
+    "requirements": [
+      "Exact executable/middleware fingerprints and request entry validation.",
+      "Match an explicitly supported URL and verified original embedded content; reject ambiguous or altered content.",
+      "Never retain raw engine resource/request/response pointers beyond proven scope.",
+      "Bound transformed response size and preserve original content on refusal.",
+      "Establish callback threading/reentrancy and page reload teardown before exposing mod-owned event subscriptions."
+    ]
+  },
+  "public_distribution": "Only layouts, hashes and code-reference metadata are recorded here. Extracted game HTML, scripts, styles and packed resources remain local."
+}

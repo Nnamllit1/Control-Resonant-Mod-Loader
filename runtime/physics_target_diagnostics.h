@@ -1,5 +1,5 @@
 #pragma once
-#include "entity_inspector.h"
+#include "diagnostics/entity_inspector.h"
 #include <Windows.h>
 #include <atomic>
 #include <array>

@@ -14,7 +14,16 @@ struct Snapshot {
     int32_t selector{-1};
     std::array<Slot,4> slots{};
 };
+struct Selected {
+    uintptr_t world{}, global{};
+    uint64_t entity{};
+    int32_t selector{-1};
+    float position[3]{}, basis[9]{}, lens[2]{};
+};
 // Copies only: no engine calls, retained ownership or worker-side pointer use.
 // Before/after identity checks detect some races; they are not synchronization.
 Read inspect(uintptr_t world, uintptr_t expected_global, Snapshot& result) noexcept;
+// Copies only the selected CameraView, not the final renderer override. The
+// context is borrowed from camera::update; missing/foreign globals fail closed.
+Read selected(void* update_context, Selected& result) noexcept;
 }

@@ -1,4 +1,4 @@
-#include "entity_inspector.h"
+#include "diagnostics/entity_inspector.h"
 #include <Windows.h>
 #include <cstring>
 #include <iomanip>

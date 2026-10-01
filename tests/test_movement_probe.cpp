@@ -1,9 +1,10 @@
 #include "movement_view.h"
-#include "entity_inspector.h"
+#include "player_snapshot.h"
+#include "diagnostics/entity_inspector.h"
 #include "visibility.h"
 #include "noclip.h"
 #include "fall_guard.h"
-#include "fall_observer.h"
+#include "diagnostics/fall_observer.h"
 #include "script_origin.h"
 #include "boundary_guard.h"
 #include "physics_target_diagnostics.h"
@@ -144,6 +145,52 @@ __declspec(noinline) void target(void* a,void* b,void* c,void* d,void* e,void* f
 void detour(void* a,void* b,void* c,void* d,void* e,void* f) { ++intercepted; trampoline(a,b,c,d,e,f); }
 int main() {
     try {
+        {
+            crml::probe::PlayerSnapshot cache;
+            crml_player_state state{};
+            const crml_player_state zero{};
+            auto empty=[&] {return std::memcmp(&state,&zero,sizeof(state))==0;};
+            std::memset(&state,0xff,sizeof(state));
+            require(cache.read(state,1000,true)==0 && empty(),"Unreadied player state leaked output");
+            Fixture fixture(3);Sample sample{};
+            require(fixture.inspect(sample)==Observation::player,"Player snapshot fixture rejected");
+            const auto unchanged=fixture.chunk;
+            cache.publish(sample,1000);
+            require(cache.read(state,1000,true)==1 && state.version==1 && state.age_ms==0 && state.reserved==0 &&
+                    state.position[0]==1.25f && state.position[1]==2.5f && state.position[2]==-3.f,
+                    "Authenticated player position was not copied");
+            const auto first=state.generation;
+            require(first && first!=sample.entity,"Player snapshot exposed entity handle as identity");
+            sample.position[0]=12.f;cache.publish(sample,1010);
+            require(cache.read(state,1020,true)==1 && state.age_ms==10 && state.generation==first && state.position[0]==12.f,
+                    "Continuous player sample changed identity or age");
+            require(cache.read(state,1510,true)==1 && state.age_ms==500,"Player freshness boundary rejected");
+            require(cache.read(state,1511,true)==0 && empty(),"Stale player sample escaped");
+            cache.publish(sample,1511);
+            require(cache.read(state,1511,true)==1 && state.generation>first,"Observation gap reused player identity");
+            auto previous=state.generation;
+            require(cache.read(state,1511,false)==0 && empty(),"Background game exposed player snapshot");
+            require(cache.read(state,1500,true)==0 && empty(),"Reversed clock accepted stale snapshot");
+            sample.entity+=uint64_t{1}<<32;cache.publish(sample,1512);
+            require(cache.read(state,1512,true)==1 && state.generation>previous,"Replacement player reused snapshot generation");
+            previous=state.generation;
+            ++sample.world;cache.publish(sample,1513);
+            require(cache.read(state,1513,true)==1 && state.generation>previous,"Replacement world reused snapshot generation");
+            previous=state.generation;
+            cache.invalidate();
+            require(cache.read(state,1513,true)==0 && empty(),"Invalid observation retained public state");
+            cache.publish(sample,1514);
+            require(cache.read(state,1514,true)==1 && state.generation>previous,"Revalidated observation reused identity");
+            for(const auto invalid_coordinate:std::array<float,2>{std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::infinity()}) {
+                sample.position[0]=invalid_coordinate;cache.publish(sample,1515);
+                require(cache.read(state,1515,true)==0 && empty(),"Nonfinite player position escaped");
+            }
+            sample.position[0]=0;sample.entity=0;cache.publish(sample,1516);
+            require(cache.read(state,1516,true)==0 && empty(),"Empty entity accepted");
+            sample.entity=1;sample.world=0;cache.publish(sample,1517);
+            require(cache.read(state,1517,true)==0 && empty(),"Empty world accepted");
+            require(fixture.chunk==unchanged,"Player state cache wrote engine memory");
+        }
         {
             using namespace crml::probe::script_origin;
             ScriptFixture f;const auto vm=f.vm,calls=f.calls,proto=f.proto;

@@ -85,6 +85,11 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
         'THIRD_PARTY.md': root / 'THIRD_PARTY.md',
         'README-CRML.txt': root / 'release/README-runtime.txt',
     }
+    if features.get('ui_bridge') is True:
+        bootstrap=dist / 'crml/ui-bootstrap.html'
+        if not bootstrap.is_file():
+            raise ValueError('UI-enabled runtime requires ui-bootstrap.html; rebuild before packaging')
+        runtime['crml/ui-bootstrap.html']=bootstrap
     noclip = {
         'crml/movement-wasm.enabled': b'',
         'crml/mods/movement/mod.ini': dist / 'examples/movement/mod.ini',
@@ -98,7 +103,7 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
         'tools/wasmtime.dll': dist / 'crml/wasmtime.dll',
         'licenses/wasmtime.txt': dist / 'licenses/wasmtime/LICENSE',
         'THIRD_PARTY.md': root / 'THIRD_PARTY.md',
-        'README-SDK.txt': b'CRML SDK\n\nHeaders are in sdk/include. Example .wat files are the build inputs; .c files\nare readable alternatives. Compile with tools/crml_wat.exe input.wat output.wasm.\nRun standalone mods with tools/crml_host.exe <mods-directory> [ticks]. Gameplay APIs\nrequire the in-game runtime and the matching mode; the standalone host cannot\ncontrol the game. Do not copy this SDK archive into the game directory.\n\nMod development and API: https://crml.nnamllit.de/developing/\n',
+        'README-SDK.txt': b'CRML SDK\n\nHeaders are in sdk/include. Example .wat files are the build inputs; .c files\nare readable alternatives. Compile with tools/crml_wat.exe input.wat output.wasm.\nRun standalone mods with tools/crml_host.exe <mods-directory> [ticks]. Gameplay APIs\nrequire the in-game runtime and native service support; the standalone host cannot\ncontrol the game. Do not copy this SDK archive into the game directory.\n\nMod development and API: https://crml.nnamllit.de/developing/\n',
     }
     for path in (root / 'sdk').rglob('*.h'):
         sdk[path.relative_to(root).as_posix()] = path
@@ -113,7 +118,7 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
         b'not the Wasm sandbox. The compiler and extracted game scripts are not bundled.\n\n'
         b'https://crml.nnamllit.de/engine-lua/\n'
     )
-    for example in ('hello', 'movement', 'visibility', 'physics-damping'):
+    for example in ('hello', 'movement', 'visibility', 'physics-damping', 'input-actions', 'state-watch', 'startup-skip'):
         for path in (root / 'examples' / example).iterdir():
             if path.suffix in ('.c', '.wat', '.ini', '.md'):
                 sdk[path.relative_to(root).as_posix()] = path

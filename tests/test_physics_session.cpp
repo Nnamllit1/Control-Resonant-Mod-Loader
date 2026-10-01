@@ -45,6 +45,21 @@ void test_selection() {
         candidate={10,20,30};return true;
     };
     auto no_yield=[] {return false;};
+    {
+        const float anchor[3]{10,20,30},at[3]{12,18,33};
+        const SelectionQuery query{{1,-2,3},.5f};
+        require(query.valid() && query.distance_squared(anchor,at)==1.f,"world-aligned offset from captured player position");
+        for(const auto bad: {SelectionQuery{{21,0,0},2},SelectionQuery{{15,15,0},2},
+                            SelectionQuery{{0,0,0},0},SelectionQuery{{0,0,0},21},
+                            SelectionQuery{{0,0,0},std::numeric_limits<float>::infinity()}})
+            require(search.begin(scope,100,bad)==SelectionResult::invalid,"native query bounds independent of guest host");
+        auto one=scope;one.slots=1;
+        auto candidate=[](uint32_t,SelectionCandidate& c) {c={10,20,30,9.f};return true;};
+        require(search.begin(one,100,{{1,-2,3},4})==SelectionResult::pending,"custom region accepted");
+        require(search.step(one,101,candidate,no_yield)==SelectionResult::selected,"custom radius replaces old two-unit bound");
+        search.begin(one,100,{{1,-2,3},2});
+        require(search.step(one,101,candidate,no_yield)==SelectionResult::invalid,"candidate must satisfy requested radius");
+    }
     require(search.begin(scope,100)==SelectionResult::pending,"real scene count must be searchable");
     for(unsigned batch=0;batch<4;++batch) {
         require(search.step(scope,100+batch,visit,no_yield)==SelectionResult::pending,"do not select before complete scan");
@@ -106,5 +121,6 @@ void test_selection() {
 int main() {
     try {test_selection();test_target_diagnostics();test_lifetime_diagnostics();} catch(const std::exception& e) {std::cerr<<e.what()<<'\n';return 1;}
     if(!crml::physics::test_session_prologues()) {std::cerr<<"Physics trial hook relocation failed\n";return 1;}
+    if(!crml::physics::test_session_readback()) {std::cerr<<"Physics readback owner, freshness or lifetime checks failed\n";return 1;}
     std::cout<<"Physics nearest selection, bounds, batched search, cancellation, identity changes and hook relocation passed\n";
 }

@@ -31,7 +31,7 @@ Copy-Item -LiteralPath "$PSScriptRoot\examples\hello\mod.ini" -Destination "$PSS
 & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\hello\hello.wat" "$PSScriptRoot\dist\crml\mods\hello\hello.wasm"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Write-Host "Build ready in $PSScriptRoot\dist"
-@{ experimental_gameplay = [bool]$MovementProbe; engine_observer = [bool]$MovementProbe; physics_trial = [bool]$MovementProbe; physics_wasm = [bool]$MovementProbe; movement_wasm = [bool]$MovementProbe; lua_probe = [bool]$LuaProbe; lua_source = [bool]$LuaSource } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
+@{ experimental_gameplay = [bool]$MovementProbe; engine_observer = [bool]$MovementProbe; physics_trial = [bool]$MovementProbe; physics_wasm = [bool]$MovementProbe; movement_wasm = [bool]$MovementProbe; ui_bridge = [bool]$MovementProbe; lua_probe = [bool]$LuaProbe; lua_source = [bool]$LuaSource } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
 if ($MovementProbe) {
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\physics-trial.enabled", '')
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\physics-wasm.enabled", '')
@@ -50,3 +50,9 @@ if ($MovementProbe) {
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\examples\noclip\noclip.enabled", '')
 }
 if ($LuaSource) { [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\engine-lua.enabled", '') }
+& "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\input-actions\input-actions.wat" "$PSScriptRoot\dist\examples\input-actions\input-actions.wasm"
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+& "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\state-watch\state-watch.wat" "$PSScriptRoot\dist\examples\state-watch\state-watch.wasm"
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+& "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\startup-skip\startup-skip.wat" "$PSScriptRoot\dist\examples\startup-skip\startup-skip.wasm"
+if ($LASTEXITCODE) { exit $LASTEXITCODE }

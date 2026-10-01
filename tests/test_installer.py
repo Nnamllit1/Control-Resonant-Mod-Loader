@@ -14,6 +14,22 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def test_ui_bootstrap_owned_update_and_customization_preserved(self):
+        relative = 'crml/ui-bootstrap.html'
+        source = self.dist / relative
+        source.write_text('bridge v1')
+        installer.install(self.game, self.dist, self.profiles, True)
+        self.assertIn(relative, installer.read_receipt(self.game)['files'])
+        source.write_text('bridge v2')
+        installer.update(self.game, self.dist, self.profiles, True)
+        destination = self.game / relative
+        self.assertEqual(destination.read_text(), 'bridge v2')
+        destination.write_text('customized')
+        source.write_text('bridge v3')
+        with self.assertRaises(ValueError):
+            installer.update(self.game, self.dist, self.profiles, True)
+        self.assertEqual(destination.read_text(), 'customized')
+
     def test_untested_x64_install_and_game_update(self):
         executable = bytearray(512)
         executable[:2] = b'MZ'

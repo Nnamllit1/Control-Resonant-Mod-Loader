@@ -75,11 +75,13 @@ The report separates property restoration from visible gameplay effects. `restor
 
 The trial runs after the original physics simulation dispatcher returns and before its ECS task releases successors. Each access resolves the current callback's world, scene, full entity handle and full body handle again. The native setter is called only after identity, virtual-target, getter and attached-scene checks; readback checks the resulting linear damping and unchanged angular damping. The setter's busy-scene check is not a lock.
 
-The implementation is restricted to the fingerprinted engine paths described in [physics dynamics](physics-dynamics.md). Native trial mode suspends guests. A separate opt-in mode exposes the bounded [Wasm damping API](api.md#experimental-prop-damping). Use a disposable prop for either mode.
+The implementation is restricted to the fingerprinted engine paths described in [physics dynamics](physics-dynamics.md). Native trial mode suspends guests. Wasm mods use the bounded [Wasm damping API](api.md#experimental-prop-damping). Use a disposable prop for either mode.
 
 ## Wasm damping example
 
-Build with `-EngineObserver`, close the game, and switch to the isolated Wasm physics service:
+With Alpha 4.2, install the runtime and copy the compiled example into `crml/mods/physics-damping`; its manifest requests the service. Movement and visibility can run alongside it. The Wasm service has no ten-minute session cutoff, and a full or failed diagnostic log does not stop it. Individual operations still expire and restore.
+
+For source builds, or the legacy explicit startup marker:
 
 ```powershell
 $gameDir = Read-Host 'Path to your CONTROL Resonant installation'
@@ -89,8 +91,8 @@ Copy-Item -Recurse dist/examples/physics-damping "$gameDir/crml/mods/physics-dam
 
 Copy the example only if that destination does not already exist; preserve any customized package. The installer replaces owned native-trial/observer markers and preserves existing mods. The source package is in `examples/physics-damping`; its compiled Wasm binary is produced by the build. No native mod DLL is loaded.
 
-Launch through Steam and load a save. **F7** asks the guest to select a nearby prop; stay still until the panel says **PROP SELECTED**. **F8** asks the guest to apply damping `8` for five seconds. **F11** or **Esc** requests native restoration. These differ from the native trial's F9/F10 controls. Push the prop yourself by briefly walking into it, then step away: expect shorter free sliding while damping is active. The example does not apply a push automatically. Normal response should return after five seconds; rotation is unchanged. Select again before another application.
+Launch through Steam and load a save. **Home** asks the guest to select a nearby prop; stay still for a moment before applying. A physics-only session shows **PROP SELECTED**; with movement active its panel takes precedence. The example also logs selection and active state transitions to `crml.log`. **End** asks the guest to apply damping `8` for five seconds. **F11** or **Esc** requests native restoration. These differ from the native trial's F9/F10 controls. Push the prop yourself by briefly walking into it, then step away: expect shorter free sliding while damping is active. The example does not apply a push automatically. Normal response should return after five seconds; rotation is unchanged. Select again before another application.
 
-The guest reads bounded buttons and calls the imports; native code chooses the eligible target and performs the guarded write on the physics callback. `crml.log` identifies the loaded guest. The same physics-trial JSONL logs record native execution and restoration, with `mods_suspended: false` in the header. F9/F10 do not initiate native trials in this mode.
+The guest reads its manifest actions and supplies the search region through `physics_select_near(offset_x, offset_y, offset_z, radius)`. The example chooses zero offset and radius two; mods may choose different bounded regions. It also supplies damping and duration to `physics_apply`. Native code resolves the eligible target and performs the guarded write on the physics callback. The example logs queued requests and missing-target or rejected requests as well as operation status. The same physics-trial JSONL logs record native execution and restoration, with `mods_suspended: false` in the header. F9/F10 do not initiate native trials in this mode.
 
-To return to ordinary startup, close the game and run `python tools/install.py "$gameDir" --update --disable-physics-wasm --apply`. The example can remain installed, but its physics imports return unavailable without the service.
+To return to ordinary startup, close the game and run `python tools/install.py "$gameDir" --update --disable-physics-wasm --apply`. On Alpha 4.2 the installed example itself requests physics support. Remove its mod folder to disable it; removing only the marker does not disable manifest requests.

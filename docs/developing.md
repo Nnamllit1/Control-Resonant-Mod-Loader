@@ -35,7 +35,9 @@ Create `mods/my-mod/` and add a [manifest](api.md#manifest). Compile your module
 
 Change the package ID to `my-mod`. IDs must be unique across the loaded packages. Remove a package directory from the mods root to disable it; restart the host or game to reload packages.
 
-To run a mod in-game, [install the matching runtime](installation.md), close the game and copy your package folder into `crml/mods/`. Gameplay examples can require a particular runtime mode; follow their API and example documentation. Do not copy the SDK's tools into the game directory.
+To run a mod in-game, [install the matching runtime](installation.md), close the game and copy your package folder into `crml/mods/`. Alpha 4.2 prepares supported gameplay services from mod manifests. Older runtimes can require a particular mode; follow the version requirements in the API and example documentation. Do not copy the SDK's tools into the game directory.
+
+For configurable shortcuts, start with `examples/input-actions` in the Alpha 4.2 SDK. Its manifest declares named controls, and the Wasm source decides what a press does. It needs no noclip or physics mode. Query [capability availability](api.md#capability-availability-and-cleanup) before offering a feature, check operation results, and use `crml_release()` when cancelling the mod's native leases. Availability does not mean the game currently has a valid player or target.
 
 ## C and C++ guests
 
@@ -48,6 +50,10 @@ clang --target=wasm32 -O2 -nostdlib -Isdk/include examples/hello/hello.c -Wl,--n
 The C example is an alternative source; the normal build uses WAT and does not install Clang. Do not target WASI, add native dependencies, or assume a C runtime is available. Any Wasm-producing language may be used if it implements the documented core-Wasm ABI and imports only allowed host functions.
 
 ## Where mod behavior belongs
+
+`examples/startup-skip` uses `ui.read` and `ui.activate` to continue past supported startup notices, and `ui.presentation` to hide the engine's named splash element temporarily while required initialization finishes. It also uses `media.read` and `media.skip` to select the boot video by its logical resource name, with explicit handling of the adapter's mapped-name provenance. Its guest chooses targets, lease duration and retry policy. See the [UI contract](api.md#startup-ui-state-and-actions) and [media contract](api.md#media-observation-and-skipping) for supported operations and cleanup behavior. These interfaces do not yet enumerate every screen, create mod settings pages or control arbitrary cinematics.
+
+For state-driven behavior, `examples/state-watch` reads player position and selected-camera state and implements its own displacement and camera-change detection in Wasm. `player.read` and `camera.read` do not grant movement or camera writes. The physics example also reads its selected body's damping and speed through `physics_read`; it checks observed damping separately from queue acceptance. Use these copied values to drive your own conditions and combine them with the supported write operations.
 
 Keep controls, timing, state and combinations of API calls in the mod's example/package directory. The visibility example chooses its own hide button; the physics-damping example detects button presses, requests selection, obtains its token and supplies the damping value and duration. Both include WAT and C source beside `mod.ini`. Edit and compile the source you intend to run; rebuilding the native runtime is unnecessary for guest behavior changes.
 

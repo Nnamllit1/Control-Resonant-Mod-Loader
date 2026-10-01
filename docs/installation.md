@@ -46,7 +46,7 @@ After the game starts, `crml/crml.log` records that CRML loaded. The runtime alo
 
 ## Add more mods
 
-Close the game and follow the mod's included instructions. A standard CRML Wasm mod has its own folder under `crml/mods/`, containing `mod.ini` and a `.wasm` file. If its download already contains a `crml` folder, merge that folder into the game's existing `crml` folder. Some mods require a particular CRML version or gameplay mode.
+Close the game and follow the mod's included instructions. A standard CRML Wasm mod has its own folder under `crml/mods/`, containing `mod.ini` and a `.wasm` file. If its download already contains a `crml` folder, merge that folder into the game's existing `crml` folder. Use the CRML version required by the mod. From Alpha 4.2, supported Wasm gameplay services start from mod manifests; separate movement, visibility and physics installation modes are unnecessary. Older releases can require additional enable files.
 
 ## Update a downloaded release
 

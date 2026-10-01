@@ -9,6 +9,7 @@ namespace crml::compatibility {
 inline constexpr std::string_view tested_sha = "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0";
 // Published on the bootstrap worker before any engine hook is installed.
 inline char approved_sha[65]{};
+inline bool reviewed_build=false;
 inline bool allowed(std::string_view sha) noexcept {
     return sha.size()==64 && (sha==tested_sha || sha==std::string_view(approved_sha));
 }

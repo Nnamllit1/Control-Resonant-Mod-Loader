@@ -7,11 +7,14 @@
 namespace crml::probe {
 class Recorder : public crml::Gameplay {
 public:
-    std::string start(const std::filesystem::path& root);
+    std::string start(const std::filesystem::path& root, uint32_t services=0);
     void poll();
     ~Recorder();
-    bool active() const { return output_.is_open() || gameplay_ || visibility_; }
+    bool active() const { return output_.is_open() || gameplay_ || visibility_ || read_; }
     bool guest_motion() const noexcept { return motion_; }
+    bool has_overlay() const noexcept { return overlay_!=nullptr; }
+    uint32_t capabilities() const noexcept override;
+    int player_read(crml_player_state& out) noexcept override;
     int noclip_poll(uint64_t owner, float speed) noexcept override;
     uint32_t input_motion() noexcept override;
     int motion_camera(float (&right)[2]) noexcept override;
@@ -30,6 +33,7 @@ private:
     bool gameplay_{};
     bool motion_{};
     bool visibility_{};
+    bool read_{};
     void* overlay_{};
 };
 }

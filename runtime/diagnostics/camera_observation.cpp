@@ -1,4 +1,4 @@
-#include "camera_observation.h"
+#include "diagnostics/camera_observation.h"
 #include "movement_view.h"
 #include <Windows.h>
 #include <cmath>
@@ -14,9 +14,10 @@ uintptr_t environment(uintptr_t world) noexcept {
     if(!count || count>16384) return 0;
     const auto hashes=read<uintptr_t>(world+0x585b0),values=read<uintptr_t>(world+0x585c0);
     if(!hashes || !values) return 0;
-    uintptr_t result{};
+    uintptr_t result{};bool found=false;
     for(uint32_t i=0;i<count;++i) if(read<uint32_t>(hashes+i*4ull)==0xfe90f7f8) {
-        if(result) return 0; // An ambiguous global table cannot authenticate a view.
+        if(found) return 0; // An ambiguous global table cannot authenticate a view.
+        found=true;
         result=read<uintptr_t>(values+i*8ull);
     }
     return result;
@@ -88,10 +89,48 @@ Read inspect_inner(uintptr_t world,uintptr_t expected,Snapshot& out) noexcept {
     if(environment(world)!=global || std::memcmp(before,reinterpret_cast<void*>(global),sizeof(before))) return Read::changed;
     return Read::ok;
 }
+Read selected_inner(void* context,Selected& out) noexcept {
+    const auto at=reinterpret_cast<uintptr_t>(context);
+    if(!at) return Read::arguments;
+    const auto world=read<uintptr_t>(at),global=read<uintptr_t>(at+0x28);
+    if(!world || !global || environment(world)!=global) return Read::environment;
+    unsigned char before[36];std::memcpy(before,reinterpret_cast<void*>(global),sizeof(before));
+    int32_t mode;std::memcpy(&mode,before,4);
+    if(mode<0 || mode>3) return Read::selector;
+    uint64_t entity;std::memcpy(&entity,before+4+mode*8,8);
+    if(!entity || !alive(world,entity)) return Read::changed;
+    uintptr_t chunk{};uint32_t row{};
+    const auto view=probe::entity_component(world,entity,0x46967561,64,chunk,row);
+    if(!view) return Read::changed;
+    float values[14];std::memcpy(values,reinterpret_cast<void*>(view),sizeof(values));
+    if(!finite(values,12)) return Read::changed;
+    for(unsigned a=0;a<3;++a) for(unsigned b=a;b<3;++b) {
+        float dot{};for(unsigned i=0;i<3;++i) dot+=values[a*3+i]*values[b*3+i];
+        if(std::abs(dot-(a==b?1.f:0.f))>.1f) return Read::changed;
+    }
+    // Identity and value rechecks detect observed churn. They do not establish
+    // a lock or authority to mutate the camera or its entity.
+    if(read<uintptr_t>(at)!=world || read<uintptr_t>(at+0x28)!=global || environment(world)!=global ||
+       std::memcmp(before,reinterpret_cast<void*>(global),sizeof(before)) || !alive(world,entity) ||
+       probe::entity_component(world,entity,0x46967561,64,chunk,row)!=view ||
+       std::memcmp(values,reinterpret_cast<void*>(view),sizeof(values))) return Read::changed;
+    out.world=world;out.global=global;out.entity=entity;out.selector=mode;
+    std::memcpy(out.basis,values,sizeof(out.basis));
+    std::memcpy(out.position,values+9,sizeof(out.position));
+    std::memcpy(out.lens,values+12,sizeof(out.lens));
+    return Read::ok;
+}
 }
 Read inspect(uintptr_t world,uintptr_t expected,Snapshot& result) noexcept {
     result={};Read status{};
     __try {status=inspect_inner(world,expected,result);}
+    __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) {status=Read::memory;}
+    if(status!=Read::ok) result={};
+    return status;
+}
+Read selected(void* context,Selected& result) noexcept {
+    result={};Read status{};
+    __try {status=selected_inner(context,result);}
     __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) {status=Read::memory;}
     if(status!=Read::ok) result={};
     return status;

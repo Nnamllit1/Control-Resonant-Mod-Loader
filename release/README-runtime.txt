@@ -32,8 +32,9 @@ copied into the game directory.
 Updating an existing CRML installation
 Close the game and back up xinput1_4.dll and the crml folder. Copy the new runtime
 contents into the same game folder, merge the crml folders and replace the CRML
-files when Windows asks. Keep your other mod folders. Use matching runtime and
-mod releases. A manually copied installation does not need the Python installer.
+files when Windows asks. Keep your other mod folders. Existing ABI 1 mods remain
+compatible; mods using new imports need the runtime version specified by their
+author. A manually copied installation does not need the Python installer.
 
 If an existing xinput1_4.dll belongs to another loader, do not replace it with
 CRML. Two loaders using that same filename cannot be installed together this way.

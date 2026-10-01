@@ -58,7 +58,7 @@ def main():
         subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
                        check=True, timeout=20, capture_output=True)
         log = (root / 'crml.log').read_text()
-        assert 'conflicting observer and physics trial markers' in log and 'must-not-load' not in log, log
+        assert 'Diagnostic startup refused:' in log and 'must-not-load' not in log, log
         (root / 'engine-observer.enabled').unlink()
         (root / 'physics-trial.enabled').unlink()
         (root / 'physics-wasm.enabled').write_text('')
@@ -66,23 +66,25 @@ def main():
                        check=True, timeout=20, capture_output=True)
         log = (root / 'crml.log').read_text()
         assert 'Physics trial refused: unsupported executable fingerprint' in log, log
-        assert 'must-not-load' not in log and 'Movement probe' not in log, log
+        assert 'Rejected must-not-load:' in log and 'Game service capabilities: 0' in log, log
         (root / 'physics-trial.enabled').write_text('')
         subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
                        check=True, timeout=20, capture_output=True)
         log = (root / 'crml.log').read_text()
-        assert 'conflicting observer and physics trial markers' in log and 'must-not-load' not in log, log
+        assert 'Diagnostic startup refused:' in log and 'must-not-load' not in log, log
         (root / 'physics-trial.enabled').unlink()
         (root / 'movement-wasm.enabled').write_text('')
         subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
                        check=True, timeout=20, capture_output=True)
         log = (root / 'crml.log').read_text()
-        assert 'conflicting observer and physics trial markers' in log and 'must-not-load' not in log, log
+        assert 'Diagnostic startup refused:' not in log and 'Rejected must-not-load:' in log, log
+        assert 'Physics trial refused: unsupported executable fingerprint' in log, log
+        assert 'Movement probe refused: unsupported executable fingerprint' in log, log
         (root / 'physics-wasm.enabled').unlink()
         subprocess.run([sys.executable, str(Path(__file__).resolve()), '--child', '--runtime', str(runtime)],
                        check=True, timeout=20, capture_output=True)
         log = (root / 'crml.log').read_text()
-        assert 'Movement probe refused: unsupported executable fingerprint' in log and 'must-not-load' not in log, log
+        assert 'Movement probe refused: unsupported executable fingerprint' in log and 'Rejected must-not-load:' in log, log
         assert not (root / 'movement-probe.jsonl').exists()
         (root / 'engine-lua.enabled').write_text('')
         source = root / 'lua-mods' / 'must-not-load'
@@ -93,9 +95,9 @@ def main():
         log = (root / 'crml.log').read_text()
         expected = ('Lua source loading refused: compatible hooks or source log unavailable'
                     if args.lua_source else 'Lua source loading is unavailable in this build')
-        assert expected in log and 'must-not-load' not in log, log
+        assert expected in log and 'Rejected must-not-load:' in log, log
         assert not (root / 'lua-mods.jsonl').exists()
-        print('Real-runtime unsupported-host refusal and isolated-mode startup checks passed')
+        print('Real-runtime diagnostic isolation and independent service refusal checks passed')
     return 0
 
 
