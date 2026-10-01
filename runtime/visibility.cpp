@@ -49,11 +49,11 @@ void apply(void* query) {
     Target target{};
     if(!resolve(query,p,target) || *target.hidden) return;
     // Same small command path as applyHide. No guest supplies addresses or handles.
-    const auto renderer=*reinterpret_cast<uintptr_t*>(image+0x5e69000);
+    const auto renderer=*reinterpret_cast<uintptr_t*>(compatibility::address(image,0x5e69000));
     if(!renderer) return;
     const auto storage=*reinterpret_cast<uintptr_t*>(renderer+24);
     if(!storage) return;
-    auto* command=static_cast<Command*>(reinterpret_cast<Allocate>(image+0x2fb8340)(reinterpret_cast<void*>(storage),8,true));
+    auto* command=static_cast<Command*>(reinterpret_cast<Allocate>(compatibility::address(image,0x2fb8340))(reinterpret_cast<void*>(storage),8,true));
     if(!command) return;
     *command=hide_command(target.handle);
     *target.flags |= 0x10000;
@@ -61,7 +61,7 @@ void apply(void* query) {
     // Publish the record exactly as the engine does; the low bit requests wakeup.
     *reinterpret_cast<volatile uint64_t*>(reinterpret_cast<uintptr_t>(command)-8)=8;
     auto* counter=reinterpret_cast<volatile LONG*>(storage+0x30);
-    if(InterlockedExchangeAdd(counter,2)&1) reinterpret_cast<Wake>(image+0x393109d)(const_cast<LONG*>(counter));
+    if(InterlockedExchangeAdd(counter,2)&1) reinterpret_cast<Wake>(compatibility::address(image,0x393109d))(const_cast<LONG*>(counter));
     sent.fetch_add(1,std::memory_order_relaxed);
 }
 }
@@ -75,8 +75,8 @@ bool resolve(const void* query,const Sample& p,Target& out) noexcept {
 bool start(uintptr_t base,Player player) noexcept {
     if(!base || !player) return false;
     const unsigned char expected[]={0x40,0x55,0x53,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57};
-    auto* target=reinterpret_cast<void*>(base+0x1969ca0);
-    if(!compatibility::matches(target,expected,sizeof(expected))) return false;
+    auto* target=reinterpret_cast<void*>(compatibility::address(base,0x1969ca0));
+    if(!compatibility::matches_code(target,0x1969ca0,expected,sizeof(expected))) return false;
     image=base; player_callback=player;
     if(MH_CreateHook(target,reinterpret_cast<void*>(&apply),reinterpret_cast<void**>(&original))!=MH_OK) return false;
     if(MH_EnableHook(target)!=MH_OK) { MH_RemoveHook(target); return false; }

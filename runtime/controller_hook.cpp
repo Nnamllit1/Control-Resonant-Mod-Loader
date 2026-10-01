@@ -23,9 +23,9 @@ void dispatch(void* view,void* world,void* collision,void* callback,void* scene,
 bool start(uintptr_t image) noexcept {
     if(installed) return installed==image;
     if(!image) return false;
-    auto* target=reinterpret_cast<void*>(image+0x1b98950);
+    auto* target=reinterpret_cast<void*>(compatibility::address(image,0x1b98950));
     constexpr unsigned char bytes[]{0x48,0x8b,0xc4,0x4c,0x89,0x48,0x20,0x4c,0x89,0x40,0x18,0x48,0x89,0x50,0x10,0x53,0x56,0x57};
-    if(!compatibility::matches(target,bytes,sizeof(bytes))) return false;
+    if(!compatibility::matches_code(target,0x1b98950,bytes,sizeof(bytes))) return false;
     const auto init=MH_Initialize();
     if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return false;
     if(MH_CreateHook(target,reinterpret_cast<void*>(&dispatch),reinterpret_cast<void**>(&original))!=MH_OK) return false;

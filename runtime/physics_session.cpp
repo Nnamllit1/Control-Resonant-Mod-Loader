@@ -251,7 +251,7 @@ void dispatch(void* view,uint16_t id,void* descriptor) {
     if(!ready.load()) return;
     ++dispatches;
     SimulationContext context{};
-    if(!read_simulation_context(reinterpret_cast<uintptr_t>(view),reinterpret_cast<uintptr_t>(descriptor),image+0x190e4d0,context)) {++rejected_contexts;++sample_invalidation;return;}
+    if(!read_simulation_context(reinterpret_cast<uintptr_t>(view),reinterpret_cast<uintptr_t>(descriptor),compatibility::address(image,0x190e4d0),context)) {++rejected_contexts;++sample_invalidation;return;}
     if(!TryAcquireSRWLockExclusive(&state_lock)) {++sample_invalidation;return;}
     const auto now=GetTickCount64(); const auto beat=heartbeat.load();
     // Even between sampling intervals, a callback from a different world or
@@ -322,7 +322,7 @@ void dispatch(void* view,uint16_t id,void* descriptor) {
 void movement(void* view,void* world) noexcept {
     if(!ready.load()) return;
     probe::Sample sample{}; bool valid=false;
-    __try { valid=probe::inspect(view,world,*reinterpret_cast<uint16_t*>(image+0x5c00ca4),sample)==probe::Observation::player; }
+    __try { valid=probe::inspect(view,world,*reinterpret_cast<uint16_t*>(compatibility::address(image,0x5c00ca4)),sample)==probe::Observation::player; }
     __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { valid=false; }
     if(valid && TryAcquireSRWLockExclusive(&state_lock)) {
         if(player.world!=token(sample.world) || player.entity!=sample.entity) state_sample={};
@@ -368,17 +368,17 @@ std::string Session::start(const std::filesystem::path& root,bool wasm,bool shar
     const auto length=backend?GetModuleFileNameW(backend,path,32768):0;
     if(!length || length>=32768 || module_fingerprint(path)!=backend_sha) return "Physics trial refused: unsupported backend fingerprint";
     image=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr)); backend_image=reinterpret_cast<uintptr_t>(backend);
-    for(const auto& hook:hooks) if(!compatibility::matches(reinterpret_cast<void*>(image+hook.rva),hook.bytes.data(),hook.bytes.size())) return "Physics trial refused: changed hook entry";
+    for(const auto& hook:hooks) if(!compatibility::matches_code(reinterpret_cast<void*>(compatibility::address(image,hook.rva)),hook.rva,hook.bytes.data(),hook.bytes.size())) return "Physics trial refused: changed hook entry";
     const auto init=MH_Initialize(); if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return "Physics trial refused: hook initialization";
     if(!probe::input::start()) return "Physics trial refused: keyboard observation unavailable";
     if(!controller::start(image) || !controller::observe(&movement)) return "Physics service refused: controller observation unavailable";
     size_t created{};
     for(const auto& hook:hooks) {
-        if(MH_CreateHook(reinterpret_cast<void*>(image+hook.rva),hook.detour,hook.original)!=MH_OK) break;
+        if(MH_CreateHook(reinterpret_cast<void*>(compatibility::address(image,hook.rva)),hook.detour,hook.original)!=MH_OK) break;
         ++created;
     }
     if(created!=std::size(hooks)) {
-        for(size_t i=0;i<created;++i) MH_RemoveHook(reinterpret_cast<void*>(image+hooks[i].rva));
+        for(size_t i=0;i<created;++i) MH_RemoveHook(reinterpret_cast<void*>(compatibility::address(image,hooks[i].rva)));
         return "Physics trial refused: hook creation";
     }
     started_=GetTickCount64(); LARGE_INTEGER clock{}; QueryPerformanceCounter(&clock); salt=clock.QuadPart;
@@ -392,7 +392,7 @@ std::string Session::start(const std::filesystem::path& root,bool wasm,bool shar
     if(!shared) overlay_=probe::overlay_create(image,true,wasm);
     if(!overlay_ && !wasm) return "Physics trial refused: overlay unavailable";
     events.open();
-    for(const auto& hook:hooks) if(MH_EnableHook(reinterpret_cast<void*>(image+hook.rva))!=MH_OK) {
+    for(const auto& hook:hooks) if(MH_EnableHook(reinterpret_cast<void*>(compatibility::address(image,hook.rva)))!=MH_OK) {
         // Leave enabled trampolines pinned and pass-through. Removing one here
         // could invalidate a concurrent callback's original-call target.
         return "Physics service refused: hook enable";

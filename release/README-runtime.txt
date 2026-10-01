@@ -46,6 +46,10 @@ work, but shortcuts or gameplay can break, and crashes are possible even when
 the loaders use different DLL filenames. Use one loader at a time.
 
 An unrecognized executable opens a CRML Windows prompt before mods start.
+Use Check for CRML updates on GitHub to open the releases page. The prompt stays
+open and mods remain disabled until you choose to continue. Close the game before
+installing a newer runtime. Reinstalling the same version does not add support
+for a changed game build; a newer compatible release may not yet be available.
 Choose Continue to try it or Leave CRML disabled to play without CRML mods.
 The checkbox remembers either choice for that exact executable. Remove
 crml/compatibility-choice.txt with the game closed to reset it.

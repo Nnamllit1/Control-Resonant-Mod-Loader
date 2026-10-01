@@ -165,21 +165,21 @@ bool CameraOverride::prepare(const void* original,Player player) noexcept {
 bool start(uintptr_t image,Active callback) noexcept {
     if(!image || !callback) return false;
     // Only called after the full executable SHA256 check in Recorder::start.
-    auto check=reinterpret_cast<void*>(image+0x25a7230);
-    auto query=reinterpret_cast<void*>(image+0x25ad320);
-    auto monitor_check=reinterpret_cast<void*>(image+0x229ba00);
-    auto action_check=reinterpret_cast<void*>(image+0x229b4b0);
-    auto recovery_check=reinterpret_cast<void*>(image+0x25a7620);
-    auto camera_check=reinterpret_cast<void*>(image+0x25a85f0);
+    auto check=reinterpret_cast<void*>(compatibility::address(image,0x25a7230));
+    auto query=reinterpret_cast<void*>(compatibility::address(image,0x25ad320));
+    auto monitor_check=reinterpret_cast<void*>(compatibility::address(image,0x229ba00));
+    auto action_check=reinterpret_cast<void*>(compatibility::address(image,0x229b4b0));
+    auto recovery_check=reinterpret_cast<void*>(compatibility::address(image,0x25a7620));
+    auto camera_check=reinterpret_cast<void*>(compatibility::address(image,0x25a85f0));
     constexpr unsigned char check_signature[]{0x48,0x8b,0xc4,0x56,0x41,0x55,0x41,0x56,0x41,0x57,0x48,0x81,0xec,0x18,0x01,0x00,0x00};
     constexpr unsigned char query_signature[]{0x40,0x53,0x48,0x83,0xec,0x50,0x48,0x8b,0xd9};
     constexpr unsigned char monitor_signature[]{0x48,0x8b,0xc4,0x4c,0x89,0x48,0x20,0x4c,0x89,0x40,0x18,0x53,0x56,0x57,0x41,0x54,0x41,0x55};
     constexpr unsigned char action_signature[]{0x4c,0x8b,0xdc,0x49,0x89,0x53,0x10,0x53,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57};
     constexpr unsigned char recovery_signature[]{0x4c,0x8b,0xdc,0x4d,0x89,0x4b,0x20,0x49,0x89,0x53,0x10};
     constexpr unsigned char camera_signature[]{0x48,0x8b,0xc4,0x48,0x89,0x58,0x10,0x48,0x89,0x70,0x18,0x48,0x89,0x78,0x20};
-    if(!compatibility::matches(check,check_signature,sizeof(check_signature)) || !compatibility::matches(query,query_signature,sizeof(query_signature)) ||
-       !compatibility::matches(monitor_check,monitor_signature,sizeof(monitor_signature)) || !compatibility::matches(action_check,action_signature,sizeof(action_signature)) ||
-       !compatibility::matches(recovery_check,recovery_signature,sizeof(recovery_signature)) || !compatibility::matches(camera_check,camera_signature,sizeof(camera_signature))) return false;
+    if(!compatibility::matches_code(check,0x25a7230,check_signature,sizeof(check_signature)) || !compatibility::matches_code(query,0x25ad320,query_signature,sizeof(query_signature)) ||
+       !compatibility::matches_code(monitor_check,0x229ba00,monitor_signature,sizeof(monitor_signature)) || !compatibility::matches_code(action_check,0x229b4b0,action_signature,sizeof(action_signature)) ||
+       !compatibility::matches_code(recovery_check,0x25a7620,recovery_signature,sizeof(recovery_signature)) || !compatibility::matches_code(camera_check,0x25a85f0,camera_signature,sizeof(camera_signature))) return false;
     active_callback=callback;
     if(MH_CreateHook(check,reinterpret_cast<void*>(&inactive),reinterpret_cast<void**>(&original_inactive))!=MH_OK ||
        MH_CreateHook(query,reinterpret_cast<void*>(&target),reinterpret_cast<void**>(&original_target))!=MH_OK ||

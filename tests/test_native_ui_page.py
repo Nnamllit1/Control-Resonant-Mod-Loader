@@ -30,6 +30,9 @@ body {margin:0;background:#171717;color:#eee;font:20px sans-serif}
 .tab-buttons {display:flex;gap:12px;height:50px}
 .tab-buttons-button {padding:10px 24px;background:#333}
 .menu-button--selected {pointer-events:none}
+.menu-button.selection-item--selected {--foreground-color:#0d0d0d;--background-color:#e8e8e8;
+ color:var(--foreground-color);background-color:var(--background-color)}
+.tab-buttons-button__icon {display:inline-block;width:12px;height:12px;background-color:var(--foreground-color)}
 .options__content {position:relative;height:650px}
 .tabs__pages {position:relative;height:100%;width:100%}
 .tabs__pages__page {position:relative}
@@ -41,16 +44,17 @@ body {margin:0;background:#171717;color:#eee;font:20px sans-serif}
 .options-slider__value {min-width:36px}
 .hidden,.coh-inactive {visibility:hidden;pointer-events:none}
 </style></head><body><div class="options fullscreen-layout--visible visible">
-<div class="tab-buttons"><div id="stock-tab" class="tab-buttons-button menu-button menu-button--selected"
- data-bind-click="routes.menu_options.root.onTab(0)">Gameplay</div>
+<div class="tab-buttons"><div id="stock-tab" class="tab-buttons-button menu-button menu-button--selected selection-item--selected"
+ data-bind-click="routes.menu_options.root.onTab(0)"><span class="tab-buttons-button__icon"></span>Gameplay</div>
 <div id="other-tab" class="tab-buttons-button menu-button"
  data-bind-click="routes.menu_options.root.onTab(3)">Audio</div></div>
 <div class="options__content"><div class="tabs__pages"><div id="stock-page"
  class="tabs__pages__page visible">Stock options</div></div></div></div>
 <script>
 (function(){
- var states=['gameplay'],position=0, active=true, handlers={}, clicks=0,reject=false,rejectBack=false,stockInputs=0,stockHandlers={},lastStockState='';
- var queue=[],pushCount=0,backCount=0;
+ var states=['gameplay'],position=0, active=true,handlers={},clicks=0,stockInputs=0,lastStockState='';
+ var queue=[],pushCount=0,backCount=0,worldInputs=0,foreignInputs=0;
+ var normal=['gameplay','controls','graphics','audio','interface'];
  function applyPush(value){states=states.slice(0,position+1);states.push(value);++position}
  window.stack={active:function(name){return name==='menu_options'&&active},
  state:function(){return states[position]},getStackData:function(){return states.slice()},
@@ -58,30 +62,37 @@ body {margin:0;background:#171717;color:#eee;font:20px sans-serif}
  push:function(name,value){if(name==='menu_options'){++pushCount;queue.push({type:'push',value:value})}},
  back:function(name){if(name==='menu_options'){++backCount;queue.push({type:'back'})}}};
  window.engine={on:function(name,callback){(handlers[name]||(handlers[name]=[])).push(callback)},
- off:function(name,callback){handlers[name]=(handlers[name]||[]).filter(function(x){return x!==callback})}};
- ['OnNavigateLeft','OnNavigateRight','OnSelect','OnCancel'].forEach(function(name){
-  var callback=function(){if(active&&['gameplay','controls','graphics','audio','interface'].indexOf(stack.state())>=0)++stockInputs};
-  stockHandlers[name]=callback;engine.on(name,callback);
- });
- window.__fixture={emit:function(name){(handlers[name]||[]).slice().forEach(function(x){x()})},
- setState:function(value){states=[value];position=0}, setActive:function(value){active=value;
+ off:function(name,callback){if(typeof callback!=='function')throw Error('Removing whole event forbidden');
+ handlers[name]=(handlers[name]||[]).filter(function(x){return x!==callback})}};
+ var pairs=[['OnCancel','onCancel'],['OnPrev','onPrevTab'],['OnNext','onNextTab'],
+ ['OnNavigateLeft','onNavigateLeft'],['OnNavigateRight','onNavigateRight'],['OnSelect','onSelectOption']];
+ var root={onTab:function(index){++clicks;lastStockState=stack.state();states=[index===0?'gameplay':'audio'];position=0}};
+ function stockOn(){pairs.forEach(function(p){engine.on(p[0],root[p[1]])})}
+ function stockOff(){pairs.forEach(function(p){engine.off(p[0],root[p[1]])})}
+ function setActive(value){if(active===value)return;active=value;
+  if(value){states=['gameplay'];position=0;stockOn()}else stockOff();
   document.querySelector('.options').classList.toggle('visible',value);
-  document.querySelector('.options').classList.toggle('fullscreen-layout--visible',value)},
+  document.querySelector('.options').classList.toggle('fullscreen-layout--visible',value)}
+ pairs.forEach(function(p){root[p[1]]=function(){if(active&&normal.indexOf(stack.state())>=0){
+  ++stockInputs;if(p[0]==='OnCancel')setActive(false)}}});
+ stockOn();
+ // Independent listeners must remain registered throughout the panel lifetime.
+ var foreign=function(){++foreignInputs};engine.on('OnSelect',foreign);
+ window.routes={menu_options:{root:root}};
+ window.__fixture={emit:function(name){(handlers[name]||[]).slice().forEach(function(x){x()})},
+ setState:function(value){states=[value];position=0},setActive:setActive,
  clone:function(selector){var old=document.querySelector(selector||'.options');old.replaceWith(old.cloneNode(true))},
- rejectPush:function(value){reject=value},
- rejectBack:function(value){rejectBack=value},lastStockState:function(){return lastStockState},
- commands:function(){return {push:pushCount,back:backCount,pending:queue.length}},
- flushOne:function(){var op=queue.shift();if(!op)return;if(op.type==='push'&&!reject)applyPush(op.value);
-  if(op.type==='back'&&!rejectBack&&position>0)--position},
- externalPush:function(value){applyPush(value)},externalBack:function(){if(position>0)--position},
+ lastStockState:function(){return lastStockState},commands:function(){return {push:pushCount,back:backCount,pending:queue.length}},
+ flushOne:function(){var op=queue.shift();if(!op)return;if(op.type==='push')applyPush(op.value);
+  if(op.type==='back'&&position>0)--position},
+ attemptWorldInput:function(){if(!active||normal.indexOf(stack.state())<0)++worldInputs},
+ worldInputs:function(){return worldInputs},foreignInputs:function(){return foreignInputs},
  handlers:function(){return Object.keys(handlers).reduce(function(n,k){return n+handlers[k].length},0)},
- stockInputs:function(){return stockInputs},stockHandlerIdentity:function(){return Object.keys(stockHandlers).every(function(k){
-  return (handlers[k]||[]).filter(function(x){return x===stockHandlers[k]}).length===1})},
+ stockInputs:function(){return stockInputs},stockHandlerIdentity:function(){return pairs.every(function(p){
+  return (handlers[p[0]]||[]).filter(function(x){return x===root[p[1]]}).length===(active?1:0)})},
  stockClicks:function(){return clicks}};
- window.routes={menu_options:{root:{onTab:function(index){++clicks;lastStockState=stack.state();
-  states=[index===0?'gameplay':'audio'];position=0}}}};
- document.addEventListener('click',function(e){if(e.target.id==='stock-tab')routes.menu_options.root.onTab(0);
-  if(e.target.id==='other-tab')routes.menu_options.root.onTab(3)});
+ document.addEventListener('click',function(e){if(e.target.id==='stock-tab')root.onTab(0);
+  if(e.target.id==='other-tab')root.onTab(3)});
 }());
 </script>PAYLOAD</body></html>"""
 
@@ -164,42 +175,38 @@ async def check(connection, artifact_dir):
         await browser.wait("!!document.querySelector('[data-crml-native-tab]')")
         await browser.wait(f'!{status}.active && !{status}.pending')
 
-    async def commands(push, back, pending):
-        # Check stable counts over several scan cycles, catching callback floods.
-        expression = (f'__fixture.commands().push === {push} && '
-                      f'__fixture.commands().back === {back} && '
-                      f'__fixture.commands().pending === {pending}')
-        await browser.wait(expression)
-        await asyncio.sleep(.25)
-        if not await browser.evaluate(expression):
-            raise AssertionError(f'Command count changed without acknowledgment: {expression}')
+    async def assert_native_owner():
+        value = await browser.evaluate('__fixture.commands()')
+        if value != dict(push=0, back=0, pending=0):
+            raise AssertionError(f'Mods changed native Options history/input ownership: {value}')
+        await browser.wait('stack.active("menu_options") && stack.state() === "gameplay"')
+        await browser.evaluate('__fixture.attemptWorldInput()')
+        await browser.wait('__fixture.worldInputs() === 0')
 
-    async def begin():
+    async def open_mods():
         await browser.click('[data-crml-native-tab]')
-        await browser.wait(f'{status}.pending && !{status}.active')
-        await commands(1, 0, 1)
-        await browser.wait('stack.state() === "gameplay"')
-
-    async def acknowledge():
-        await browser.evaluate('__fixture.flushOne()')
-        await asyncio.sleep(.15)
+        await assert_native_owner()
+        await browser.wait(f'{status}.active && !{status}.pending')
 
     async def assert_clean():
-        await browser.wait(f'!{status}.active && !{status}.pending && stack.state() === "gameplay"')
+        await browser.wait(f'!{status}.active && !{status}.pending')
         await browser.wait('__fixture.stockHandlerIdentity()')
+        await browser.wait("!document.querySelector('[data-crml-native-muted]')")
 
-    # A native stack mutation only enqueues a command. Repeated clicks must not
-    # enqueue duplicate pushes while state() still reports the previous page.
     await reset()
-    await begin()
+    await open_mods()
     for _ in range(3):
         await browser.click('[data-crml-native-tab]')
-    await commands(1, 0, 1)
-    await acknowledge()
-    await browser.wait(f'{status}.active')
+    await assert_native_owner()
+    await browser.wait('__fixture.handlers() === 2')
     stock_inputs = await browser.evaluate('__fixture.stockInputs()')
-    await browser.evaluate("['OnNavigateLeft','OnNavigateRight','OnSelect'].forEach(__fixture.emit)")
-    await browser.wait(f'__fixture.stockInputs() === {stock_inputs}')
+    await browser.evaluate("['OnPrev','OnNext','OnNavigateLeft','OnNavigateRight','OnSelect'].forEach(__fixture.emit)")
+    await browser.wait(f'__fixture.stockInputs() === {stock_inputs} && __fixture.foreignInputs() === 1')
+    # Native binding classes stay intact, but their visual selection and icon
+    # colors are muted only while Mods owns the visible page.
+    await browser.wait("document.querySelector('#stock-tab').classList.contains('selection-item--selected')")
+    await browser.wait("getComputedStyle(document.querySelector('#stock-tab')).backgroundColor === 'rgba(0, 0, 0, 0)'")
+    await browser.wait("getComputedStyle(document.querySelector('#stock-tab .tab-buttons-button__icon')).backgroundColor === 'rgb(232, 232, 232)'")
     await browser.click('[data-crml-native-toggle]')
     await browser.wait(f'{status}.enabled')
     await browser.drag('[data-crml-native-slider]')
@@ -237,115 +244,62 @@ async def check(connection, artifact_dir):
     screenshot = await browser.call('Page.captureScreenshot', format='png')
     (artifact_dir / 'native-ui.png').write_bytes(base64.b64decode(screenshot['data']))
     await browser.evaluate("__fixture.emit('OnCancel');__fixture.emit('OnCancel')")
-    await commands(1, 1, 1)
-    await browser.wait('stack.state() === "crml_mods_modal"')
+    await assert_clean()
+    await assert_native_owner()
     await browser.wait(f'__fixture.stockInputs() === {stock_inputs}')
-    await acknowledge()
+    await browser.wait('__fixture.handlers() === 7')
+    await browser.wait("getComputedStyle(document.querySelector('#stock-tab')).backgroundColor === 'rgb(232, 232, 232)'")
+
+    # A stock tab mouse click routes once, after stock controls are restored.
+    await open_mods()
+    await browser.click('#other-tab')
+    await browser.wait(f'!{status}.active && __fixture.stockClicks() === 1 && stack.state() === "audio"')
+    await browser.wait('__fixture.lastStockState() === "gameplay" && __fixture.stockHandlerIdentity()')
+
+    # Closing Options outside the panel must not restore its callbacks into
+    # gameplay. Reopening runs the normal native lifecycle exactly once.
+    await reset()
+    await open_mods()
+    await browser.evaluate('__fixture.setActive(false)')
     await assert_clean()
-    await browser.click('#other-tab')
-    await browser.wait('__fixture.stockClicks() === 1')
-
-    # Clicking a stock tab cannot replay its route while native back is still
-    # pending. Replay exactly once only after the original page is current.
-    await reset()
-    await begin()
-    await acknowledge()
-    await browser.wait(f'{status}.active')
-    await browser.click('#other-tab')
-    await commands(1, 1, 1)
-    await browser.wait('__fixture.stockClicks() === 0')
-    await acknowledge()
-    await browser.wait(f'!{status}.pending && __fixture.stockClicks() === 1 && stack.state() === "audio"')
-    await browser.wait('__fixture.lastStockState() === "gameplay"')
-
-    # Cancellation before push acknowledgment must remain owned until the
-    # queued push lands and exactly one corresponding back is acknowledged.
-    await reset()
-    await begin()
-    await browser.evaluate("__fixture.emit('OnCancel');__fixture.emit('OnCancel')")
-    await commands(1, 0, 1)
-    await acknowledge()
-    await commands(1, 1, 1)
-    await acknowledge()
+    await browser.wait('__fixture.handlers() === 1')
+    await browser.evaluate("__fixture.emit('OnSelect')")
+    await browser.wait('__fixture.stockInputs() === 0 && __fixture.foreignInputs() === 1')
+    await browser.evaluate('__fixture.setActive(true)')
+    await browser.wait('__fixture.handlers() === 7 && __fixture.stockHandlerIdentity()')
+    await open_mods()
+    await browser.click('[data-crml-native-back]')
     await assert_clean()
 
-    # External navigation before acknowledgment cannot abandon a queued push.
-    await reset()
-    await begin()
-    await browser.evaluate("__fixture.setState('audio')")
-    await asyncio.sleep(.2)
-    await commands(1, 0, 1)
-    await acknowledge()
-    await commands(1, 1, 1)
-    await acknowledge()
-    await browser.wait(f'!{status}.active && !{status}.pending && stack.state() === "audio"')
+    # The native menu may change state independently. Do not keep the local
+    # selection active or navigate back over that change.
+    await open_mods()
+    await browser.evaluate("__fixture.setState('foreign_modal')")
+    await assert_clean()
+    await browser.wait('stack.state() === "foreign_modal" && __fixture.commands().back === 0')
 
-    # cloneNode preserves marker attributes but drops listener identity. A
-    # replacement during pending entry must unwind, then bind the new page.
+    # Cached DOM clones retain visual attributes but not listener identity.
     await reset()
-    await begin()
+    await open_mods()
     await browser.evaluate('__fixture.clone()')
-    await asyncio.sleep(.2)
-    await commands(1, 0, 1)
-    await acknowledge()
-    await commands(1, 1, 1)
-    await acknowledge()
     await assert_clean()
     await browser.wait("document.querySelectorAll('[data-crml-native-tab]').length === 1")
-    await browser.click('[data-crml-native-tab]')
-    await commands(2, 1, 1)
-    await acknowledge()
-    await browser.wait(f'{status}.active')
+    await open_mods()
     await browser.click('[data-crml-native-toggle]')
     await browser.wait(f'{status}.enabled')
-
-    # Stop during pending entry must not remove its observer/ownership record
-    # before the delayed push and delayed back both finish.
-    await reset()
-    await begin()
     await browser.evaluate('window.__crmlNativeUi.stop()')
-    await commands(1, 0, 1)
-    await browser.wait(f'!!window.__crmlNativeUi && {status}.pending')
-    await acknowledge()
-    await commands(1, 1, 1)
-    await browser.wait('!!window.__crmlNativeUi')
-    await acknowledge()
     await browser.wait('!window.__crmlNativeUi && stack.state() === "gameplay"')
-    await browser.wait('__fixture.handlers() === 4 && __fixture.stockHandlerIdentity()')
+    await browser.wait('__fixture.handlers() === 7 && __fixture.stockHandlerIdentity()')
+    await browser.wait("!document.querySelector('[data-crml-native-muted]')")
 
-    # A foreign modal above our acknowledged state owns its own lifetime.
+    # Missing API support fails before hiding native controls or claiming input.
     await reset()
-    await begin()
-    await acknowledge()
-    await browser.wait(f'{status}.active')
-    await browser.evaluate("__fixture.externalPush('foreign_modal')")
-    await browser.wait(f'!{status}.active && {status}.pending')
-    await browser.evaluate('window.__crmlNativeUi.stop()')
-    await commands(1, 0, 0)
-    await browser.wait('stack.state() === "foreign_modal"')
-    await browser.evaluate('__fixture.externalBack()')
-    await commands(1, 1, 1)
-    await acknowledge()
-    await browser.wait('!window.__crmlNativeUi && stack.state() === "gameplay"')
-    await browser.wait('__fixture.handlers() === 4 && __fixture.stockHandlerIdentity()')
+    await browser.evaluate('delete routes.menu_options.root.onSelectOption')
+    await browser.click('[data-crml-native-tab]')
+    await browser.wait(f'!{status}.active && {status}.error.length > 0')
+    await assert_native_owner()
+    await browser.wait('__fixture.handlers() === 7')
 
-    # Forward history includes a state already left by external navigation.
-    await reset()
-    await begin()
-    await acknowledge()
-    await browser.wait(f'{status}.active')
-    await browser.evaluate('__fixture.externalBack()')
-    await browser.wait(f'!{status}.active && !{status}.pending')
-    await commands(1, 0, 0)
-    await browser.wait('stack.has("menu_options","crml_mods_modal")')
-    await browser.evaluate('__fixture.setActive(false)')
-    before = await browser.evaluate(status)
-    await browser.evaluate("__fixture.emit('OnCancel')")
-    after = await browser.evaluate(status)
-    if before['enabled'] != after['enabled'] or before['amount'] != after['amount']:
-        raise AssertionError('Hidden panel changed state')
-    await browser.evaluate('window.__crmlNativeUi.stop()')
-    await browser.wait('!window.__crmlNativeUi && __fixture.handlers() === 4')
     if browser.errors:
         raise AssertionError(f'Uncaught browser exceptions: {browser.errors}')
     return browser
@@ -402,7 +356,7 @@ async def run(args):
             target = next(page for page in pages if page['type'] == 'page')
             connection = await connect(target['webSocketDebuggerUrl'], max_size=8*1024*1024)
             browser = await check(connection, artifact_dir)
-            print('PASS: native UI queued transitions, real mouse input, cancellation, clone recovery and deferred cleanup')
+            print('PASS: native Options ownership, selection restoration, scoped callbacks, mouse controls and clone cleanup')
             print(f'Artifacts: {artifact_dir.relative_to(ROOT)}')
         except Exception:
             if connection:

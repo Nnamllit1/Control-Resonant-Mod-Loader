@@ -240,16 +240,16 @@ bool start(uintptr_t image,fall::Active callback) noexcept {
         {0x40,0x56,0x48,0x83,0xec,0x60,0x48,0x8b,0xf1,0x48,0x8b}};
     void* detours[]{reinterpret_cast<void*>(&inactive),reinterpret_cast<void*>(&trigger),reinterpret_cast<void*>(&recovery),reinterpret_cast<void*>(&camera),reinterpret_cast<void*>(&local_transform),reinterpret_cast<void*>(&world_transform),reinterpret_cast<void*>(&alternate_transform),reinterpret_cast<void*>(&copy_world_transform)};
     void** originals[]{reinterpret_cast<void**>(&original_inactive),reinterpret_cast<void**>(&original_trigger),reinterpret_cast<void**>(&original_recovery),reinterpret_cast<void**>(&original_camera),reinterpret_cast<void**>(&original_local),reinterpret_cast<void**>(&original_world),reinterpret_cast<void**>(&original_alternate),reinterpret_cast<void**>(&original_copy)};
-    for(size_t i=0;i<rvas.size();++i) if(!compatibility::matches(reinterpret_cast<void*>(image+rvas[i]),signatures[i],11)) return false;
+    for(size_t i=0;i<rvas.size();++i) if(!compatibility::matches_code(reinterpret_cast<void*>(compatibility::address(image,rvas[i])),rvas[i],signatures[i],11)) return false;
     player_callback=callback;
     executable_base=image;
     const auto dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(image);
     executable_size=reinterpret_cast<const IMAGE_NT_HEADERS64*>(image+dos->e_lfanew)->OptionalHeader.SizeOfImage;
     for(size_t i=0;i<rvas.size();++i)
-        if(MH_CreateHook(reinterpret_cast<void*>(image+rvas[i]),detours[i],originals[i])!=MH_OK) return false;
+        if(MH_CreateHook(reinterpret_cast<void*>(compatibility::address(image,rvas[i])),detours[i],originals[i])!=MH_OK) return false;
     // No state changes or skipped originals even during partial installation.
     // Trampolines stay pinned and passive if enabling any hook fails.
-    for(auto rva:rvas) if(MH_EnableHook(reinterpret_cast<void*>(image+rva))!=MH_OK) return false;
+    for(auto rva:rvas) if(MH_EnableHook(reinterpret_cast<void*>(compatibility::address(image,rva)))!=MH_OK) return false;
     enabled.store(true,std::memory_order_release);return true;
 }
 void write(std::ostream& out) {

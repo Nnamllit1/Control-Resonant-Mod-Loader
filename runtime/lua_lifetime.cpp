@@ -122,10 +122,10 @@ bool start(uintptr_t image) noexcept {
     if(!image || original_close || original_cleanup) return false;
     constexpr unsigned char close_prefix[]{0x40,0x53,0x48,0x83,0xec,0x20,0x48,0x8b,0x41,0x18};
     constexpr unsigned char cleanup_prefix[]{0x48,0x89,0x5c,0x24,0x10,0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7c,0x24,0x20};
-    auto* close_entry=reinterpret_cast<void*>(image+0x2c3be80);
-    auto* cleanup_entry=reinterpret_cast<void*>(image+0x19c70e0);
-    if(!compatibility::matches(close_entry,close_prefix,sizeof(close_prefix)) ||
-       !compatibility::matches(cleanup_entry,cleanup_prefix,sizeof(cleanup_prefix))) return false;
+    auto* close_entry=reinterpret_cast<void*>(compatibility::address(image,0x2c3be80));
+    auto* cleanup_entry=reinterpret_cast<void*>(compatibility::address(image,0x19c70e0));
+    if(!compatibility::matches_code(close_entry,0x2c3be80,close_prefix,sizeof(close_prefix)) ||
+       !compatibility::matches_code(cleanup_entry,0x19c70e0,cleanup_prefix,sizeof(cleanup_prefix))) return false;
     // Installed trampolines stay pinned, including partial installation failures.
     // No state is observed until BOTH hooks are active; stopped hooks forward only.
     if(MH_CreateHook(close_entry,reinterpret_cast<void*>(&close_hook),reinterpret_cast<void**>(&original_close))!=MH_OK ||

@@ -79,8 +79,8 @@ __declspec(noinline) int protected_call(void* vm,int nargs,int results,int error
 bool start(uintptr_t image,fall::Active active) noexcept {
     if(!image || !active || active_callback) return false;
     constexpr unsigned char signature[]{0x48,0x89,0x5c,0x24,0x08,0x48,0x89,0x74,0x24,0x10,0x57};
-    auto* entry=reinterpret_cast<void*>(image+0x2c4fc90);
-    if(!compatibility::matches(entry,signature,sizeof(signature))) return false;
+    auto* entry=reinterpret_cast<void*>(compatibility::address(image,0x2c4fc90));
+    if(!compatibility::matches_code(entry,0x2c4fc90,signature,sizeof(signature))) return false;
     active_callback=active;
     if(MH_CreateHook(entry,reinterpret_cast<void*>(&protected_call),reinterpret_cast<void**>(&original))!=MH_OK || MH_EnableHook(entry)!=MH_OK) return false;
     if(lua::start(image,original) && lua::lifetime::start(image)) lua::start_persistent(image);

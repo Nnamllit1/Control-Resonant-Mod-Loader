@@ -25,9 +25,9 @@ void dispatch(void* context,void* render,void* listener) {
 bool start(uintptr_t image) noexcept {
     if(installed) return installed==image;
     if(!image) return false;
-    auto* target=reinterpret_cast<void*>(image+0x1baa070);
+    auto* target=reinterpret_cast<void*>(compatibility::address(image,0x1baa070));
     constexpr unsigned char bytes[]{0x4c,0x8b,0xdc,0x49,0x89,0x73,0x18,0x57,0x41,0x56,0x41,0x57,0x48,0x81,0xec,0x90,0,0};
-    if(!compatibility::matches(target,bytes,sizeof(bytes))) return false;
+    if(!compatibility::matches_code(target,0x1baa070,bytes,sizeof(bytes))) return false;
     const auto init=MH_Initialize();
     if(init!=MH_OK && init!=MH_ERROR_ALREADY_INITIALIZED) return false;
     if(MH_CreateHook(target,reinterpret_cast<void*>(&dispatch),reinterpret_cast<void**>(&original))!=MH_OK) return false;

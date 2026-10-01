@@ -4,7 +4,6 @@
     'use strict';
     if (window.__crmlNativeUi) return;
     var stackName = 'menu_options';
-    var ownState = 'crml_mods_modal';
     var normalStates = ['gameplay', 'controls', 'graphics', 'audio', 'interface'];
     var state = { enabled: false, amount: 50 };
     var mounted = [];
@@ -13,7 +12,6 @@
     var scanning = false;
     var stopped = false;
     var stopping = false;
-    var cancelEngine = null;
     var cancelFrame = null;
     var drag = null;
     var lastError = '';
@@ -30,9 +28,7 @@
     }
     function nativeStack() {
         var api = window.stack;
-        return api && typeof api.active === 'function' && typeof api.state === 'function' &&
-            typeof api.push === 'function' && typeof api.back === 'function' &&
-            typeof api.has === 'function' ? api : null;
+        return api && typeof api.active === 'function' && typeof api.state === 'function' ? api : null;
     }
     function currentState() {
         try { var api = nativeStack(); return api ? api.state(stackName) : ''; }
@@ -43,7 +39,7 @@
         return connected(entry.container) && entry.container.classList.contains('fullscreen-layout--visible');
     }
     function owns(entry) {
-        if (active !== entry || entry.phase !== 'active' || currentState() !== ownState) return false;
+        if (active !== entry || entry.phase !== 'active' || currentState() !== entry.previousState) return false;
         try { return visible(entry) && nativeStack().active(stackName); }
         catch (_) { return false; }
     }
@@ -58,30 +54,15 @@
         } else entry.container.removeAttribute('data-crml-mods-active');
         var display = show ? 'block' : 'none';
         if (entry.root.style.display !== display) entry.root.style.display = display;
+        var tabs = entry.tabbar.querySelectorAll('.menu-button');
+        for (var i = 0; i < tabs.length; ++i) {
+            if (tabs[i] === entry.tab) continue;
+            if (show) tabs[i].setAttribute('data-crml-native-muted', '1');
+            else tabs[i].removeAttribute('data-crml-native-muted');
+        }
         ['menu-button--selected', 'selection-item--selected'].forEach(function (name) {
             if (entry.tab.classList.contains(name) !== show) entry.tab.classList.toggle(name, show);
         });
-    }
-    function stillInStack() {
-        try {
-            var api = nativeStack();
-            if (!api.has(stackName, ownState)) return false;
-            // Native has/indexOf include forward history after back(). Resolve
-            // only an unambiguous current position; otherwise retain the owner.
-            if (typeof api.getStackData !== 'function') return true;
-            var items = api.getStackData(stackName);
-            if (!items || typeof items.length !== 'number' || items.length > 256) return true;
-            var current = api.state(stackName);
-            var matches = 0;
-            var position = -1;
-            for (var i = 0; i < items.length; ++i) {
-                if (items[i] === current) { ++matches; position = i; }
-            }
-            if (matches !== 1) return true;
-            for (var j = 0; j <= position; ++j) if (items[j] === ownState) return true;
-            return false;
-        }
-        catch (_) { return true; }
     }
     function endDrag() {
         if (drag) drag.entry.fill.classList.remove('options-slider__bar__fill--dragging');
@@ -91,91 +72,83 @@
         window.removeEventListener('blur', endDrag);
         window.removeEventListener('resize', endDrag);
     }
-    function clearOwner(entry) {
-        active = null;
-        entry.phase = 'idle';
-        present(entry, false);
-        error(entry, '');
-        var index = entry.nextTab;
-        entry.nextTab = null;
-        // A stock tab click was held while our queued pop completed. Only invoke
-        // its original route after a normal options state has been observed.
-        if (index !== null && !stopping && visible(entry) && normalStates.indexOf(currentState()) >= 0) {
-            var routes = window.routes;
-            var root = routes && routes.menu_options && routes.menu_options.root;
-            if (root && typeof root.onTab === 'function') root.onTab(index);
+    // Keep the engine's existing Options state and native input ownership.
+    // Replacing it with an unregistered state leaves no matching native input
+    // context. Only suspend these exact stock control callbacks while our page
+    // hides their controls; never clear an event or touch unrelated listeners.
+    var stockEvents = [
+        ['OnCancel', 'onCancel'], ['OnPrev', 'onPrevTab'], ['OnNext', 'onNextTab'],
+        ['OnNavigateLeft', 'onNavigateLeft'], ['OnNavigateRight', 'onNavigateRight'],
+        ['OnSelect', 'onSelectOption']
+    ];
+    function routeRoot() {
+        var routes = window.routes;
+        return routes && routes.menu_options && routes.menu_options.root;
+    }
+    function releaseControls(entry) {
+        var controls = entry.controls;
+        entry.controls = null;
+        if (!controls) return;
+        controls.engine.off('OnCancel', cancel);
+        // The native active=false lifecycle removes its handlers itself. Adding
+        // them after that point would leak listeners into gameplay and duplicate
+        // them the next time Options opens. A replacement route owns itself too.
+        if (nativeStack() && nativeStack().active(stackName) && routeRoot() === controls.root) {
+            controls.removed.forEach(function (item) { controls.engine.on(item[0], item[1]); });
         }
+    }
+    function acquireControls(entry) {
+        var engine = window.engine, root = routeRoot();
+        if (!engine || typeof engine.on !== 'function' || typeof engine.off !== 'function' || !root) return false;
+        if (!stockEvents.every(function (pair) { return typeof root[pair[1]] === 'function'; })) return false;
+        var controls = { engine: engine, root: root, removed: [] };
+        entry.controls = controls;
+        try {
+            stockEvents.forEach(function (pair) {
+                engine.off(pair[0], root[pair[1]]);
+                controls.removed.push([pair[0], root[pair[1]]]);
+            });
+            engine.on('OnCancel', cancel);
+            return true;
+        } catch (_) { releaseControls(entry); return false; }
     }
     function leave() {
         if (!active) return true;
         var entry = active;
-        entry.wantLeave = true;
+        active = null;
+        entry.phase = 'idle';
         endDrag();
-        if (entry.phase === 'entering') {
-            // The engine has not acknowledged push yet. Keep ownership even if
-            // close/unload arrives first; a late push must never strand the UI.
-            error(entry, 'Waiting for Mods to close...');
-            return false;
-        }
-        if (entry.phase === 'leaving') return false;
-        if (currentState() !== ownState) {
-            if (!stillInStack()) { clearOwner(entry); return true; }
-            present(entry, false);
-            error(entry, 'Waiting for the open dialog to close...');
-            return false;
-        }
-        // Native back, like push, enqueues a command. Mark it before calling and
-        // never retry based on an immediate read of the old current state. This
-        // observed-state check is not atomic with other queued UI commands.
-        entry.phase = 'leaving';
-        error(entry, 'Returning to game options...');
-        try { nativeStack().back(stackName); }
-        catch (_) { error(entry, 'Return is pending. Restart the game if this message stays.'); }
-        return false;
+        present(entry, false);
+        entry.tab.classList.remove('menu-button--focused');
+        releaseControls(entry);
+        error(entry, '');
+        return true;
     }
     function enter(entry) {
-        if (stopping) return;
-        if (active === entry) return;
-        if (active && !leave()) return;
+        if (stopping || active === entry) return;
+        leave();
         var api = nativeStack();
         if (!api || !visible(entry)) { error(entry, 'Mods tab is unavailable in this UI session.'); return; }
-        try {
-            var previous = api.state(stackName);
-            if (!api.active(stackName) || normalStates.indexOf(previous) < 0) {
-                error(entry, 'Return to a main options tab first.'); return;
-            }
-            // These native calls queue work for a later engine update. Install
-            // the owner BEFORE push and wait for scan() to observe completion.
-            active = entry;
-            entry.previousState = previous;
-            entry.wantLeave = false;
-            entry.nextTab = null;
-            entry.phase = 'entering';
-            error(entry, 'Opening Mods...');
-            api.push(stackName, ownState);
-        } catch (_) {
-            // An exception cannot establish whether a command was enqueued.
-            // Retain the pending owner and unwind if its state appears later.
-            if (active === entry) entry.wantLeave = true;
-            error(entry, 'Mods could not open. Any pending transition will be closed.');
+        var previous = currentState();
+        if (!api.active(stackName) || normalStates.indexOf(previous) < 0) {
+            error(entry, 'Return to a main options tab first.'); return;
         }
+        if (!acquireControls(entry)) { error(entry, 'Mods controls are unavailable in this UI session.'); return; }
+        entry.previousState = previous;
+        entry.phase = 'active';
+        active = entry;
+        present(entry, true);
+        error(entry, '');
     }
     function cancel() {
-        if (!active || cancelFrame !== null) return;
-        if (active.phase !== 'entering' && !owns(active)) return;
+        if (!active || !owns(active) || cancelFrame !== null) return;
         var entry = active;
-        // Keep the modal guard for this entire input dispatch. Original listeners
-        // must not receive the same Cancel after our state has been popped.
+        // Restore stock handlers after this entire native event dispatch ends.
+        // The same Cancel must not also close the underlying Options menu.
         cancelFrame = window.requestAnimationFrame(function () {
             cancelFrame = null;
-            if (active === entry && (entry.phase === 'entering' || owns(entry))) leave();
+            if (active === entry) leave();
         });
-    }
-    function listenCancel() {
-        if (cancelEngine || !window.engine || typeof window.engine.on !== 'function' ||
-            typeof window.engine.off !== 'function') return;
-        cancelEngine = window.engine;
-        cancelEngine.on('OnCancel', cancel);
     }
     function xPosition(event) {
         // The game's native slider uses screenX as a view-space coordinate.
@@ -288,8 +261,8 @@
         note.style.cssText = 'font-size:1.5vh;opacity:0.7;padding:1vh 1.85vh';
         root.appendChild(note);
         var entry = { container: container, tabbar: tabbar, content: content,
-            root: root, tab: tab, bar: bar, fill: fill, status: status, previousState: '', wantLeave: false,
-            phase: 'idle', nextTab: null, render: function () {
+            root: root, tab: tab, bar: bar, fill: fill, status: status, previousState: '', controls: null,
+            phase: 'idle', render: function () {
                 toggleValue.textContent = state.enabled ? 'ON' : 'OFF';
                 value.textContent = String(state.amount);
                 // Keep the native slider's nonzero minimum scale so its matrix
@@ -337,16 +310,18 @@
                 var expression = target.getAttribute && target.getAttribute('data-bind-click');
                 var match = expression && /^routes\.menu_options\.root\.onTab\((0|3|5|6|7)\)$/.exec(expression);
                 if (match) {
-                    entry.nextTab = Number(match[1]);
                     consume(event);
+                    if (event.type === 'mousedown') return;
                     leave();
+                    var root = routeRoot();
+                    if (root && typeof root.onTab === 'function') root.onTab(Number(match[1]));
                     return;
                 }
                 target = target.parentNode;
             }
         };
-        // Hold this click until the queued return is acknowledged. Do not run a
-        // stock route against our modal or replace the stock handler itself.
+        // Consume both mouse phases, but route only the click. Restoring on
+        // mousedown would let the later native click select the tab twice.
         tabbar.addEventListener('mousedown', entry.baseTab, true);
         tabbar.addEventListener('click', entry.baseTab, true);
         mounted.push(entry);
@@ -367,25 +342,8 @@
     }
     function reconcile() {
         if (stopped) return;
-        listenCancel();
-        if (active) {
-            var entry = active;
-            var current = currentState();
-            if (entry.phase === 'entering') {
-                if (current === ownState) {
-                    entry.phase = 'active';
-                    if (entry.wantLeave || !owns(entry) || !connected(entry.root) || !connected(entry.tab)) leave();
-                    else { present(entry, true); error(entry, ''); }
-                } else if (current !== entry.previousState || !visible(entry)) entry.wantLeave = true;
-            } else if (entry.phase === 'leaving') {
-                if (current !== ownState && !stillInStack()) clearOwner(entry);
-                else if (current !== ownState) present(entry, false);
-            } else if (current === ownState) {
-                if (entry.wantLeave || !owns(entry) || !connected(entry.root) || !connected(entry.tab)) leave();
-                else { present(entry, true); error(entry, ''); }
-            } else if (!stillInStack()) clearOwner(entry);
-            else present(entry, false);
-        }
+        if (active && (!owns(active) || !connected(active.root) || !connected(active.tab) ||
+            routeRoot() !== active.controls.root)) leave();
         if (stopping && !active) { completeStop(); return; }
         mounted = mounted.filter(function (entry) {
             if (connected(entry.container) && connected(entry.root) && connected(entry.tab) &&
@@ -405,6 +363,8 @@
             var container = containers[i];
             if (mounted.some(function (entry) { return entry.container === container; })) continue;
             container.removeAttribute('data-crml-mods-active');
+            var muted = container.querySelectorAll('[data-crml-native-muted]');
+            for (var j = 0; j < muted.length; ++j) muted[j].removeAttribute('data-crml-native-muted');
             var tabbar = container.querySelector('.tab-buttons');
             var content = container.querySelector('.options__content');
             if (tabbar && content && content.querySelector('.tabs__pages')) mount(container, tabbar, content);
@@ -418,7 +378,7 @@
     }
     var styles = element('style', '');
     styles.textContent = '[data-crml-mods-active] .options__content > .tabs__pages{display:none !important;pointer-events:none !important}' +
-        '[data-crml-mods-active] .tab-buttons > .menu-button:not([data-crml-native-tab]){color:#e8e8e8;background-color:transparent;pointer-events:auto}' +
+        '[data-crml-native-muted]{--foreground-color:#e8e8e8 !important;--background-color:transparent !important;--icon-color:#e8e8e8 !important;color:#e8e8e8 !important;background-color:transparent !important;pointer-events:auto !important}' +
         '[data-crml-native-ui] .options-slider__label{min-width:0}' +
         '[data-crml-native-ui] .options-slider__bar__fill--dragging{transition:none}';
     function start() {
@@ -434,7 +394,6 @@
         if (timer !== null) window.clearInterval(timer);
         if (cancelFrame !== null) window.cancelAnimationFrame(cancelFrame);
         endDrag();
-        if (cancelEngine) cancelEngine.off('OnCancel', cancel);
         document.removeEventListener('DOMContentLoaded', start);
         window.removeEventListener('unload', stop);
         mounted.forEach(dispose);

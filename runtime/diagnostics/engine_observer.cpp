@@ -117,7 +117,7 @@ void leave(Kind kind,uint64_t span,uintptr_t object) noexcept {
 }
 bool player_sample(void* view,void* world,probe::Sample& sample) noexcept {
     __try {
-        const auto tag=*reinterpret_cast<const uint16_t*>(image_base+0x5c00ca4);
+        const auto tag=*reinterpret_cast<const uint16_t*>(compatibility::address(image_base,0x5c00ca4));
         return probe::inspect(view,world,tag,sample)==probe::Observation::player;
     } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return false; }
 }
@@ -260,7 +260,7 @@ void camera_switch(void* context,int mode,uint8_t option) {
     camera_context(context,0x18,span,2);leave(Kind::camera_switch,span,world);
 }
 uintptr_t current_camera_world() noexcept {
-    const auto singleton=image_base?pointer_at(image_base+0x5c20fe0):0;
+    const auto singleton=image_base?pointer_at(compatibility::address(image_base,0x5c20fe0)):0;
     return singleton?pointer_at(singleton+8):0;
 }
 void camera_select(int mode) {
@@ -377,15 +377,15 @@ std::string Recorder::start(const std::filesystem::path& root,bool camera_only) 
         return "Engine observer refused: unsupported physics backend fingerprint";
     dynamic_vtable=reinterpret_cast<uintptr_t>(backend)+0x15dd88;
     image_base=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-    for(const auto& hook:owned) if(!compatibility::matches(reinterpret_cast<void*>(image_base+hook.rva),hook.prefix.data(),hook.prefix.size()))
+    for(const auto& hook:owned) if(!compatibility::matches_code(reinterpret_cast<void*>(compatibility::address(image_base,hook.rva)),hook.rva,hook.prefix.data(),hook.prefix.size()))
         return std::string("Engine observer refused: changed or already hooked entry ")+hook.name;
     const auto initialized=MH_Initialize();
     if(initialized!=MH_OK && initialized!=MH_ERROR_ALREADY_INITIALIZED) return "Engine observer refused: hook initialization failed";
     size_t created=0;
     for(const auto& hook:owned) {
-        const auto result=MH_CreateHook(reinterpret_cast<void*>(image_base+hook.rva),hook.detour,hook.original);
+        const auto result=MH_CreateHook(reinterpret_cast<void*>(compatibility::address(image_base,hook.rva)),hook.detour,hook.original);
         if(result!=MH_OK) {
-            for(size_t i=0;i<created;++i) MH_RemoveHook(reinterpret_cast<void*>(image_base+owned[i].rva));
+            for(size_t i=0;i<created;++i) MH_RemoveHook(reinterpret_cast<void*>(compatibility::address(image_base,owned[i].rva)));
             return std::string("Engine observer refused: ")+hook.name+" "+MH_StatusToString(result);
         }
         ++created;
@@ -396,7 +396,7 @@ std::string Recorder::start(const std::filesystem::path& root,bool camera_only) 
     // Keep physical bytes equal to the accounting in line(), including newlines.
     output_.open(root/filename,std::ios::out|std::ios::trunc|std::ios::binary);
     if(!output_) {
-        for(const auto& hook:owned) MH_RemoveHook(reinterpret_cast<void*>(image_base+hook.rva));
+        for(const auto& hook:owned) MH_RemoveHook(reinterpret_cast<void*>(compatibility::address(image_base,hook.rva)));
         return "Engine observer refused: cannot open diagnostic log";
     }
     std::ostringstream header;
@@ -405,16 +405,16 @@ std::string Recorder::start(const std::filesystem::path& root,bool camera_only) 
           <<"\",\"pid\":"<<GetCurrentProcessId()<<",\"qpc_frequency\":"<<frequency.QuadPart
           <<",\"qpc_origin\":"<<stamp.QuadPart<<",\"max_bytes\":"<<max_bytes<<",\"max_ms\":"<<max_milliseconds
           <<",\"mods_suspended\":"<<(camera_only?"false":"true")<<",\"hooks\":[";
-    for(size_t i=0;i<selected.size();++i) { if(i)header<<','; header<<"{\"name\":\""<<selected[i].name<<"\",\"rva\":"<<selected[i].rva<<'}'; }
+    for(size_t i=0;i<selected.size();++i) { if(i)header<<','; header<<"{\"name\":\""<<selected[i].name<<"\",\"rva\":"<<(compatibility::address(image_base,selected[i].rva)-image_base)<<'}'; }
     header<<"]}";
     if(!line(header.str())) { finish("io_error"); return "Engine observer refused: cannot write header"; }
     output_.flush(); buffer.open();
     if(!::crml::camera_update::start(image_base) || !::crml::camera_update::adapt(&camera_update)) {
-        for(const auto& hook:owned) MH_RemoveHook(reinterpret_cast<void*>(image_base+hook.rva));
+        for(const auto& hook:owned) MH_RemoveHook(reinterpret_cast<void*>(compatibility::address(image_base,hook.rva)));
         finish("hook_enable_failed");return "Engine observer refused: shared camera update unavailable";
     }
     for(const auto& hook:owned) {
-        const auto result=MH_EnableHook(reinterpret_cast<void*>(image_base+hook.rva));
+        const auto result=MH_EnableHook(reinterpret_cast<void*>(compatibility::address(image_base,hook.rva)));
         if(result!=MH_OK) {
             // Already enabled trampolines stay pinned/pass-through. No unsafe removal during a call.
             finish("hook_enable_failed"); return std::string("Engine observer refused: ")+hook.name+" "+MH_StatusToString(result);

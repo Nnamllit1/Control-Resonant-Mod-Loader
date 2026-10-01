@@ -93,7 +93,7 @@ Sample visibility_player() noexcept {
 
 Observation observe(void* view, void* world, Sample& sample) noexcept {
     __try {
-        const auto tag = *reinterpret_cast<const uint16_t*>(image_base + 0x5c00ca4);
+        const auto tag = *reinterpret_cast<const uint16_t*>(compatibility::address(image_base,0x5c00ca4));
         return inspect(view, world, tag, sample);
     } __except(GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
         sample.rejection=Rejection::memory;

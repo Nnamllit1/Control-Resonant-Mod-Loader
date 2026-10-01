@@ -1,3 +1,4 @@
+#include "compatibility.h"
 #include "overlay.h"
 #include <Windows.h>
 #include <d3d12.h>
@@ -77,9 +78,8 @@ bool bind_engine(uintptr_t image) noexcept {
     // Executable SHA256 is checked by both production callers before this entry.
     // Additional bytes refuse modified entries, including competing detours.
     constexpr unsigned char signature[]{0x4c,0x8b,0xdc,0x53,0x56,0x57,0x48,0x83,0xec,0x60,0x48,0x8b,0x01,0x49,0x8d,0x53,0x08,0x48,0x8b,0xf9};
-    const auto target=reinterpret_cast<void*>(image+0x1cfead0);
-    unsigned char bytes[sizeof(signature)]{}; SIZE_T read{};
-    if(!ReadProcessMemory(GetCurrentProcess(),target,bytes,sizeof(bytes),&read) || read!=sizeof(bytes) || std::memcmp(bytes,signature,sizeof(bytes))) return false;
+    const auto target=reinterpret_cast<void*>(compatibility::address(image,0x1cfead0));
+    if(!compatibility::matches_code(target,0x1cfead0,signature,sizeof(signature))) return false;
     return bind_engine_present(target);
 }
 

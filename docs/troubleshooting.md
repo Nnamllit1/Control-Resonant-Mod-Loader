@@ -37,6 +37,8 @@ To check whether the combination is involved, close the game and move **CRML's**
 
 From Alpha 4.1, an unrecognized executable opens a CRML-owned Windows prompt before any mods or gameplay hooks start. Choose **Continue with CRML** to try it, or **Leave CRML disabled** to play without CRML mods. The checkbox remembers either choice for that exact executable. Close the game and remove `crml/compatibility-choice.txt` to reset it; a changed executable requires a new choice. Changing `compatibility.json` does not grant approval or adjust engine offsets.
 
+From Alpha 4.3, the prompt includes **Check for CRML updates on GitHub**. This opens the [releases page](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases) without approving mods or closing the prompt. Check for a newer runtime after a game update, then close the game before installing it. Downloading the same CRML version again does not add support for a changed game build; if no compatible update is available, leave CRML disabled.
+
 Approval does not establish compatibility. Changed or unreadable hook signatures still refuse the affected feature, and physics integrations retain their backend checks. Send `crml/crml.log` with the exact game version and storefront if a feature remains unavailable. A different edition or storefront alone does not tell us whether its engine layout matches.
 
 Check each mod's stated CRML requirements when choosing a runtime version. A mod update may be needed after updating CRML.

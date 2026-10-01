@@ -270,19 +270,20 @@ std::string start(const std::filesystem::path& root,ui::Service* bridge) {
     wchar_t executable[32768]{}; const auto exe_length=GetModuleFileNameW(nullptr,executable,32768);
     // This development proof relies on the complete reviewed callback control
     // flow. General unknown-build consent cannot substitute for that evidence.
-    if(!exe_length || exe_length>=32768 || file_hash(executable)!=compatibility::tested_sha) return "Native UI proof unavailable: executable differs from the reviewed build";
+    if(!exe_length || exe_length>=32768 || !compatibility::known_build(file_hash(executable))) return "Native UI proof unavailable: executable differs from the reviewed builds";
     const auto module=GetModuleHandleW(L"cohtml.WindowsDesktop.dll"); if(!module) return "Native UI proof unavailable: engine UI library not loaded";
     wchar_t dll[32768]{}; const auto dll_length=GetModuleFileNameW(module,dll,32768);
     if(!dll_length || dll_length>=32768 || file_hash(dll)!=cohtml_sha) return "Native UI proof unavailable: engine UI library differs";
     const auto image=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
-    const auto target=reinterpret_cast<void*>(image+0x34446b0);
+    const auto target=reinterpret_cast<void*>(compatibility::address(image,0x34446b0));
     constexpr unsigned char signature[]{0x48,0x89,0x5c,0x24,0x08,0x55,0x56,0x57,0x41,0x54,0x41,0x55,0x41,0x56,0x41,0x57,0x48,0x8d,0xac,0x24,0x40,0xfe,0xff,0xff};
-    if(!compatibility::matches(target,signature,sizeof(signature)) ||
-       !compatibility::matches(reinterpret_cast<void*>(image+0x5110c38),&target,sizeof(target))) return "Native UI proof unavailable: resource handler differs";
+    if(!compatibility::matches_code(target,0x34446b0,signature,sizeof(signature)) ||
+       !compatibility::matches(reinterpret_cast<void*>(compatibility::address(image,0x5110c38)),&target,sizeof(target))) return "Native UI proof unavailable: resource handler differs";
     s.module_begin=reinterpret_cast<uintptr_t>(module);
     const auto* dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(module);
     const auto* nt=reinterpret_cast<const IMAGE_NT_HEADERS*>(s.module_begin+dos->e_lfanew);
     s.module_end=s.module_begin+nt->OptionalHeader.SizeOfImage;
+    s.expected_html_sha=compatibility::ui_document_sha();
     s.payload=std::move(payload);s.bridge=bridge;
     const auto initialized=MH_Initialize(); if(initialized!=MH_OK && initialized!=MH_ERROR_ALREADY_INITIALIZED) return "Native UI proof unavailable: hook initialization failed";
     if(MH_CreateHook(target,reinterpret_cast<void*>(&hook),reinterpret_cast<void**>(&s.original))!=MH_OK) return "Native UI proof unavailable: resource hook conflict";

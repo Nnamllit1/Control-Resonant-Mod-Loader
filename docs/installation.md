@@ -62,7 +62,7 @@ To remove an individual mod, follow its removal instructions. A mod may include 
 
 ## If it does not load
 
-Check the folder layout above first. After starting the game, `crml/crml.log` records loader activity. See [troubleshooting](troubleshooting.md) if no log appears or a mod does not start. The release's `compatibility.json` lists the tested build. Trying an unrecognized build does not guarantee gameplay support; a game update may require a new CRML release.
+Check the folder layout above first. After starting the game, `crml/crml.log` records loader activity. See [troubleshooting](troubleshooting.md) if no log appears or a mod does not start. The release's `compatibility.json` lists its executable profiles. Trying an unrecognized build does not guarantee gameplay support; a game update may require a new CRML release.
 
 ## Building from source
 

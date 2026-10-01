@@ -54,7 +54,7 @@ bool ours(void* vm,int index) noexcept {
 int retain_impl(void* vm,int index,uintptr_t caller) {
     // This call site belongs to event registration. CRML's own root reference
     // and unrelated game script references are never added to this ledger.
-    const bool matched=enabled.load(std::memory_order_acquire) && caller==image_base+0x1a15722 && ours(vm,index);
+    const bool matched=enabled.load(std::memory_order_acquire) && caller==compatibility::address(image_base,0x1a15722) && ours(vm,index);
     const auto global=matched?global_of(vm):0;
     const int ref=original_retain(vm,index);
     if(matched && global && ref>0) {
@@ -84,9 +84,9 @@ void release_impl(void* vm,int reference,uintptr_t caller) {
     if(matched) {
         AcquireSRWLockExclusive(&gate);
         --report.pending;++report.released;report.release_thread=GetCurrentThreadId();
-        if(caller==image_base+0x1a08f15) ++report.explicit_removals;
-        else if(caller==image_base+0x1a09648) ++report.owner_removals;
-        else if(caller==image_base+0x1a160f1) ++report.error_removals;
+        if(caller==compatibility::address(image_base,0x1a08f15)) ++report.explicit_removals;
+        else if(caller==compatibility::address(image_base,0x1a09648)) ++report.owner_removals;
+        else if(caller==compatibility::address(image_base,0x1a160f1)) ++report.error_removals;
         else ++report.other_removals;
         ReleaseSRWLockExclusive(&gate);
     }
@@ -103,9 +103,9 @@ bool start(uintptr_t image) noexcept {
     if(!image || original_retain || original_release) return false;
     constexpr unsigned char a[]{0x48,0x89,0x74,0x24,0x18,0x48,0x89,0x7c,0x24,0x20};
     constexpr unsigned char b[]{0x85,0xd2,0x7e,0x46,0x57,0x48,0x83,0xec,0x20};
-    auto* retain_entry=reinterpret_cast<void*>(image+0x2c507a0);
-    auto* release_entry=reinterpret_cast<void*>(image+0x2c508d0);
-    if(!compatibility::matches(retain_entry,a,sizeof(a)) || !compatibility::matches(release_entry,b,sizeof(b))) return false;
+    auto* retain_entry=reinterpret_cast<void*>(compatibility::address(image,0x2c507a0));
+    auto* release_entry=reinterpret_cast<void*>(compatibility::address(image,0x2c508d0));
+    if(!compatibility::matches_code(retain_entry,0x2c507a0,a,sizeof(a)) || !compatibility::matches_code(release_entry,0x2c508d0,b,sizeof(b))) return false;
     image_base=image;
     if(MH_CreateHook(retain_entry,reinterpret_cast<void*>(&retain_hook),reinterpret_cast<void**>(&original_retain))!=MH_OK ||
        MH_CreateHook(release_entry,reinterpret_cast<void*>(&release_hook),reinterpret_cast<void**>(&original_release))!=MH_OK ||
