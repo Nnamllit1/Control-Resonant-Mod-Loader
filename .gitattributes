@@ -1,0 +1,3 @@
+# Renderer payloads have byte limits; Windows checkouts must preserve LF.
+runtime/ui_bootstrap.html text eol=lf
+runtime/diagnostics/native_ui_panel.html text eol=lf
