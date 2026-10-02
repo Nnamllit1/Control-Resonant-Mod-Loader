@@ -69,6 +69,26 @@ class ReleaseTests(unittest.TestCase):
         with zipfile.ZipFile(self.out / name) as archive:
             self.assertEqual(set(archive.namelist()), expected)
 
+    def rewrite_archive(self, name, change):
+        """Make a consistent fixture mutation, including every integrity hash."""
+        path = self.out/name
+        with zipfile.ZipFile(path) as archive:
+            members = {member: archive.read(member) for member in archive.namelist()}
+        change(members)
+        with zipfile.ZipFile(path, 'w') as archive:
+            for member, data in members.items():
+                archive.writestr(member, data)
+        manifest_path = self.out/'release.json'
+        manifest = json.loads(manifest_path.read_text())
+        data = path.read_bytes()
+        manifest['archives'][name] = {
+            'sha256': release.digest(data), 'size': len(data),
+            'files': {member: release.digest(data) for member, data in members.items()},
+        }
+        manifest_path.write_text(json.dumps(manifest))
+        (self.out/'SHA256SUMS.txt').write_text(''.join(
+            f'{record["sha256"]}  {archive}\n' for archive, record in manifest['archives'].items()))
+
     def test_packages_and_integrity(self):
         self.write(self.dist / 'crml/private.log', b'Must not ship')
         self.write(self.dist / 'crml/physics-trial.enabled', b'')
@@ -128,6 +148,90 @@ class ReleaseTests(unittest.TestCase):
                                     self.runtime_members() | {'crml/ui-bootstrap.html'})
         release.verify(self.out, self.version)
 
+    def test_all_supported_profiles_must_match_runtime_and_metadata(self):
+        fingerprints = ['a' * 64, 'b' * 64]
+        self.write(self.root / 'compatibility.json', json.dumps({
+            'profiles': [{'sha256': value} for value in fingerprints]}).encode())
+        with self.assertRaisesRegex(ValueError, 'fingerprint'):
+            self.package()
+        self.assertFalse(self.out.exists())
+        self.write(self.dist / 'crml/crml_runtime.dll', '\n'.join(fingerprints).encode())
+        self.package()
+        manifest = release.verify(self.out, self.version)
+        self.assertEqual(manifest['game_sha256s'], fingerprints)
+        self.assertEqual(manifest['game_sha256'], fingerprints[0])
+        for name in release.archive_names(self.version):
+            with zipfile.ZipFile(self.out / name) as archive:
+                metadata = 'release.json' if '-sdk-' in name else 'crml/release.json'
+                self.assertEqual(json.loads(archive.read(metadata))['game_sha256s'], fingerprints)
+        # Hashes still match, but the advertised support set has been truncated.
+        manifest['game_sha256s'] = fingerprints[:1]
+        (self.out / 'release.json').write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, 'profile|fingerprint'):
+            release.verify(self.out, self.version)
+        manifest['game_sha256s'] = None
+        (self.out / 'release.json').write_text(json.dumps(manifest))
+        with self.assertRaisesRegex(ValueError, 'profile|fingerprint'):
+            release.verify(self.out, self.version)
+
+    def test_invalid_or_duplicate_profiles_refused(self):
+        for profiles in ([], [{'sha256': 'not-a-sha'}],
+                         [{'sha256': 'a' * 64}, {'sha256': 'a' * 64}],
+                         [{'sha256': 'a' * 64}, {}]):
+            with self.subTest(profiles=profiles):
+                self.write(self.root / 'compatibility.json', json.dumps({'profiles': profiles}).encode())
+                with self.assertRaisesRegex(ValueError, 'profile|fingerprint'):
+                    self.package()
+                self.assertFalse(self.out.exists())
+
+    def test_rehashed_archive_must_retain_every_supported_runtime_profile(self):
+        fingerprints = ['a' * 64, 'b' * 64]
+        self.write(self.root / 'compatibility.json', json.dumps({
+            'profiles': [{'sha256': value} for value in fingerprints]}).encode())
+        self.write(self.dist / 'crml/crml_runtime.dll', '\n'.join(fingerprints).encode())
+        self.package()
+        runtime = release.archive_names(self.version)[0]
+        self.rewrite_archive(runtime, lambda members: members.update({
+            'crml/crml_runtime.dll': fingerprints[0].encode()}))
+        with self.assertRaisesRegex(ValueError, 'Runtime fingerprint missing'):
+            release.verify(self.out, self.version)
+
+    def test_modern_profiles_cannot_downgrade_to_legacy_verification(self):
+        fingerprints = ['a'*64, 'b'*64]
+        self.write(self.root/'compatibility.json', json.dumps({
+            'profiles': [{'sha256': value} for value in fingerprints]}).encode())
+        self.write(self.dist/'crml/crml_runtime.dll', '\n'.join(fingerprints).encode())
+        self.package()
+        manifest_path = self.out/'release.json'
+        manifest = json.loads(manifest_path.read_text())
+        del manifest['game_sha256s']
+        for first in (fingerprints[0], 'c'*64):
+            with self.subTest(legacy_fingerprint=first):
+                manifest['game_sha256'] = first
+                manifest_path.write_text(json.dumps(manifest))
+                with self.assertRaisesRegex(ValueError, 'Modern archive requires complete'):
+                    release.verify(self.out, self.version)
+
+    def test_modern_profiles_must_exist_and_match_in_archive_metadata(self):
+        self.package()
+        name = release.archive_names(self.version)[1]
+        with zipfile.ZipFile(self.out/name) as archive:
+            original = json.loads(archive.read('release.json'))
+        for value in (None, ['b'*64]):
+            with self.subTest(inner_profiles=value):
+                changed = dict(original)
+                if value is None:
+                    del changed['game_sha256s']
+                else:
+                    changed['game_sha256s'] = value
+                self.rewrite_archive(name, lambda members: members.update({
+                    'release.json': json.dumps(changed).encode()}))
+                with self.assertRaisesRegex(ValueError, 'Archive release fingerprints differ'):
+                    release.verify(self.out, self.version)
+        self.rewrite_archive(name, lambda members: members.pop('release.json'))
+        with self.assertRaisesRegex(ValueError, 'Modern archive is missing release profile metadata'):
+            release.verify(self.out, self.version)
+
     def test_optional_noclip_packages_and_legacy_verification(self):
         self.package(include_noclip=True)
         expected_archives = [f'crml-{kind}-{self.version}-windows-x64.zip'
@@ -143,6 +247,15 @@ class ReleaseTests(unittest.TestCase):
         self.assert_archive_members(expected_archives[1], noclip)
         self.assert_archive_members(expected_archives[2], self.runtime_members() | noclip)
         # Existing four-archive releases have no new distribution-mode field.
+        # A genuine legacy archive also predates full-profile inner metadata.
+        def legacy_metadata(members):
+            for member in ('release.json', 'crml/release.json', 'crml/mods/movement/release.json'):
+                if member in members:
+                    data = json.loads(members[member])
+                    del data['game_sha256s']
+                    members[member] = json.dumps(data).encode()
+        for name in expected_archives:
+            self.rewrite_archive(name, legacy_metadata)
         manifest = json.loads((self.out / 'release.json').read_text())
         legacy_fields = {key: manifest[key] for key in
                          ('schema', 'version', 'source_commit', 'source_dirty', 'game_sha256', 'lua_probe', 'archives')}

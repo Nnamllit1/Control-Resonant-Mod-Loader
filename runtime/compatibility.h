@@ -27,7 +27,7 @@ inline bool matches(const void* target,const void* expected,size_t size) noexcep
 // Unmapped code is refused; unknown builds still use the original checks after
 // explicit consent, without gaining reviewed-build-only services.
 inline bool matches_code(const void* target,uintptr_t previous,const void* expected,size_t size) noexcept {
-    if(engine_profile==EngineProfile::october_update) {
+    if(engine_profile!=EngineProfile::previous) {
         const auto* entry=mapped_address(previous);
         if(!entry || previous>=0x4000000 || size>entry->prefix.size()) return false;
         expected=entry->prefix.data();

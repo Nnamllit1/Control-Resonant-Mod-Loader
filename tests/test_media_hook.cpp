@@ -44,9 +44,10 @@ int main() {
         CHECK(route(&object,image+0x3d4c0d,true));
         // The patched executable moves both call sites and the resource-name
         // global. A stale caller must never receive authority to skip playback.
-        crml::compatibility::select_profile(crml::compatibility::updated_sha);
+        for(const auto sha:{crml::compatibility::updated_sha,crml::compatibility::hotfix_sha}) {
+        crml::compatibility::select_profile(sha);
         path="textures\\videos\\uiresources\\splash\\boot.tex";
-        image=reinterpret_cast<uintptr_t>(&path)-0x5ad8018;
+        image=reinterpret_cast<uintptr_t>(&path)-(sha==crml::compatibility::hotfix_sha?0x5ae0018:0x5ad8018);
         elapsed=+[](void*)->uint32_t {return 2001;};
         service.enable(true);
         const auto updated_before=service.observations();
@@ -59,6 +60,7 @@ int main() {
         CHECK(!route_at(&object,image+0x3f0efd,true,now));
         CHECK(service.read_at(state,now)<0);
         service.enable(false);
+        }
         crml::compatibility::select_profile(crml::compatibility::tested_sha);
         std::cout<<"Media caller isolation, native skip point and metadata checks passed\n";
         return 0;

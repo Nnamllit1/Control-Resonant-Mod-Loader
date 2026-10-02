@@ -10,12 +10,12 @@ Run the release CLI from a Windows x64 checkout with Visual Studio C++ tools and
 Python installed:
 
 ```powershell
-.\release.bat -Version v0.1.0-alpha.4.3
+.\release.bat -Version v0.1.0-alpha.4.4
 ```
 
 The command builds gameplay support with Lua diagnostics disabled, runs the test
 suites, checks public text for local paths, and packages the release into
-`.local/releases/v0.1.0-alpha.4.3/`. Use `-Output <directory>` to choose a new output
+`.local/releases/v0.1.0-alpha.4.4/`. Use `-Output <directory>` to choose a new output
 location. Existing release directories are preserved; packaging refuses to
 overwrite them.
 
@@ -28,14 +28,17 @@ overwrite them.
 
 Each player archive includes installation and removal instructions. Extract game
 files beside `CONTROLResonant.exe`, following those instructions. Keep the SDK
-outside the game directory. The tested executable fingerprint is recorded in
+outside the game directory. Supported executable fingerprints are recorded in
 the release's `compatibility.json`. Other executables require confirmation before
 an untested attempt; native hook checks still apply and features may be unavailable.
 
 In framework release notes, lead with the **runtime** download and [installation](installation.md). Individual mods should provide their own feature descriptions, controls and requirements on their distribution pages. SDK downloads belong in mod-author instructions.
 
 `release.json` records the source commit, whether the checkout had uncommitted
-changes, the supported game fingerprint, and every archive/member hash.
+changes, the supported game fingerprints, and every archive/member hash.
+The `game_sha256s` list records every supported profile; `game_sha256` retains
+the first profile for older tools. Packaging checks every profile against the
+runtime DLL, and verification checks that inner and outer metadata agree.
 `SHA256SUMS.txt` lists the archive hashes. The packager uses explicit file lists,
 so diagnostic mode markers, logs, saves and debug symbols do not enter a release.
 It also rejects embedded paths to the local checkout or user profile in project
@@ -45,7 +48,7 @@ its upstream build paths are preserved.
 Verify an existing set without rebuilding:
 
 ```powershell
-python tools/package_release.py --verify --version v0.1.0-alpha.4.3
+python tools/package_release.py --verify --version v0.1.0-alpha.4.4
 ```
 
 ## Package an example mod separately
@@ -53,7 +56,7 @@ python tools/package_release.py --verify --version v0.1.0-alpha.4.3
 Individual mods are distributed separately from framework releases. To prepare the movement example's mod-only ZIP and an optional runtime bundle for a separate distribution, run:
 
 ```powershell
-.\release.bat -Version v0.1.0-alpha.4.3 -IncludeNoclip -Output .local/releases/example-mod-alpha.4.3
+.\release.bat -Version v0.1.0-alpha.4.4 -IncludeNoclip -Output .local/releases/example-mod-alpha.4.4
 ```
 
 This explicit local option adds `crml-noclip-…-windows-x64.zip` and `crml-noclip-bundle-…-windows-x64.zip` alongside the runtime and SDK. It cannot be combined with `-Publish`. The mod-only archive contains the compiled `examples/movement` package and its mode marker; the bundle also contains the runtime. Edit the example sources and manifest before building a custom variant, and supply that mod's own description, controls and requirements.
@@ -66,7 +69,7 @@ Add release notes under `release/<version>.md`, commit the reviewed source, and
 push that commit to `origin/main`. Then run:
 
 ```powershell
-.\release.bat -Version v0.1.0-alpha.4.3 -Output .local/publish-v0.1.0-alpha.4.3 -Publish
+.\release.bat -Version v0.1.0-alpha.4.4 -Output .local/publish-v0.1.0-alpha.4.4 -Publish
 ```
 
 `-Publish` requires a clean checkout matching `origin/main` and an unused version

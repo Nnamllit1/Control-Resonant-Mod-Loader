@@ -11,6 +11,12 @@ The research tools map assets, scripting, and ECS systems independently of the e
 
 For the mapping from assets to native objects, owned dependencies, and execution stages, see [engine internals](engine-internals.md). That investigation traces individual code paths beyond the catalog.
 
+## Executable address profiles
+
+Research maps apply to the executable fingerprint recorded in each file. The runtime's [engine address profiles](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/blob/main/runtime/engine_profile.h) translate the original canonical RVAs for the integration points used by CRML; they do not relocate every entry in the research atlas.
+
+Alpha 4.4 adds the profile for game version **0.564.478.0**, retaining the original and **0.564.208.5** profiles. Its 61 code sites and five data addresses were reviewed against the previous executable's recorded disassembly. The observed movement, physics, camera and UI entry paths retain their instruction semantics after relocation. The compared UI resource, boundary script and PhysX/Cohtml libraries are unchanged. This is a scoped static comparison, not a claim that the entire game or live behavior is unchanged.
+
 ## Generate and search a catalog
 
 Python 3.10 or newer is sufficient; no additional packages are needed. Run from the repository root:

@@ -31,6 +31,18 @@ def archive_names(version, include_noclip=False):
     return [f'crml-{kind}-{version}-windows-x64.zip' for kind in kinds]
 
 
+def profile_fingerprints(document):
+    profiles = document.get('profiles')
+    if not isinstance(profiles, list) or not profiles:
+        raise ValueError('Compatibility profiles must be a nonempty list')
+    values = [profile.get('sha256') if isinstance(profile, dict) else None for profile in profiles]
+    if any(not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value) for value in values):
+        raise ValueError('Invalid compatibility profile fingerprint')
+    if len(values) != len(set(values)):
+        raise ValueError('Duplicate compatibility profile fingerprint')
+    return values
+
+
 def verify(output, version):
     checked_version(version)
     manifest = json.loads((output / 'release.json').read_text(encoding='utf-8'))
@@ -39,6 +51,13 @@ def verify(output, version):
     # Retain verification of older releases and explicitly requested local mods.
     if set(manifest['archives']) not in (set(archive_names(version)), set(archive_names(version, True))):
         raise ValueError('Unexpected release archive set')
+    fingerprints = manifest.get('game_sha256s')
+    if 'game_sha256s' in manifest:
+        if not isinstance(fingerprints, list):
+            raise ValueError('Invalid release profile fingerprints')
+        profile_fingerprints({'profiles': [{'sha256': value} for value in fingerprints]})
+        if manifest.get('game_sha256') != fingerprints[0]:
+            raise ValueError('Legacy release fingerprint differs from first supported profile')
     expected_checksums = []
     for name, record in manifest['archives'].items():
         data = (output / name).read_bytes()
@@ -53,6 +72,41 @@ def verify(output, version):
                     raise ValueError('Unsafe archive member')
                 if digest(archive.read(entry)) != record['files'][entry]:
                     raise ValueError(f'Archive member hash mismatch: {name}')
+            metadata_members = {}
+            for metadata in ('release.json', 'crml/release.json', 'crml/mods/movement/release.json'):
+                if metadata in names:
+                    member = json.loads(archive.read(metadata))
+                    if not isinstance(member, dict):
+                        raise ValueError(f'Invalid archive release metadata: {name}')
+                    metadata_members[metadata] = member
+                    # A missing outer field must not downgrade a modern archive
+                    # to the legacy verifier. Genuine legacy archives omit the
+                    # complete profile set from both metadata locations.
+                    if fingerprints is None and 'game_sha256s' in member:
+                        raise ValueError(f'Modern archive requires complete release profile fingerprints: {name}')
+            # Older schema-1 archives omit the complete set; retain their hash
+            # verification. New archives must agree with every advertised profile.
+            if fingerprints is not None:
+                if name.startswith('crml-sdk-'):
+                    required_metadata = ('release.json',)
+                elif name.startswith('crml-noclip-bundle-'):
+                    required_metadata = ('crml/release.json', 'crml/mods/movement/release.json')
+                elif name.startswith('crml-noclip-'):
+                    required_metadata = ('crml/mods/movement/release.json',)
+                else:
+                    required_metadata = ('crml/release.json',)
+                if any(member not in metadata_members for member in required_metadata):
+                    raise ValueError(f'Modern archive is missing release profile metadata: {name}')
+                if 'compatibility.json' in names and profile_fingerprints(
+                        json.loads(archive.read('compatibility.json'))) != fingerprints:
+                    raise ValueError(f'Archive compatibility profiles differ: {name}')
+                for member in metadata_members.values():
+                    if member.get('game_sha256s') != fingerprints or member.get('game_sha256') != fingerprints[0]:
+                        raise ValueError(f'Archive release fingerprints differ: {name}')
+                if 'crml/crml_runtime.dll' in names:
+                    binary = archive.read('crml/crml_runtime.dll')
+                    if any(value.encode('ascii') not in binary for value in fingerprints):
+                        raise ValueError(f'Runtime fingerprint missing from advertised profiles: {name}')
         expected_checksums.append(f"{record['sha256']}  {name}\n")
     if (output / 'SHA256SUMS.txt').read_text() != ''.join(expected_checksums):
         raise ValueError('Checksum list does not match the manifest')
@@ -70,9 +124,10 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
     notes = root / 'release' / f'{version}.md'
     if not notes.is_file():
         raise ValueError('Add release notes for this version before packaging')
-    profile = json.loads((root / 'compatibility.json').read_text())['profiles'][0]
+    fingerprints = profile_fingerprints(json.loads((root / 'compatibility.json').read_text()))
     # Match the compiled compatibility guard to the metadata shipped beside it.
-    if profile['sha256'].encode('ascii') not in (dist / 'crml/crml_runtime.dll').read_bytes():
+    binary = (dist / 'crml/crml_runtime.dll').read_bytes()
+    if any(value.encode('ascii') not in binary for value in fingerprints):
         raise ValueError('Runtime fingerprint differs from compatibility.json')
     runtime = {
         'xinput1_4.dll': dist / 'xinput1_4.dll',
@@ -122,7 +177,7 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
         for path in (root / 'examples' / example).iterdir():
             if path.suffix in ('.c', '.wat', '.ini', '.md'):
                 sdk[path.relative_to(root).as_posix()] = path
-    metadata = (json.dumps({'version': version, 'game_sha256': profile['sha256'], 'lua_probe': False}, indent=2) + '\n').encode()
+    metadata = (json.dumps({'version': version, 'game_sha256': fingerprints[0], 'game_sha256s': fingerprints, 'lua_probe': False}, indent=2) + '\n').encode()
     runtime['crml/release.json'] = metadata
     noclip['crml/mods/movement/release.json'] = metadata
     sdk['release.json'] = metadata
@@ -133,7 +188,7 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
     except (OSError, subprocess.CalledProcessError):
         commit, dirty = None, True
     manifest = {'schema': 1, 'version': version, 'source_commit': commit, 'source_dirty': dirty,
-                'game_sha256': profile['sha256'], 'lua_probe': False, 'archives': {}}
+                'game_sha256': fingerprints[0], 'game_sha256s': fingerprints, 'lua_probe': False, 'archives': {}}
     # A local build must not publish personal checkout or home paths, including PE
     # CodeView records. Third-party notices are preserved as supplied upstream.
     private = []

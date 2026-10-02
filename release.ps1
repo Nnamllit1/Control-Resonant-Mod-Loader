@@ -1,5 +1,5 @@
 param(
-    [string]$Version = 'v0.1.0-alpha.4.3',
+    [string]$Version = 'v0.1.0-alpha.4.4',
     [int]$Jobs = 4,
     [string]$Output,
     [switch]$Publish,

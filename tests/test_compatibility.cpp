@@ -59,6 +59,33 @@ int main() {
             require(!matches_code(bytes.data(),entry.previous,nullptr,bytes.size()),"changed updated entry refused");
         }
         require(!matches_code(nullptr,0x123456,nullptr,1),"missing updated signature refuses access");
+        const auto october_document=ui_document_sha();
+        require(allowed(hotfix_sha) && known_build(hotfix_sha),"hotfix executable has its own profile");
+        select_profile(hotfix_sha);
+        require(engine_profile==EngineProfile::october_hotfix,"hotfix profile selected");
+        require(ui_document_sha()==october_document,"unchanged hotfix UI document retained");
+        require(std::size(october_hotfix_addresses)==std::size(october_addresses),"complete hotfix mapping");
+        last=0;
+        for(const auto& entry:october_hotfix_addresses) {
+            require(entry.previous>last && entry.current,"hotfix addresses unique and sorted");last=entry.previous;
+            require(address(0x10000000,entry.previous)==0x10000000+entry.current,"hotfix relocation selected");
+            bool canonical_found=false;
+            for(const auto& old:october_addresses) if(old.previous==entry.previous) canonical_found=true;
+            require(canonical_found,"hotfix preserves canonical address set");
+            if(entry.previous>=0x4000000) {
+                require(!matches_code(entry.prefix.data(),entry.previous,nullptr,1),"data is not executable code");
+                continue;
+            }
+            auto bytes=entry.prefix;
+            require(matches_code(bytes.data(),entry.previous,nullptr,bytes.size()),"hotfix exact signature accepted");
+            bytes[0]^=1;
+            require(!matches_code(bytes.data(),entry.previous,nullptr,bytes.size()),"modified hotfix code refused");
+            require(!matches_code(bytes.data(),entry.previous,nullptr,bytes.size()+1),"oversized signature refused");
+        }
+        require(!address(0x10000000,0x123456) && !address(0,0x1b98950),"unmapped hotfix address refuses access");
+        require(!matches_code(nullptr,0x123456,nullptr,1),"missing hotfix signature refuses access");
+        select_profile(updated_sha);
+        require(address(0x10000000,0x2c4fc90)==0x12c9ab80,"switching back retains October mapping");
         select_profile(first);
         require(!known_build(first) && address(0x10000000,0x1b98950)==0x11b98950,
                 "unknown consent cannot inherit updated profile");
