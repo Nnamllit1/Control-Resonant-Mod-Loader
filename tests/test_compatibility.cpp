@@ -84,6 +84,30 @@ int main() {
         }
         require(!address(0x10000000,0x123456) && !address(0,0x1b98950),"unmapped hotfix address refuses access");
         require(!matches_code(nullptr,0x123456,nullptr,1),"missing hotfix signature refuses access");
+        require(allowed(patch_sha) && known_build(patch_sha),"October patch executable has its own profile");
+        select_profile(patch_sha);
+        require(engine_profile==EngineProfile::october_patch,"October patch profile selected");
+        require(ui_document_sha()==october_document,"unchanged October patch UI document retained");
+        require(std::size(october_patch_addresses)==std::size(october_addresses),"complete October patch mapping");
+        last=0;
+        for(const auto& entry:october_patch_addresses) {
+            require(entry.previous>last && entry.current,"October patch addresses unique and sorted");last=entry.previous;
+            require(address(0x10000000,entry.previous)==0x10000000+entry.current,"October patch relocation selected");
+            bool canonical_found=false;
+            for(const auto& old:october_addresses) if(old.previous==entry.previous) canonical_found=true;
+            require(canonical_found,"October patch preserves canonical address set");
+            if(entry.previous>=0x4000000) {
+                require(!matches_code(entry.prefix.data(),entry.previous,nullptr,1),"data is not executable code");
+                continue;
+            }
+            auto bytes=entry.prefix;
+            require(matches_code(bytes.data(),entry.previous,nullptr,bytes.size()),"October patch exact signature accepted");
+            bytes[0]^=1;
+            require(!matches_code(bytes.data(),entry.previous,nullptr,bytes.size()),"modified October patch code refused");
+            require(!matches_code(bytes.data(),entry.previous,nullptr,bytes.size()+1),"oversized signature refused");
+        }
+        require(!address(0x10000000,0x123456) && !address(0,0x1b98950),"unmapped October patch address refuses access");
+        require(!matches_code(nullptr,0x123456,nullptr,1),"missing October patch signature refuses access");
         select_profile(updated_sha);
         require(address(0x10000000,0x2c4fc90)==0x12c9ab80,"switching back retains October mapping");
         select_profile(first);

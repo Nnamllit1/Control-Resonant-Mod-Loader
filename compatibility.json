@@ -354,6 +354,126 @@
       "version": "0.564.478.0",
       "native_address_profile": "october_hotfix",
       "native_ui_document_sha256": "2a56b5e655746d09f80b592b9e19d787eaccf72778a3df90b7773a564ecad527"
+    },
+    {
+      "id": "control-resonant-0.564.629.5",
+      "executable": "CONTROLResonant.exe",
+      "sha256": "9f56611d767c9227a8a1b250c01acf9478b50933c65f86a1e044fcc53df67cb1",
+      "architecture": "x64",
+      "proxy": "xinput1_4.dll",
+      "observed_import_ordinals": [
+        2
+      ],
+      "status": "experimental",
+      "gameplay_bridge": false,
+      "movement_wasm": {
+        "implemented": true,
+        "status": "experimental",
+        "requires_opt_in": true,
+        "capabilities": [
+          "player.motion",
+          "input.motion"
+        ],
+        "scope": "guest-selected world velocity for the controlled character, read-only camera heading",
+        "max_speed": 20,
+        "lease_ms": 500,
+        "fall_reset_overrides": true,
+        "boundary_guard": {
+          "status": "experimental",
+          "scope": "new out_of_bounds_area entry callbacks and native player height checks during an active movement lease",
+          "preserves_pending_recovery": true,
+          "blocks_all_teleports": false
+        },
+        "recovery_trace": {
+          "mode": "flight-boundary-guard",
+          "capture_schema": 4,
+          "max_events": 2048,
+          "documentation": "docs/fall-recovery.md"
+        },
+        "teleport_policy": "cancel",
+        "documentation": "docs/movement.md"
+      },
+      "physics_wasm": {
+        "implemented": true,
+        "status": "experimental",
+        "requires_opt_in": true,
+        "capability": "physics.damping",
+        "scope": "one owner-scoped nearby prop, asynchronous temporary linear damping",
+        "max_duration_ms": 5000,
+        "linear_damping_range": [
+          0,
+          8
+        ],
+        "physx_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
+        "documentation": "docs/api.md#experimental-prop-damping"
+      },
+      "physics_trial": {
+        "implemented": true,
+        "status": "experimental",
+        "requires_opt_in": true,
+        "suspends_wasm_mods": true,
+        "scope": "one explicitly selected nearby prop, temporary linear damping and conditional restoration",
+        "duration_ms": 5000,
+        "linear_damping": 8,
+        "capture_schema": 1,
+        "documentation": "docs/physics-trial.md"
+      },
+      "engine_observer": {
+        "implemented": true,
+        "requires_opt_in": true,
+        "suspends_mods_and_gameplay_features": true,
+        "scope": "selected update phases, player/resource identity snapshots, normal physics completion",
+        "capture_schema": 4,
+        "body_observation": {
+          "implemented": true,
+          "scope": "bounded dynamic-body identity and damping snapshots after physics post-processing",
+          "physx_sha256": "ec53e67b700e67a5420a2c951340efd9a8ed9d086da539eed6ee88368fe0ce51",
+          "calls_property_setters": false
+        },
+        "body_entity_observation": {
+          "implemented": true,
+          "scope": "bounded same-callback world, body and ECS association checks",
+          "calls_property_setters": false,
+          "evidence": "docs/engine-validation.md#body-to-entity-observation-schema-3"
+        },
+        "damping_accessor_observation": {
+          "implemented": true,
+          "calls_property_setters": false,
+          "scope": "bounded comparison of native damping getters with guarded snapshots",
+          "evidence": "docs/engine-validation.md#native-damping-readback-schema-4"
+        },
+        "max_capture_mib": 64,
+        "max_capture_minutes": 10
+      },
+      "entity_inspector": {
+        "implemented": true,
+        "scope": "player component identities and controller state",
+        "model_material_payloads_decoded": false,
+        "requires_opt_in": true
+      },
+      "experimental_noclip": {
+        "implemented": true,
+        "movement": "camera-heading",
+        "keyboard_isolation_implemented": true,
+        "fall_and_boundary_reset_suppression_implemented": true,
+        "fall_monitor_suppression_implemented": true,
+        "active_recovery_guard_implemented": true,
+        "fall_camera_cleanup_implemented": true,
+        "same_world_teleport_restoration_implemented": true,
+        "requires_opt_in": true
+      },
+      "experimental_visibility": {
+        "implemented": true,
+        "requires_opt_in": true,
+        "capability": "player.visibility",
+        "scope": "root player mesh hide while F7 is held",
+        "phase": "after coregame::mesh::applyHide",
+        "lease_ms": 500,
+        "guest_controlled_requests": true
+      },
+      "version": "0.564.629.5",
+      "native_address_profile": "october_patch",
+      "native_ui_document_sha256": "2a56b5e655746d09f80b592b9e19d787eaccf72778a3df90b7773a564ecad527"
     }
   ]
 }

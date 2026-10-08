@@ -1,0 +1,3333 @@
+{
+  "schema": 1,
+  "executable_sha256": "9f56611d767c9227a8a1b250c01acf9478b50933c65f86a1e044fcc53df67cb1",
+  "version": "0.564.629.5",
+  "evidence_scope": "Offline relocation review of 53 unwind-function bodies and 8 bounded leaf entries; reference and prefix checks do not establish live gameplay behavior. Unchanged earlier maps remain bound to their recorded executable hashes.",
+  "code_mappings": [
+    {
+      "canonical": "0x3d4c00",
+      "rva": "0x3f0ef0"
+    },
+    {
+      "canonical": "0x3d4c08",
+      "rva": "0x3f0ef8"
+    },
+    {
+      "canonical": "0x3d4c0d",
+      "rva": "0x3f0efd"
+    },
+    {
+      "canonical": "0x3d4c88",
+      "rva": "0x3f0f78"
+    },
+    {
+      "canonical": "0x3d4c8d",
+      "rva": "0x3f0f7d"
+    },
+    {
+      "canonical": "0x1811d60",
+      "rva": "0x1836580"
+    },
+    {
+      "canonical": "0x1811fe0",
+      "rva": "0x1836800"
+    },
+    {
+      "canonical": "0x18122b0",
+      "rva": "0x1836ad0"
+    },
+    {
+      "canonical": "0x188cef0",
+      "rva": "0x18b1ac0"
+    },
+    {
+      "canonical": "0x188cf20",
+      "rva": "0x18b1af0"
+    },
+    {
+      "canonical": "0x18d22c0",
+      "rva": "0x18f7540"
+    },
+    {
+      "canonical": "0x190e4d0",
+      "rva": "0x1933800"
+    },
+    {
+      "canonical": "0x1969ca0",
+      "rva": "0x198f380"
+    },
+    {
+      "canonical": "0x19bbda0",
+      "rva": "0x19e26b0"
+    },
+    {
+      "canonical": "0x19c70e0",
+      "rva": "0x19ed9f0"
+    },
+    {
+      "canonical": "0x1a08f15",
+      "rva": "0x1a2f825"
+    },
+    {
+      "canonical": "0x1a09648",
+      "rva": "0x1a2ff58"
+    },
+    {
+      "canonical": "0x1a0aada",
+      "rva": "0x1a313ea"
+    },
+    {
+      "canonical": "0x1a0aadf",
+      "rva": "0x1a313ef"
+    },
+    {
+      "canonical": "0x1a13a20",
+      "rva": "0x1a3a330"
+    },
+    {
+      "canonical": "0x1a15722",
+      "rva": "0x1a3c032"
+    },
+    {
+      "canonical": "0x1a160f1",
+      "rva": "0x1a3ca01"
+    },
+    {
+      "canonical": "0x1ada8c0",
+      "rva": "0x1b01490"
+    },
+    {
+      "canonical": "0x1adb040",
+      "rva": "0x1b01c10"
+    },
+    {
+      "canonical": "0x1af20b0",
+      "rva": "0x1b18c80"
+    },
+    {
+      "canonical": "0x1b98950",
+      "rva": "0x1bbf6e0"
+    },
+    {
+      "canonical": "0x1ba7ea0",
+      "rva": "0x1bcec30"
+    },
+    {
+      "canonical": "0x1ba8900",
+      "rva": "0x1bcf690"
+    },
+    {
+      "canonical": "0x1baa070",
+      "rva": "0x1bd0e00"
+    },
+    {
+      "canonical": "0x1cfead0",
+      "rva": "0x1d25d60"
+    },
+    {
+      "canonical": "0x229b4b0",
+      "rva": "0x22d5ae0"
+    },
+    {
+      "canonical": "0x229ba00",
+      "rva": "0x22d6030"
+    },
+    {
+      "canonical": "0x25a7230",
+      "rva": "0x25e9980"
+    },
+    {
+      "canonical": "0x25a7620",
+      "rva": "0x25e9d70"
+    },
+    {
+      "canonical": "0x25a8360",
+      "rva": "0x25eaab0"
+    },
+    {
+      "canonical": "0x25a85f0",
+      "rva": "0x25ead40"
+    },
+    {
+      "canonical": "0x25ad320",
+      "rva": "0x25efa50"
+    },
+    {
+      "canonical": "0x2c27b70",
+      "rva": "0x2c72af0"
+    },
+    {
+      "canonical": "0x2c3be80",
+      "rva": "0x2c86e00"
+    },
+    {
+      "canonical": "0x2c434f0",
+      "rva": "0x2c8e470"
+    },
+    {
+      "canonical": "0x2c4d040",
+      "rva": "0x2c97fc0"
+    },
+    {
+      "canonical": "0x2c4d0b0",
+      "rva": "0x2c98030"
+    },
+    {
+      "canonical": "0x2c4ec50",
+      "rva": "0x2c99bd0"
+    },
+    {
+      "canonical": "0x2c4f030",
+      "rva": "0x2c99fb0"
+    },
+    {
+      "canonical": "0x2c4f1d0",
+      "rva": "0x2c9a150"
+    },
+    {
+      "canonical": "0x2c4f290",
+      "rva": "0x2c9a210"
+    },
+    {
+      "canonical": "0x2c4f320",
+      "rva": "0x2c9a2a0"
+    },
+    {
+      "canonical": "0x2c4f6e0",
+      "rva": "0x2c9a660"
+    },
+    {
+      "canonical": "0x2c4fa90",
+      "rva": "0x2c9aa10"
+    },
+    {
+      "canonical": "0x2c4fc90",
+      "rva": "0x2c9ac10"
+    },
+    {
+      "canonical": "0x2c507a0",
+      "rva": "0x2c9b720"
+    },
+    {
+      "canonical": "0x2c508d0",
+      "rva": "0x2c9b850"
+    },
+    {
+      "canonical": "0x2cdb200",
+      "rva": "0x2d26b80"
+    },
+    {
+      "canonical": "0x2cdba00",
+      "rva": "0x2d27380"
+    },
+    {
+      "canonical": "0x2ce2d00",
+      "rva": "0x2d2e680"
+    },
+    {
+      "canonical": "0x2ce5310",
+      "rva": "0x2d30c90"
+    },
+    {
+      "canonical": "0x2ce5380",
+      "rva": "0x2d30d00"
+    },
+    {
+      "canonical": "0x2d83e20",
+      "rva": "0x2dcf7d0"
+    },
+    {
+      "canonical": "0x2fb8340",
+      "rva": "0x3005aa0"
+    },
+    {
+      "canonical": "0x34446b0",
+      "rva": "0x3493bb0"
+    },
+    {
+      "canonical": "0x393109d",
+      "rva": "0x3980dad"
+    }
+  ],
+  "data_mappings": {
+    "0x5110c38": "0x50fd000",
+    "0x5a0b018": "0x59ff018",
+    "0x5c00ca4": "0x5bf8424",
+    "0x5c20fe0": "0x5c187b0",
+    "0x5e69000": "0x5e65850"
+  },
+  "checks": [
+    {
+      "kind": "u32",
+      "rva": "0x3f0ef0",
+      "target": "0x74ed8440",
+      "label": "Code 0x3d4c00 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0ef4",
+      "target": "0xce8b4910",
+      "label": "Code 0x3d4c00 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0ef8",
+      "target": "0x4c0bc3e8",
+      "label": "Code 0x3d4c00 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0efc",
+      "target": "0xfc08401",
+      "label": "Code 0x3d4c00 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f00",
+      "target": "0x20684",
+      "label": "Code 0x3d4c00 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f04",
+      "target": "0xce8b4900",
+      "label": "Code 0x3d4c00 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f08",
+      "target": "0x4c0383e8",
+      "label": "Code 0x3d4c00 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f0c",
+      "target": "0x4e8b4801",
+      "label": "Code 0x3d4c00 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0ef8",
+      "target": "0x4c0bc3e8",
+      "label": "Code 0x3d4c08 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0efc",
+      "target": "0xfc08401",
+      "label": "Code 0x3d4c08 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f00",
+      "target": "0x20684",
+      "label": "Code 0x3d4c08 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f04",
+      "target": "0xce8b4900",
+      "label": "Code 0x3d4c08 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f08",
+      "target": "0x4c0383e8",
+      "label": "Code 0x3d4c08 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f0c",
+      "target": "0x4e8b4801",
+      "label": "Code 0x3d4c08 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f10",
+      "target": "0x18b4810",
+      "label": "Code 0x3d4c08 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f14",
+      "target": "0x480850ff",
+      "label": "Code 0x3d4c08 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0efd",
+      "target": "0x840fc084",
+      "label": "Code 0x3d4c0d prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f01",
+      "target": "0x206",
+      "label": "Code 0x3d4c0d prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f05",
+      "target": "0xe8ce8b49",
+      "label": "Code 0x3d4c0d prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f09",
+      "target": "0x14c0383",
+      "label": "Code 0x3d4c0d prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f0d",
+      "target": "0x104e8b48",
+      "label": "Code 0x3d4c0d prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f11",
+      "target": "0xff018b48",
+      "label": "Code 0x3d4c0d prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f15",
+      "target": "0x8b480850",
+      "label": "Code 0x3d4c0d prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f19",
+      "target": "0x30e8184e",
+      "label": "Code 0x3d4c0d prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f78",
+      "target": "0x4c0b43e8",
+      "label": "Code 0x3d4c88 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f7c",
+      "target": "0xce8b4901",
+      "label": "Code 0x3d4c88 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f80",
+      "target": "0xf8b60f44",
+      "label": "Code 0x3d4c88 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f84",
+      "target": "0x4c0b67e8",
+      "label": "Code 0x3d4c88 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f88",
+      "target": "0xff854801",
+      "label": "Code 0x3d4c88 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f8c",
+      "target": "0xff5e840f",
+      "label": "Code 0x3d4c88 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f90",
+      "target": "0x8445ffff",
+      "label": "Code 0x3d4c88 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f94",
+      "target": "0x55840fff",
+      "label": "Code 0x3d4c88 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f7d",
+      "target": "0x44ce8b49",
+      "label": "Code 0x3d4c8d prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f81",
+      "target": "0xe8f8b60f",
+      "label": "Code 0x3d4c8d prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f85",
+      "target": "0x14c0b67",
+      "label": "Code 0x3d4c8d prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f89",
+      "target": "0xfff8548",
+      "label": "Code 0x3d4c8d prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f8d",
+      "target": "0xffff5e84",
+      "label": "Code 0x3d4c8d prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f91",
+      "target": "0xff8445ff",
+      "label": "Code 0x3d4c8d prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f95",
+      "target": "0xff55840f",
+      "label": "Code 0x3d4c8d prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3f0f99",
+      "target": "0xd03dffff",
+      "label": "Code 0x3d4c8d prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836580",
+      "target": "0x245c8948",
+      "label": "Code 0x1811d60 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836584",
+      "target": "0x81485710",
+      "label": "Code 0x1811d60 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836588",
+      "target": "0x110ec",
+      "label": "Code 0x1811d60 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x183658c",
+      "target": "0xd98b4800",
+      "label": "Code 0x1811d60 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836590",
+      "target": "0x48f88b49",
+      "label": "Code 0x1811d60 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836594",
+      "target": "0x4808498b",
+      "label": "Code 0x1811d60 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836598",
+      "target": "0x4675c985",
+      "label": "Code 0x1811d60 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x183659c",
+      "target": "0x107cc1c4",
+      "label": "Code 0x1811d60 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836800",
+      "target": "0x49dc8b4c",
+      "label": "Code 0x1811fe0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836804",
+      "target": "0x49105b89",
+      "label": "Code 0x1811fe0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836808",
+      "target": "0x49187389",
+      "label": "Code 0x1811fe0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x183680c",
+      "target": "0x41207b89",
+      "label": "Code 0x1811fe0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836810",
+      "target": "0xec814857",
+      "label": "Code 0x1811fe0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836814",
+      "target": "0x120",
+      "label": "Code 0x1811fe0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836818",
+      "target": "0x20798b48",
+      "label": "Code 0x1811fe0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x183681c",
+      "target": "0xc4d98b48",
+      "label": "Code 0x1811fe0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836ad0",
+      "target": "0x49dc8b4c",
+      "label": "Code 0x18122b0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836ad4",
+      "target": "0x49105b89",
+      "label": "Code 0x18122b0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836ad8",
+      "target": "0x49187389",
+      "label": "Code 0x18122b0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836adc",
+      "target": "0x41207b89",
+      "label": "Code 0x18122b0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836ae0",
+      "target": "0xec814857",
+      "label": "Code 0x18122b0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836ae4",
+      "target": "0x120",
+      "label": "Code 0x18122b0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836ae8",
+      "target": "0x20798b48",
+      "label": "Code 0x18122b0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1836aec",
+      "target": "0xc4d98b48",
+      "label": "Code 0x18122b0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1ac0",
+      "target": "0x48018b48",
+      "label": "Code 0x188cef0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1ac4",
+      "target": "0x1274c085",
+      "label": "Code 0x188cef0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1ac8",
+      "target": "0x307980",
+      "label": "Code 0x188cef0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1acc",
+      "target": "0x80f60975",
+      "label": "Code 0x188cef0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1ad0",
+      "target": "0xad",
+      "label": "Code 0x188cef0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1ad4",
+      "target": "0xb0037504",
+      "label": "Code 0x188cef0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1ad8",
+      "target": "0xc032c301",
+      "label": "Code 0x188cef0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1adc",
+      "target": "0xccccccc3",
+      "label": "Code 0x188cef0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1af0",
+      "target": "0x48098b48",
+      "label": "Code 0x188cf20 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1af4",
+      "target": "0x850fc985",
+      "label": "Code 0x188cf20 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1af8",
+      "target": "0x15c9cd4",
+      "label": "Code 0x188cf20 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1afc",
+      "target": "0xccc3c033",
+      "label": "Code 0x188cf20 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1b00",
+      "target": "0xcccccccc",
+      "label": "Code 0x188cf20 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1b04",
+      "target": "0xcccccccc",
+      "label": "Code 0x188cf20 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1b08",
+      "target": "0xcccccccc",
+      "label": "Code 0x188cf20 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18b1b0c",
+      "target": "0xcccccccc",
+      "label": "Code 0x188cf20 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f7540",
+      "target": "0x28ec8348",
+      "label": "Code 0x18d22c0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f7544",
+      "target": "0xa87e8",
+      "label": "Code 0x18d22c0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f7548",
+      "target": "0x1ba00",
+      "label": "Code 0x18d22c0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f754c",
+      "target": "0x8b480000",
+      "label": "Code 0x18d22c0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f7550",
+      "target": "0xc48348c8",
+      "label": "Code 0x18d22c0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f7554",
+      "target": "0x1b86e928",
+      "label": "Code 0x18d22c0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f7558",
+      "target": "0xcccc0000",
+      "label": "Code 0x18d22c0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18f755c",
+      "target": "0xcccccccc",
+      "label": "Code 0x18d22c0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1933800",
+      "target": "0x58408b49",
+      "label": "Code 0x190e4d0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1933804",
+      "target": "0x10408b4c",
+      "label": "Code 0x190e4d0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1933808",
+      "target": "0x8508b48",
+      "label": "Code 0x190e4d0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x193380c",
+      "target": "0xe9088b48",
+      "label": "Code 0x190e4d0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1933810",
+      "target": "0xffff3abc",
+      "label": "Code 0x190e4d0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1933814",
+      "target": "0xcccccccc",
+      "label": "Code 0x190e4d0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1933818",
+      "target": "0xcccccccc",
+      "label": "Code 0x190e4d0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x193381c",
+      "target": "0xcccccccc",
+      "label": "Code 0x190e4d0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f380",
+      "target": "0x56535540",
+      "label": "Code 0x1969ca0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f384",
+      "target": "0x41544157",
+      "label": "Code 0x1969ca0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f388",
+      "target": "0x41564155",
+      "label": "Code 0x1969ca0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f38c",
+      "target": "0x6c8d4857",
+      "label": "Code 0x1969ca0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f390",
+      "target": "0x8148b824",
+      "label": "Code 0x1969ca0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f394",
+      "target": "0x148ec",
+      "label": "Code 0x1969ca0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f398",
+      "target": "0xd98b4800",
+      "label": "Code 0x1969ca0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f39c",
+      "target": "0xc0eff9c5",
+      "label": "Code 0x1969ca0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19e26b0",
+      "target": "0x245c8948",
+      "label": "Code 0x19bbda0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19e26b4",
+      "target": "0x6c894808",
+      "label": "Code 0x19bbda0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19e26b8",
+      "target": "0x89481024",
+      "label": "Code 0x19bbda0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19e26bc",
+      "target": "0x48182474",
+      "label": "Code 0x19bbda0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19e26c0",
+      "target": "0x20247c89",
+      "label": "Code 0x19bbda0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19e26c4",
+      "target": "0x83485641",
+      "label": "Code 0x19bbda0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19e26c8",
+      "target": "0x8b4960ec",
+      "label": "Code 0x19bbda0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19e26cc",
+      "target": "0x8b4c5840",
+      "label": "Code 0x19bbda0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19ed9f0",
+      "target": "0x245c8948",
+      "label": "Code 0x19c70e0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19ed9f4",
+      "target": "0x74894810",
+      "label": "Code 0x19c70e0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19ed9f8",
+      "target": "0x89481824",
+      "label": "Code 0x19c70e0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19ed9fc",
+      "target": "0x5520247c",
+      "label": "Code 0x19c70e0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19eda00",
+      "target": "0x55415441",
+      "label": "Code 0x19c70e0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19eda04",
+      "target": "0x57415641",
+      "label": "Code 0x19c70e0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19eda08",
+      "target": "0x48ec8b48",
+      "label": "Code 0x19c70e0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19eda0c",
+      "target": "0x4d60ec83",
+      "label": "Code 0x19c70e0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2f825",
+      "target": "0x446c7",
+      "label": "Code 0x1a08f15 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2f829",
+      "target": "0x48000000",
+      "label": "Code 0x1a08f15 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2f82d",
+      "target": "0x8b80eb83",
+      "label": "Code 0x1a08f15 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2f831",
+      "target": "0xc1480c4b",
+      "label": "Code 0x1a08f15 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2f835",
+      "target": "0x438b02e1",
+      "label": "Code 0x1a08f15 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2f839",
+      "target": "0xe0c14808",
+      "label": "Code 0x1a08f15 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2f83d",
+      "target": "0xc13b4802",
+      "label": "Code 0x1a08f15 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2f841",
+      "target": "0xc1482375",
+      "label": "Code 0x1a08f15 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2ff58",
+      "target": "0x10568b48",
+      "label": "Code 0x1a09648 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2ff5c",
+      "target": "0x24948948",
+      "label": "Code 0x1a09648 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2ff60",
+      "target": "0xb0",
+      "label": "Code 0x1a09648 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2ff64",
+      "target": "0xc2b60f44",
+      "label": "Code 0x1a09648 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2ff68",
+      "target": "0x4dc7334d",
+      "label": "Code 0x1a09648 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2ff6c",
+      "target": "0x48c5af0f",
+      "label": "Code 0x1a09648 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2ff70",
+      "target": "0xc148c28b",
+      "label": "Code 0x1a09648 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a2ff74",
+      "target": "0xb60f08e8",
+      "label": "Code 0x1a09648 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313ea",
+      "target": "0x269821e8",
+      "label": "Code 0x1a0aada prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313ee",
+      "target": "0xfc08501",
+      "label": "Code 0x1a0aada prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313f2",
+      "target": "0xc984",
+      "label": "Code 0x1a0aada prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313f6",
+      "target": "0xd38b4800",
+      "label": "Code 0x1a0aada prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313fa",
+      "target": "0xe8cd8b49",
+      "label": "Code 0x1a0aada prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313fe",
+      "target": "0xfffff51e",
+      "label": "Code 0x1a0aada prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a31402",
+      "target": "0xf01f883",
+      "label": "Code 0x1a0aada prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a31406",
+      "target": "0xb585",
+      "label": "Code 0x1a0aada prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313ef",
+      "target": "0x840fc085",
+      "label": "Code 0x1a0aadf prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313f3",
+      "target": "0xc9",
+      "label": "Code 0x1a0aadf prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313f7",
+      "target": "0x49d38b48",
+      "label": "Code 0x1a0aadf prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313fb",
+      "target": "0x1ee8cd8b",
+      "label": "Code 0x1a0aadf prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a313ff",
+      "target": "0x83fffff5",
+      "label": "Code 0x1a0aadf prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a31403",
+      "target": "0x850f01f8",
+      "label": "Code 0x1a0aadf prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a31407",
+      "target": "0xb5",
+      "label": "Code 0x1a0aadf prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3140b",
+      "target": "0x249c8948",
+      "label": "Code 0x1a0aadf prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3a330",
+      "target": "0x83485640",
+      "label": "Code 0x1a13a20 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3a334",
+      "target": "0x8b4860ec",
+      "label": "Code 0x1a13a20 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3a338",
+      "target": "0xd18b48f1",
+      "label": "Code 0x1a13a20 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3a33c",
+      "target": "0x244c8d48",
+      "label": "Code 0x1a13a20 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3a340",
+      "target": "0x1b84170",
+      "label": "Code 0x1a13a20 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3a344",
+      "target": "0xe8000000",
+      "label": "Code 0x1a13a20 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3a348",
+      "target": "0xfea4a644",
+      "label": "Code 0x1a13a20 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3a34c",
+      "target": "0x78468b48",
+      "label": "Code 0x1a13a20 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3c032",
+      "target": "0x33e44589",
+      "label": "Code 0x1a15722 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3c036",
+      "target": "0x458948c0",
+      "label": "Code 0x1a15722 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3c03a",
+      "target": "0x5d8b48e8",
+      "label": "Code 0x1a15722 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3c03e",
+      "target": "0x8bcb8b38",
+      "label": "Code 0x1a15722 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3c042",
+      "target": "0xc1483c45",
+      "label": "Code 0x1a15722 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3c046",
+      "target": "0xb4820e0",
+      "label": "Code 0x1a15722 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3c04a",
+      "target": "0x4d8948c8",
+      "label": "Code 0x1a15722 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3c04e",
+      "target": "0xf87d89f0",
+      "label": "Code 0x1a15722 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3ca01",
+      "target": "0x446c7",
+      "label": "Code 0x1a160f1 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3ca05",
+      "target": "0x49000000",
+      "label": "Code 0x1a160f1 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3ca09",
+      "target": "0x80b58d",
+      "label": "Code 0x1a160f1 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3ca0d",
+      "target": "0x568b0000",
+      "label": "Code 0x1a160f1 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3ca11",
+      "target": "0xe2c14808",
+      "label": "Code 0x1a160f1 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3ca15",
+      "target": "0xc468b02",
+      "label": "Code 0x1a160f1 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3ca19",
+      "target": "0x2e0c148",
+      "label": "Code 0x1a160f1 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3ca1d",
+      "target": "0x75d03b48",
+      "label": "Code 0x1a160f1 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01490",
+      "target": "0x48c48b48",
+      "label": "Code 0x1ada8c0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01494",
+      "target": "0x48085889",
+      "label": "Code 0x1ada8c0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01498",
+      "target": "0x48107089",
+      "label": "Code 0x1ada8c0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b0149c",
+      "target": "0x4c187889",
+      "label": "Code 0x1ada8c0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b014a0",
+      "target": "0x41207089",
+      "label": "Code 0x1ada8c0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b014a4",
+      "target": "0xec834857",
+      "label": "Code 0x1ada8c0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b014a8",
+      "target": "0xf28b4c60",
+      "label": "Code 0x1ada8c0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b014ac",
+      "target": "0xc5f18b48",
+      "label": "Code 0x1ada8c0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01c10",
+      "target": "0x8418b4c",
+      "label": "Code 0x1adb040 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01c14",
+      "target": "0x4d018b48",
+      "label": "Code 0x1adb040 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01c18",
+      "target": "0x4dc00c8d",
+      "label": "Code 0x1adb040 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01c1c",
+      "target": "0x3d74c13b",
+      "label": "Code 0x1adb040 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01c20",
+      "target": "0x84a8b48",
+      "label": "Code 0x1adb040 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01c24",
+      "target": "0x401f0f",
+      "label": "Code 0x1adb040 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01c28",
+      "target": "0x841f0f",
+      "label": "Code 0x1adb040 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b01c2c",
+      "target": "0x0",
+      "label": "Code 0x1adb040 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b18c80",
+      "target": "0x28ec8348",
+      "label": "Code 0x1af20b0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b18c84",
+      "target": "0x45118b48",
+      "label": "Code 0x1af20b0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b18c88",
+      "target": "0x8b4cc933",
+      "label": "Code 0x1af20b0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b18c8c",
+      "target": "0x8d480841",
+      "label": "Code 0x1af20b0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b18c90",
+      "target": "0x585e88a",
+      "label": "Code 0x1af20b0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b18c94",
+      "target": "0xba76e800",
+      "label": "Code 0x1af20b0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b18c98",
+      "target": "0x83480025",
+      "label": "Code 0x1af20b0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b18c9c",
+      "target": "0xccc328c4",
+      "label": "Code 0x1af20b0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bbf6e0",
+      "target": "0x4cc48b48",
+      "label": "Code 0x1b98950 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bbf6e4",
+      "target": "0x4c204889",
+      "label": "Code 0x1b98950 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bbf6e8",
+      "target": "0x48184089",
+      "label": "Code 0x1b98950 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bbf6ec",
+      "target": "0x53105089",
+      "label": "Code 0x1b98950 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bbf6f0",
+      "target": "0x54415756",
+      "label": "Code 0x1b98950 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bbf6f4",
+      "target": "0x56415541",
+      "label": "Code 0x1b98950 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bbf6f8",
+      "target": "0x81485741",
+      "label": "Code 0x1b98950 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bbf6fc",
+      "target": "0x2a0ec",
+      "label": "Code 0x1b98950 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec30",
+      "target": "0x83485340",
+      "label": "Code 0x1ba7ea0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec34",
+      "target": "0x8b4820ec",
+      "label": "Code 0x1ba7ea0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec38",
+      "target": "0x49b7305",
+      "label": "Code 0x1ba7ea0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec3c",
+      "target": "0xc0334504",
+      "label": "Code 0x1ba7ea0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec40",
+      "target": "0xd89d98b",
+      "label": "Code 0x1ba7ea0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec44",
+      "target": "0x4055440",
+      "label": "Code 0x1ba7ea0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec48",
+      "target": "0x4cc88b45",
+      "label": "Code 0x1ba7ea0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec4c",
+      "target": "0x4108588b",
+      "label": "Code 0x1ba7ea0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcf690",
+      "target": "0x245c8948",
+      "label": "Code 0x1ba8900 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcf694",
+      "target": "0x74894810",
+      "label": "Code 0x1ba8900 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcf698",
+      "target": "0x89481824",
+      "label": "Code 0x1ba8900 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcf69c",
+      "target": "0x5708244c",
+      "label": "Code 0x1ba8900 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcf6a0",
+      "target": "0x55415441",
+      "label": "Code 0x1ba8900 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcf6a4",
+      "target": "0x57415641",
+      "label": "Code 0x1ba8900 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcf6a8",
+      "target": "0x60ec8348",
+      "label": "Code 0x1ba8900 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcf6ac",
+      "target": "0x4ce2634c",
+      "label": "Code 0x1ba8900 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bd0e00",
+      "target": "0x49dc8b4c",
+      "label": "Code 0x1baa070 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bd0e04",
+      "target": "0x57187389",
+      "label": "Code 0x1baa070 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bd0e08",
+      "target": "0x57415641",
+      "label": "Code 0x1baa070 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bd0e0c",
+      "target": "0x90ec8148",
+      "label": "Code 0x1baa070 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bd0e10",
+      "target": "0x48000000",
+      "label": "Code 0x1baa070 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bd0e14",
+      "target": "0x4928798b",
+      "label": "Code 0x1baa070 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bd0e18",
+      "target": "0x8b4cf08b",
+      "label": "Code 0x1baa070 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bd0e1c",
+      "target": "0xf18b4cfa",
+      "label": "Code 0x1baa070 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d25d60",
+      "target": "0x53dc8b4c",
+      "label": "Code 0x1cfead0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d25d64",
+      "target": "0x83485756",
+      "label": "Code 0x1cfead0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d25d68",
+      "target": "0x8b4860ec",
+      "label": "Code 0x1cfead0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d25d6c",
+      "target": "0x538d4901",
+      "label": "Code 0x1cfead0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d25d70",
+      "target": "0xf98b4808",
+      "label": "Code 0x1cfead0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d25d74",
+      "target": "0x1863894d",
+      "label": "Code 0x1cfead0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d25d78",
+      "target": "0x4dc03345",
+      "label": "Code 0x1cfead0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d25d7c",
+      "target": "0x41207389",
+      "label": "Code 0x1cfead0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d5ae0",
+      "target": "0x49dc8b4c",
+      "label": "Code 0x229b4b0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d5ae4",
+      "target": "0x53105389",
+      "label": "Code 0x229b4b0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d5ae8",
+      "target": "0x54415756",
+      "label": "Code 0x229b4b0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d5aec",
+      "target": "0x56415541",
+      "label": "Code 0x229b4b0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d5af0",
+      "target": "0x81485741",
+      "label": "Code 0x229b4b0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d5af4",
+      "target": "0xd0ec",
+      "label": "Code 0x229b4b0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d5af8",
+      "target": "0x10fcc500",
+      "label": "Code 0x229b4b0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d5afc",
+      "target": "0x10fcc509",
+      "label": "Code 0x229b4b0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d6030",
+      "target": "0x4cc48b48",
+      "label": "Code 0x229ba00 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d6034",
+      "target": "0x4c204889",
+      "label": "Code 0x229ba00 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d6038",
+      "target": "0x53184089",
+      "label": "Code 0x229ba00 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d603c",
+      "target": "0x54415756",
+      "label": "Code 0x229ba00 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d6040",
+      "target": "0x56415541",
+      "label": "Code 0x229ba00 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d6044",
+      "target": "0x81485741",
+      "label": "Code 0x229ba00 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d6048",
+      "target": "0x240ec",
+      "label": "Code 0x229ba00 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d604c",
+      "target": "0x29f8c500",
+      "label": "Code 0x229ba00 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9980",
+      "target": "0x56c48b48",
+      "label": "Code 0x25a7230 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9984",
+      "target": "0x56415541",
+      "label": "Code 0x25a7230 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9988",
+      "target": "0x81485741",
+      "label": "Code 0x25a7230 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e998c",
+      "target": "0x118ec",
+      "label": "Code 0x25a7230 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9990",
+      "target": "0x10fcc500",
+      "label": "Code 0x25a7230 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9994",
+      "target": "0x10fcc519",
+      "label": "Code 0x25a7230 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9998",
+      "target": "0xfbc52051",
+      "label": "Code 0x25a7230 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e999c",
+      "target": "0xc5504910",
+      "label": "Code 0x25a7230 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9d70",
+      "target": "0x4ddc8b4c",
+      "label": "Code 0x25a7620 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9d74",
+      "target": "0x49204b89",
+      "label": "Code 0x25a7620 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9d78",
+      "target": "0x53105389",
+      "label": "Code 0x25a7620 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9d7c",
+      "target": "0x54415756",
+      "label": "Code 0x25a7620 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9d80",
+      "target": "0x56415541",
+      "label": "Code 0x25a7620 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9d84",
+      "target": "0x81485741",
+      "label": "Code 0x25a7620 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9d88",
+      "target": "0x220ec",
+      "label": "Code 0x25a7620 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25e9d8c",
+      "target": "0xc18b4900",
+      "label": "Code 0x25a7620 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25eaab0",
+      "target": "0x49dc8b4c",
+      "label": "Code 0x25a8360 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25eaab4",
+      "target": "0x49105b89",
+      "label": "Code 0x25a8360 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25eaab8",
+      "target": "0x49186b89",
+      "label": "Code 0x25a8360 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25eaabc",
+      "target": "0x57207389",
+      "label": "Code 0x25a8360 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25eaac0",
+      "target": "0x57415641",
+      "label": "Code 0x25a8360 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25eaac4",
+      "target": "0xa0ec8148",
+      "label": "Code 0x25a8360 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25eaac8",
+      "target": "0xc5000000",
+      "label": "Code 0x25a8360 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25eaacc",
+      "target": "0xc50910fc",
+      "label": "Code 0x25a8360 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25ead40",
+      "target": "0x48c48b48",
+      "label": "Code 0x25a85f0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25ead44",
+      "target": "0x48105889",
+      "label": "Code 0x25a85f0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25ead48",
+      "target": "0x48187089",
+      "label": "Code 0x25a85f0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25ead4c",
+      "target": "0x41207889",
+      "label": "Code 0x25a85f0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25ead50",
+      "target": "0x41564154",
+      "label": "Code 0x25a85f0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25ead54",
+      "target": "0xec834857",
+      "label": "Code 0x25a85f0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25ead58",
+      "target": "0x10fcc550",
+      "label": "Code 0x25a85f0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25ead5c",
+      "target": "0x10fbc509",
+      "label": "Code 0x25a85f0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25efa50",
+      "target": "0x83485340",
+      "label": "Code 0x25ad320 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25efa54",
+      "target": "0x8b4850ec",
+      "label": "Code 0x25ad320 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25efa58",
+      "target": "0xd28b44d9",
+      "label": "Code 0x25ad320 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25efa5c",
+      "target": "0x4c088b49",
+      "label": "Code 0x25ad320 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25efa60",
+      "target": "0xc149ca8b",
+      "label": "Code 0x25ad320 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25efa64",
+      "target": "0x8b4820e9",
+      "label": "Code 0x25ad320 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25efa68",
+      "target": "0x5851081",
+      "label": "Code 0x25ad320 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x25efa6c",
+      "target": "0x3b4c9000",
+      "label": "Code 0x25ad320 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c72af0",
+      "target": "0x245c8948",
+      "label": "Code 0x2c27b70 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c72af4",
+      "target": "0x74894810",
+      "label": "Code 0x2c27b70 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c72af8",
+      "target": "0x89482024",
+      "label": "Code 0x2c27b70 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c72afc",
+      "target": "0x5708244c",
+      "label": "Code 0x2c27b70 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c72b00",
+      "target": "0x55415441",
+      "label": "Code 0x2c27b70 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c72b04",
+      "target": "0x57415641",
+      "label": "Code 0x2c27b70 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c72b08",
+      "target": "0xf0ec8148",
+      "label": "Code 0x2c27b70 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c72b0c",
+      "target": "0x4d000001",
+      "label": "Code 0x2c27b70 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c86e00",
+      "target": "0x83485340",
+      "label": "Code 0x2c3be80 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c86e04",
+      "target": "0x8b4820ec",
+      "label": "Code 0x2c3be80 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c86e08",
+      "target": "0x8b481841",
+      "label": "Code 0x2c3be80 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c86e0c",
+      "target": "0xaf898",
+      "label": "Code 0x2c3be80 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c86e10",
+      "target": "0xcb8b4800",
+      "label": "Code 0x2c3be80 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c86e14",
+      "target": "0x30538b48",
+      "label": "Code 0x2c3be80 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c86e18",
+      "target": "0x6d53e8",
+      "label": "Code 0x2c3be80 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c86e1c",
+      "target": "0xcb8b4800",
+      "label": "Code 0x2c3be80 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c8e470",
+      "target": "0x245c8948",
+      "label": "Code 0x2c434f0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c8e474",
+      "target": "0x6c894808",
+      "label": "Code 0x2c434f0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c8e478",
+      "target": "0x89481024",
+      "label": "Code 0x2c434f0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c8e47c",
+      "target": "0x57182474",
+      "label": "Code 0x2c434f0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c8e480",
+      "target": "0x55415441",
+      "label": "Code 0x2c434f0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c8e484",
+      "target": "0x57415641",
+      "label": "Code 0x2c434f0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c8e488",
+      "target": "0x20ec8348",
+      "label": "Code 0x2c434f0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c8e48c",
+      "target": "0x20718b4c",
+      "label": "Code 0x2c434f0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c97fc0",
+      "target": "0x4cc26348",
+      "label": "Code 0x2c4d040 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c97fc4",
+      "target": "0xd285c18b",
+      "label": "Code 0x2c4d040 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c97fc8",
+      "target": "0x8d484c78",
+      "label": "Code 0x2c4d040 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c97fcc",
+      "target": "0x8d4c4014",
+      "label": "Code 0x2c4d040 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c97fd0",
+      "target": "0xd50c",
+      "label": "Code 0x2c4d040 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c97fd4",
+      "target": "0x8b480000",
+      "label": "Code 0x2c4d040 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c97fd8",
+      "target": "0x8b481051",
+      "label": "Code 0x2c4d040 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c97fdc",
+      "target": "0x8d4a0849",
+      "label": "Code 0x2c4d040 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c98030",
+      "target": "0x245c8948",
+      "label": "Code 0x2c4d0b0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c98034",
+      "target": "0x83485708",
+      "label": "Code 0x2c4d0b0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c98038",
+      "target": "0x41f620ec",
+      "label": "Code 0x2c4d0b0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9803c",
+      "target": "0x8b480401",
+      "label": "Code 0x2c4d0b0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c98040",
+      "target": "0xfa6348d9",
+      "label": "Code 0x2c4d0b0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c98044",
+      "target": "0x8d4c0c74",
+      "label": "Code 0x2c4d0b0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c98048",
+      "target": "0x8b486841",
+      "label": "Code 0x2c4d0b0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9804c",
+      "target": "0x463ee8d1",
+      "label": "Code 0x2c4d0b0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99bd0",
+      "target": "0x8418b48",
+      "label": "Code 0x2c4ec50 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99bd4",
+      "target": "0x44108948",
+      "label": "Code 0x2c4ec50 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99bd8",
+      "target": "0xc7084089",
+      "label": "Code 0x2c4ec50 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99bdc",
+      "target": "0x21040",
+      "label": "Code 0x2c4ec50 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99be0",
+      "target": "0x83480000",
+      "label": "Code 0x2c4ec50 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99be4",
+      "target": "0xc3180841",
+      "label": "Code 0x2c4ec50 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99be8",
+      "target": "0xcccccccc",
+      "label": "Code 0x2c4ec50 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99bec",
+      "target": "0xcccccccc",
+      "label": "Code 0x2c4ec50 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99fb0",
+      "target": "0x245c8948",
+      "label": "Code 0x2c4f030 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99fb4",
+      "target": "0x6c894808",
+      "label": "Code 0x2c4f030 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99fb8",
+      "target": "0x89481024",
+      "label": "Code 0x2c4f030 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99fbc",
+      "target": "0x57182474",
+      "label": "Code 0x2c4f030 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99fc0",
+      "target": "0x20ec8348",
+      "label": "Code 0x2c4f030 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99fc4",
+      "target": "0x40141f6",
+      "label": "Code 0x2c4f030 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99fc8",
+      "target": "0x48e88b49",
+      "label": "Code 0x2c4f030 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c99fcc",
+      "target": "0x8b48f263",
+      "label": "Code 0x2c4f030 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a150",
+      "target": "0x245c8948",
+      "label": "Code 0x2c4f1d0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a154",
+      "target": "0x74894808",
+      "label": "Code 0x2c4f1d0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a158",
+      "target": "0x48571024",
+      "label": "Code 0x2c4f1d0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a15c",
+      "target": "0xf620ec83",
+      "label": "Code 0x2c4f1d0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a160",
+      "target": "0x41040141",
+      "label": "Code 0x2c4f1d0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a164",
+      "target": "0x6348f08b",
+      "label": "Code 0x2c4f1d0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a168",
+      "target": "0xd98b48fa",
+      "label": "Code 0x2c4f1d0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a16c",
+      "target": "0x8d4c0c74",
+      "label": "Code 0x2c4f1d0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a210",
+      "target": "0x245c8948",
+      "label": "Code 0x2c4f290 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a214",
+      "target": "0x6c894808",
+      "label": "Code 0x2c4f290 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a218",
+      "target": "0x89481024",
+      "label": "Code 0x2c4f290 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a21c",
+      "target": "0x57182474",
+      "label": "Code 0x2c4f290 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a220",
+      "target": "0x20ec8348",
+      "label": "Code 0x2c4f290 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a224",
+      "target": "0x18498b4c",
+      "label": "Code 0x2c4f290 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a228",
+      "target": "0x8bf08b41",
+      "label": "Code 0x2c4f290 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a22c",
+      "target": "0xf98b48ea",
+      "label": "Code 0x2c4f290 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a2a0",
+      "target": "0x28ec8348",
+      "label": "Code 0x2c4f320 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a2a4",
+      "target": "0x4cd88b45",
+      "label": "Code 0x2c4f320 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a2a8",
+      "target": "0xd285d18b",
+      "label": "Code 0x2c4f320 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a2ac",
+      "target": "0x6348337e",
+      "label": "Code 0x2c4f320 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a2b0",
+      "target": "0xc8d4cc2",
+      "label": "Code 0x2c4f320 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a2b4",
+      "target": "0x418b4840",
+      "label": "Code 0x2c4f320 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a2b8",
+      "target": "0x498d4d10",
+      "label": "Code 0x2c4f320 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a2bc",
+      "target": "0xc8d4efd",
+      "label": "Code 0x2c4f320 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a660",
+      "target": "0x245c8948",
+      "label": "Code 0x2c4f6e0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a664",
+      "target": "0x74894808",
+      "label": "Code 0x2c4f6e0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a668",
+      "target": "0x48571024",
+      "label": "Code 0x2c4f6e0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a66c",
+      "target": "0x4d40ec83",
+      "label": "Code 0x2c4f6e0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a670",
+      "target": "0x8b48d08b",
+      "label": "Code 0x2c4f6e0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a674",
+      "target": "0x7ed285f9",
+      "label": "Code 0x2c4f6e0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a678",
+      "target": "0xc2634825",
+      "label": "Code 0x2c4f6e0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9a67c",
+      "target": "0x8598d48",
+      "label": "Code 0x2c4f6e0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9aa10",
+      "target": "0x83485340",
+      "label": "Code 0x2c4fa90 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9aa14",
+      "target": "0x8d4820ec",
+      "label": "Code 0x2c4fa90 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9aa18",
+      "target": "0x8b4c0859",
+      "label": "Code 0x2c4fa90 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9aa1c",
+      "target": "0x7ed285d1",
+      "label": "Code 0x2c4fa90 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9aa20",
+      "target": "0xc2634821",
+      "label": "Code 0x2c4fa90 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9aa24",
+      "target": "0x400c8d4c",
+      "label": "Code 0x2c4fa90 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9aa28",
+      "target": "0x10418b48",
+      "label": "Code 0x2c4fa90 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9aa2c",
+      "target": "0xfd498d4d",
+      "label": "Code 0x2c4fa90 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9ac10",
+      "target": "0x245c8948",
+      "label": "Code 0x2c4fc90 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9ac14",
+      "target": "0x74894808",
+      "label": "Code 0x2c4fc90 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9ac18",
+      "target": "0x48571024",
+      "label": "Code 0x2c4fc90 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9ac1c",
+      "target": "0x4540ec83",
+      "label": "Code 0x2c4fc90 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9ac20",
+      "target": "0x8b41d233",
+      "label": "Code 0x2c4fc90 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9ac24",
+      "target": "0xda8b44f0",
+      "label": "Code 0x2c4fc90 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9ac28",
+      "target": "0x45f98b48",
+      "label": "Code 0x2c4fc90 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9ac2c",
+      "target": "0x6174c985",
+      "label": "Code 0x2c4fc90 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b720",
+      "target": "0x24748948",
+      "label": "Code 0x2c507a0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b724",
+      "target": "0x7c894818",
+      "label": "Code 0x2c507a0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b728",
+      "target": "0x56412024",
+      "label": "Code 0x2c507a0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b72c",
+      "target": "0x20ec8348",
+      "label": "Code 0x2c507a0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b730",
+      "target": "0x18718b4c",
+      "label": "Code 0x2c507a0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b734",
+      "target": "0x85f18b48",
+      "label": "Code 0x2c507a0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b738",
+      "target": "0x48247ed2",
+      "label": "Code 0x2c507a0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b73c",
+      "target": "0x8d48c263",
+      "label": "Code 0x2c507a0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b850",
+      "target": "0x467ed285",
+      "label": "Code 0x2c508d0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b854",
+      "target": "0xec834857",
+      "label": "Code 0x2c508d0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b858",
+      "target": "0x48fa8b20",
+      "label": "Code 0x2c508d0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b85c",
+      "target": "0x30245c89",
+      "label": "Code 0x2c508d0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b860",
+      "target": "0x18598b48",
+      "label": "Code 0x2c508d0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b864",
+      "target": "0x48c28b44",
+      "label": "Code 0x2c508d0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b868",
+      "target": "0xc98938b",
+      "label": "Code 0x2c508d0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c9b86c",
+      "target": "0x1de80000",
+      "label": "Code 0x2c508d0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d26b80",
+      "target": "0x245c8948",
+      "label": "Code 0x2cdb200 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d26b84",
+      "target": "0x83485718",
+      "label": "Code 0x2cdb200 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d26b88",
+      "target": "0x8b4830ec",
+      "label": "Code 0x2cdb200 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d26b8c",
+      "target": "0x498b48d9",
+      "label": "Code 0x2cdb200 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d26b90",
+      "target": "0x18b4830",
+      "label": "Code 0x2cdb200 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d26b94",
+      "target": "0x481050ff",
+      "label": "Code 0x2cdb200 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d26b98",
+      "target": "0x8b48c88b",
+      "label": "Code 0x2cdb200 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d26b9c",
+      "target": "0xd092ff10",
+      "label": "Code 0x2cdb200 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27380",
+      "target": "0x83485340",
+      "label": "Code 0x2cdba00 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27384",
+      "target": "0x8b4840ec",
+      "label": "Code 0x2cdba00 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27388",
+      "target": "0x518d48d9",
+      "label": "Code 0x2cdba00 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2738c",
+      "target": "0xd8b4820",
+      "label": "Code 0x2cdba00 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27390",
+      "target": "0x32314ec",
+      "label": "Code 0x2cdba00 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27394",
+      "target": "0x7429f8c5",
+      "label": "Code 0x2cdba00 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27398",
+      "target": "0xf8c53024",
+      "label": "Code 0x2cdba00 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2739c",
+      "target": "0x6de8f128",
+      "label": "Code 0x2cdba00 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2e680",
+      "target": "0x245c8948",
+      "label": "Code 0x2ce2d00 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2e684",
+      "target": "0x74894808",
+      "label": "Code 0x2ce2d00 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2e688",
+      "target": "0x48571024",
+      "label": "Code 0x2ce2d00 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2e68c",
+      "target": "0x4820ec83",
+      "label": "Code 0x2ce2d00 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2e690",
+      "target": "0x8b48d98b",
+      "label": "Code 0x2ce2d00 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2e694",
+      "target": "0x248b9",
+      "label": "Code 0x2ce2d00 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2e698",
+      "target": "0xff854800",
+      "label": "Code 0x2ce2d00 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2e69c",
+      "target": "0x8b481274",
+      "label": "Code 0x2ce2d00 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30c90",
+      "target": "0x48d18b48",
+      "label": "Code 0x2ce5310 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30c94",
+      "target": "0x240898b",
+      "label": "Code 0x2ce5310 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30c98",
+      "target": "0x91e90000",
+      "label": "Code 0x2ce5310 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30c9c",
+      "target": "0xccffff6a",
+      "label": "Code 0x2ce5310 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30ca0",
+      "target": "0xcccccccc",
+      "label": "Code 0x2ce5310 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30ca4",
+      "target": "0xcccccccc",
+      "label": "Code 0x2ce5310 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30ca8",
+      "target": "0xcccccccc",
+      "label": "Code 0x2ce5310 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30cac",
+      "target": "0xcccccccc",
+      "label": "Code 0x2ce5310 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d00",
+      "target": "0x83485340",
+      "label": "Code 0x2ce5380 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d04",
+      "target": "0x8b4820ec",
+      "label": "Code 0x2ce5380 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d08",
+      "target": "0xd18b48d9",
+      "label": "Code 0x2ce5380 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d0c",
+      "target": "0x40898b48",
+      "label": "Code 0x2ce5380 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d10",
+      "target": "0xe8000002",
+      "label": "Code 0x2ce5380 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d14",
+      "target": "0xffff6758",
+      "label": "Code 0x2ce5380 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d18",
+      "target": "0x26483c6",
+      "label": "Code 0x2ce5380 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d1c",
+      "target": "0x48000000",
+      "label": "Code 0x2ce5380 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7d0",
+      "target": "0x245c8948",
+      "label": "Code 0x2d83e20 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7d4",
+      "target": "0x83485710",
+      "label": "Code 0x2d83e20 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7d8",
+      "target": "0x8b4820ec",
+      "label": "Code 0x2d83e20 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7dc",
+      "target": "0x1d081",
+      "label": "Code 0x2d83e20 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7e0",
+      "target": "0xda8b4800",
+      "label": "Code 0x2d83e20 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7e4",
+      "target": "0x8b48d28b",
+      "label": "Code 0x2d83e20 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7e8",
+      "target": "0x44c748f9",
+      "label": "Code 0x2d83e20 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7ec",
+      "target": "0xffff3024",
+      "label": "Code 0x2d83e20 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3005aa0",
+      "target": "0x245c8948",
+      "label": "Code 0x2fb8340 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3005aa4",
+      "target": "0x6c894808",
+      "label": "Code 0x2fb8340 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3005aa8",
+      "target": "0x89481024",
+      "label": "Code 0x2fb8340 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3005aac",
+      "target": "0x57182474",
+      "label": "Code 0x2fb8340 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3005ab0",
+      "target": "0x20ec8348",
+      "label": "Code 0x2fb8340 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3005ab4",
+      "target": "0xe8b60f41",
+      "label": "Code 0x2fb8340 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3005ab8",
+      "target": "0x48f28b48",
+      "label": "Code 0x2fb8340 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3005abc",
+      "target": "0x8548f98b",
+      "label": "Code 0x2fb8340 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3493bb0",
+      "target": "0x245c8948",
+      "label": "Code 0x34446b0 prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3493bb4",
+      "target": "0x57565508",
+      "label": "Code 0x34446b0 prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3493bb8",
+      "target": "0x55415441",
+      "label": "Code 0x34446b0 prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3493bbc",
+      "target": "0x57415641",
+      "label": "Code 0x34446b0 prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3493bc0",
+      "target": "0x24ac8d48",
+      "label": "Code 0x34446b0 prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3493bc4",
+      "target": "0xfffffe40",
+      "label": "Code 0x34446b0 prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3493bc8",
+      "target": "0xc0ec8148",
+      "label": "Code 0x34446b0 prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3493bcc",
+      "target": "0x4d000002",
+      "label": "Code 0x34446b0 prefix +28"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3980dad",
+      "target": "0xafcd25ff",
+      "label": "Code 0x393109d prefix +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3980db1",
+      "target": "0x25ff0014",
+      "label": "Code 0x393109d prefix +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3980db5",
+      "target": "0x14ab37",
+      "label": "Code 0x393109d prefix +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3980db9",
+      "target": "0xab2925ff",
+      "label": "Code 0x393109d prefix +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3980dbd",
+      "target": "0x40cc0014",
+      "label": "Code 0x393109d prefix +16"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3980dc1",
+      "target": "0x57565553",
+      "label": "Code 0x393109d prefix +20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3980dc5",
+      "target": "0x68ec8348",
+      "label": "Code 0x393109d prefix +24"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3980dc9",
+      "target": "0xb0058b48",
+      "label": "Code 0x393109d prefix +28"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x3492ba9",
+      "target": "0x50fcff8",
+      "label": "Data reference 0x50fcff8"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x34932f9",
+      "target": "0x50fcff8",
+      "label": "Data reference 0x50fcff8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3ef928",
+      "target": "0xe9158b48",
+      "label": "Data reference encoding 0x59ff018"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3ef92b",
+      "target": "0x560f6e9",
+      "label": "Data reference encoding 0x59ff018"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x3279c",
+      "target": "0x5bf8424",
+      "label": "Data reference 0x5bf8424"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a40afa",
+      "target": "0x2315b70f",
+      "label": "Data reference encoding 0x5bf8424"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a40afd",
+      "target": "0x41b7923",
+      "label": "Data reference encoding 0x5bf8424"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x32780",
+      "target": "0x4790567",
+      "label": "Data reference 0x4790567"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec36",
+      "target": "0x73058b48",
+      "label": "Data reference encoding 0x5c187b0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec39",
+      "target": "0x4049b73",
+      "label": "Data reference encoding 0x5c187b0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bceca5",
+      "target": "0x4058b48",
+      "label": "Data reference encoding 0x5c187b0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bceca8",
+      "target": "0x4049b04",
+      "label": "Data reference encoding 0x5c187b0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f8dd",
+      "target": "0x6c058b48",
+      "label": "Data reference encoding 0x5e65850"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f8e0",
+      "target": "0x44d5f6c",
+      "label": "Data reference encoding 0x5e65850"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f9d5",
+      "target": "0x74058b48",
+      "label": "Data reference encoding 0x5e65850"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x198f9d8",
+      "target": "0x44d5e74",
+      "label": "Data reference encoding 0x5e65850"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x50fd000",
+      "target": "0x3493bb0",
+      "label": "UI resource handler virtual method"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c73a40",
+      "target": "0x2c731ba",
+      "label": "Lua interpreter switch target 0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c73a44",
+      "target": "0x2c731d8",
+      "label": "Lua interpreter switch target 1"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c73a48",
+      "target": "0x2c7326f",
+      "label": "Lua interpreter switch target 2"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c73a4c",
+      "target": "0x2c732c9",
+      "label": "Lua interpreter switch target 3"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c73a50",
+      "target": "0x2c73362",
+      "label": "Lua interpreter switch target 4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c73a54",
+      "target": "0x2c73426",
+      "label": "Lua interpreter switch target 5"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2c73a58",
+      "target": "0x2c73203",
+      "label": "Lua interpreter switch target 6"
+    }
+  ]
+}

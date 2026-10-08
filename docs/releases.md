@@ -10,12 +10,12 @@ Run the release CLI from a Windows x64 checkout with Visual Studio C++ tools and
 Python installed:
 
 ```powershell
-.\release.bat -Version v0.1.0-alpha.4.4
+.\release.bat -Version v0.1.0-alpha.4.5
 ```
 
 The command builds gameplay support with Lua diagnostics disabled, runs the test
 suites, checks public text for local paths, and packages the release into
-`.local/releases/v0.1.0-alpha.4.4/`. Use `-Output <directory>` to choose a new output
+`.local/releases/v0.1.0-alpha.4.5/`. Use `-Output <directory>` to choose a new output
 location. Existing release directories are preserved; packaging refuses to
 overwrite them.
 
@@ -48,7 +48,7 @@ its upstream build paths are preserved.
 Verify an existing set without rebuilding:
 
 ```powershell
-python tools/package_release.py --verify --version v0.1.0-alpha.4.4
+python tools/package_release.py --verify --version v0.1.0-alpha.4.5
 ```
 
 ## Package an example mod separately
@@ -56,7 +56,7 @@ python tools/package_release.py --verify --version v0.1.0-alpha.4.4
 Individual mods are distributed separately from framework releases. To prepare the movement example's mod-only ZIP and an optional runtime bundle for a separate distribution, run:
 
 ```powershell
-.\release.bat -Version v0.1.0-alpha.4.4 -IncludeNoclip -Output .local/releases/example-mod-alpha.4.4
+.\release.bat -Version v0.1.0-alpha.4.5 -IncludeNoclip -Output .local/releases/example-mod-alpha.4.4
 ```
 
 This explicit local option adds `crml-noclip-…-windows-x64.zip` and `crml-noclip-bundle-…-windows-x64.zip` alongside the runtime and SDK. It cannot be combined with `-Publish`. The mod-only archive contains the compiled `examples/movement` package and its mode marker; the bundle also contains the runtime. Edit the example sources and manifest before building a custom variant, and supply that mod's own description, controls and requirements.
@@ -69,7 +69,7 @@ Add release notes under `release/<version>.md`, commit the reviewed source, and
 push that commit to `origin/main`. Then run:
 
 ```powershell
-.\release.bat -Version v0.1.0-alpha.4.4 -Output .local/publish-v0.1.0-alpha.4.4 -Publish
+.\release.bat -Version v0.1.0-alpha.4.5 -Output .local/publish-v0.1.0-alpha.4.5 -Publish
 ```
 
 `-Publish` requires a clean checkout matching `origin/main` and an unused version

@@ -17,6 +17,20 @@ Research maps apply to the executable fingerprint recorded in each file. The run
 
 Alpha 4.4 adds the profile for game version **0.564.478.0**, retaining the original and **0.564.208.5** profiles. Its 61 code sites and five data addresses were reviewed against the previous executable's recorded disassembly. The observed movement, physics, camera and UI entry paths retain their instruction semantics after relocation. The compared UI resource, boundary script and PhysX/Cohtml libraries are unchanged. This is a scoped static comparison, not a claim that the entire game or live behavior is unchanged.
 
+Alpha 4.5 additionally supports **0.564.629.5**, preserving all earlier profiles.
+The [build-specific relocation map](research/build-0.564.629.5-map.json) records
+61 code sites and five data addresses, with 512 reproducible static checks.
+Review covered 53 unwind-function bodies and eight bounded leaf entries,
+including the Lua interpreter's relocated switch table. The checked UI assets,
+boundary-recovery script and PhysX/Cohtml libraries remain unchanged. Gameplay
+on this build is not yet verified. Earlier research maps retain their original
+fingerprints; they must not be applied directly to the updated executable.
+
+```powershell
+$gameDir = Read-Host 'Path to your CONTROL Resonant installation'
+python tools/verify_engine_map.py "$gameDir/CONTROLResonant.exe" docs/research/build-0.564.629.5-map.json
+```
+
 ## Generate and search a catalog
 
 Python 3.10 or newer is sufficient; no additional packages are needed. Run from the repository root:
