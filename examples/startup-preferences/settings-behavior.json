@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "capabilities": [
+    "ui.read",
+    "ui.activate"
+  ],
+  "initial": {
+    "ui": {
+      "screen": 1,
+      "actions": 1
+    },
+    "settings": [
+      {
+        "mod": "startup-preferences",
+        "key": "skip_photosensitivity",
+        "value": 0
+      }
+    ]
+  },
+  "frames": [
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "settings": [
+          {
+            "mod": "startup-preferences",
+            "key": "skip_photosensitivity",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui": {
+          "screen": 5,
+          "actions": 1
+        },
+        "settings": [
+          {
+            "mod": "startup-preferences",
+            "key": "enabled",
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "settings": [
+          {
+            "mod": "startup-preferences",
+            "key": "enabled",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    }
+  ],
+  "expect": [
+    {
+      "op": "ui_action_submit",
+      "result": 1
+    },
+    {
+      "op": "ui_action_submit",
+      "result": 2
+    }
+  ]
+}

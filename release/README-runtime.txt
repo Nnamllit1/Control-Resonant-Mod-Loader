@@ -63,7 +63,9 @@ Remove the crml folder only if you no longer need any installed mods or logs.
 No original game files are replaced.
 
 Troubleshooting
-Check crml/crml.log after starting the game. If the runtime cannot load, install
+Check crml/crml.log after starting the game. The previous three runtime sessions
+are kept as crml/crml.1.log through crml/crml.3.log (newest first).
+If the runtime cannot load, install
 Microsoft's current Visual C++ x64 Redistributable from Microsoft's website.
 Include the CRML version and game build when reporting a problem; review logs
 before sharing them.

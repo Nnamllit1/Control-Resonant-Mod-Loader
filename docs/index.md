@@ -13,6 +13,11 @@ description: Download CONTROL Resonant Mod Loader, install compatible mods, crea
 [Download and install](installation.md){ .md-button .md-button--primary }
 [Create a mod](developing.md){ .md-button }
 
+**Source update:** development now includes persistent mod settings, native
+tutorials, searchable lists, map tools and an author CLI. See the
+[mod-author guide](developing.md). **Alpha 4.5 remains the published player
+download**; the new SDK features currently require building matching source.
+
 ## Install CRML
 
 Download **`crml-runtime-<version>-windows-x64.zip`** from [GitHub Releases](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases). Extract it and copy the contents beside `CONTROLResonant.exe`. Then install compatible mods following their own instructions.

@@ -5,6 +5,8 @@
 
 - **MinHook 1.3.4**, Tsuda Kageyu and contributors: BSD-2-Clause, with the included HDE license notices. Experimental gameplay builds download the [tagged source](https://github.com/TsudaKageyu/minhook/tree/v1.3.4), check its pinned SHA-256, link it statically into the trusted runtime, and include `dist/licenses/minhook/LICENSE.txt`.
 
+  `cmake/MinHook.cmake` builds a patched copy of its trampoline source. The patch allows an unsupported instruction to remain untouched at the jump-back target after a complete displaced prefix. Unsupported instructions that require relocation still fail. The downloaded source and license notices remain intact.
+
 - **Luau 0.650**, Roblox and contributors: MIT. Builds using `-LuaSource` verify the [tagged source archive](https://github.com/luau-lang/luau/tree/0.650), link its compiler and AST utilities, and include `dist/licenses/luau/LICENSE.txt`. Scripts execute in the game's VM; CRML does not link a second Luau VM for this path.
 
 No game binaries, game assets, or Windows system DLLs are distributed. The proxy loads the user's Windows XInput library by its absolute system path.

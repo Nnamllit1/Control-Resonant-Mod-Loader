@@ -12,4 +12,4 @@ On the three eligible warning/prompt screens, the mod temporarily hides the uniq
 
 This does not provide instant startup or arbitrary cutscene skipping. Initialization and engine transition checks still apply.
 
-`startup-skip.c` and the hand-authored `startup-skip.wat` implement the same policy. The WAT version builds with `crml_wat.exe`, without a C toolchain. The example reads copied UI state and issues bounded actions; it cannot inject JavaScript or directly edit profiles or save files. The game's ordinary Continue handler may remember that a notice was shown. Saving itself is unchanged.
+`startup-skip.c` is the normal build input. From the SDK or repository root, run `python tools/mod.py build examples/startup-skip --output mods/startup-skip`. The hand-authored WAT remains a low-level reference fixture. The example reads copied UI state and issues bounded actions; it cannot inject JavaScript or directly edit profiles or save files. The game's ordinary Continue handler may remember that a notice was shown. Saving itself is unchanged.

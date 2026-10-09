@@ -31,6 +31,8 @@ def main():
         shutil.copyfile(args.runtime, runtime)
         shutil.copyfile(args.runtime.parent / 'wasmtime.dll', root / 'wasmtime.dll')
         (root / 'engine-observer.enabled').write_text('')
+        (root / 'input-context.enabled').write_text('')
+        (root / 'engine-capabilities.enabled').write_text('')
         # Even conflicting existing opt-ins must not start those features.
         for name in ('noclip.enabled', 'visibility.enabled', 'entity-inspector.enabled'):
             (root / name).write_text('')
@@ -43,6 +45,17 @@ def main():
         log = (root / 'crml.log').read_text()
         assert 'Wasm mods suspended for engine observation' in log, log
         assert 'Engine observer refused: unsupported executable fingerprint' in log, log
+        assert 'Native input context observation unavailable for this build, hook or startup mode' in log, log
+        assert 'Read-only native input context observation ready' not in log, log
+        assert 'Native menu context observation unavailable for this build, hook or startup mode' in log, log
+        assert 'Read-only native menu context observation ready' not in log, log
+        assert 'Location capture unavailable for this build or startup mode' in log, log
+        assert 'Dialogue capture unavailable for this build or startup mode' in log, log
+        assert 'Action restriction capture unavailable for this build or startup mode' in log, log
+        assert 'Read-only action restriction capture ready' not in log, log
+        assert 'Map projection capture unavailable for this build or startup mode' in log, log
+        assert 'Read-only map projection capture ready' not in log, log
+        assert 'Read-only location capture ready' not in log and 'Read-only dialogue capture ready' not in log, log
         assert 'must-not-load' not in log and 'Movement probe' not in log, log
         assert not list(root.glob('engine-observer-*.jsonl'))
         assert not (root / 'movement-probe.jsonl').exists()

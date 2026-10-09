@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "capabilities": [
+    "ui.read",
+    "ui.activate",
+    "ui.presentation"
+  ],
+  "initial": {
+    "ui": {
+      "screen": 1,
+      "actions": 1
+    },
+    "ui_outcome": "none",
+    "settings": [
+      {
+        "mod": "startup-preferences",
+        "key": "hide_selected_screens",
+        "value": 1
+      }
+    ]
+  },
+  "frames": [
+    {
+      "dt_ms": 60000
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 15000
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 60000,
+      "state": {
+        "ui": {
+          "screen": 5,
+          "actions": 1
+        }
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 15000
+    },
+    {
+      "dt_ms": 250
+    }
+  ],
+  "expect": [
+    {
+      "op": "ui_present",
+      "frame": 2,
+      "result": 0,
+      "args": [
+        1,
+        2,
+        1,
+        750
+      ],
+      "target": "splash"
+    },
+    {
+      "op": "ui_present",
+      "frame": 3,
+      "result": 0,
+      "args": [
+        1,
+        2,
+        1,
+        750
+      ],
+      "target": "splash"
+    },
+    {
+      "op": "ui_action_submit",
+      "frame": 3,
+      "result": 1,
+      "args": [
+        1,
+        1
+      ]
+    },
+    {
+      "op": "ui_present",
+      "frame": 4,
+      "result": 0,
+      "args": [
+        1,
+        2,
+        0,
+        0
+      ],
+      "target": "splash"
+    },
+    {
+      "op": "ui_present",
+      "frame": 8,
+      "result": 0,
+      "args": [
+        2,
+        2,
+        1,
+        750
+      ],
+      "target": "splash"
+    },
+    {
+      "op": "ui_present",
+      "frame": 9,
+      "result": 0,
+      "args": [
+        2,
+        2,
+        1,
+        750
+      ],
+      "target": "splash"
+    },
+    {
+      "op": "ui_action_submit",
+      "frame": 9,
+      "result": 2,
+      "args": [
+        2,
+        1
+      ]
+    },
+    {
+      "op": "ui_present",
+      "frame": 10,
+      "result": 0,
+      "args": [
+        2,
+        2,
+        0,
+        0
+      ],
+      "target": "splash"
+    }
+  ]
+}

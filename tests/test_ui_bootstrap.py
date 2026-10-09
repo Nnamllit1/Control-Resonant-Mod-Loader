@@ -62,23 +62,23 @@ async def check(browser: Browser, fixture: Path):
         return dict(id=identifier, generation='18446744073709551615', action=1, screen=screen, **extra)
 
     await fresh()
-    assert await js('fixture.requests[0].url') == f'coui://base/crml/ui/v1/{NONCE}/1/1/0/0'
+    assert await js('fixture.requests[0].url') == f'coui://base/crml/ui/v2/{NONCE}/1/1/0/0/0'
     assert await js('fixture.requests[0].timeout===1500 && fixture.requests[0].method==="GET" && fixture.requests[0].async')
     await js('fixture.tick(1000)')
     assert await js('fixture.requests.length') == 1, 'only one request may be in flight'
     await finish({'id': 0})
     await js('fixture.tick(250)')
-    assert await js('fixture.requests[1].url') == f'coui://base/crml/ui/v1/{NONCE}/2/1/1/0'
+    assert await js('fixture.requests[1].url') == f'coui://base/crml/ui/v2/{NONCE}/2/1/1/0/0'
     await finish(command(1))
     assert await js('fixture.events') == ['splash_continue_pressed']
     await js('fixture.tick(250)')
-    assert (await js('fixture.requests[2].url')).endswith('/1/0/1')
+    assert (await js('fixture.requests[2].url')).endswith('/1/0/1/1')
     await finish(command(1))
     assert await js('fixture.events.length') == 1, 'duplicate command must not execute'
     await js('fixture.tick(250)')
     await finish(dict(id=2, generation='18446744073709551616', action=1, screen=1))
     await js('fixture.tick(250)')
-    assert (await js('fixture.requests[fixture.requests.length-1].url')).endswith('/1/0/2'), 'invalid command must still be acknowledged'
+    assert (await js('fixture.requests[fixture.requests.length-1].url')).endswith('/1/0/2/2'), 'invalid command must still be acknowledged'
     await finish(command(1))
     assert await js('fixture.events.length') == 1, 'older ID cannot replay after rejection'
     await js('fixture.tick(250)')
@@ -107,7 +107,7 @@ async def check(browser: Browser, fixture: Path):
         await finish(command(1))
         assert await js('fixture.events.length') == 0, 'observed screen/readiness epoch must match request'
         await js('fixture.tick(250)')
-        assert (await js('fixture.requests[1].url')).endswith('/1/1/1')
+        assert (await js('fixture.requests[1].url')).endswith('/1/1/1/2')
         await finish(command(2))
         assert await js('fixture.events.length') == 1
 
@@ -117,7 +117,7 @@ async def check(browser: Browser, fixture: Path):
         await js(f'fixture.models({screen},false,false,true);fixture.tick(1000)')
         await finish(command(1, screen))
         await js('fixture.tick(1000)')
-        assert (await js('fixture.requests[1].url')).endswith(f'/{screen}/0/1')
+        assert (await js('fixture.requests[1].url')).endswith(f'/{screen}/0/1/2')
         assert await js('fixture.events.length') == 0
     for expression in ('fixture.models(1,true,false,true)', 'fixture.models(1,false,true,true)',
                        'fixture.models(1,false,false,false)', 'fixture.models(1,0,false,true)',
@@ -175,12 +175,13 @@ async def check(browser: Browser, fixture: Path):
     await js('fixture.tick(1000);fixture.throwTrigger()')
     await finish(command(1))
     await js('fixture.tick(250)')
+    assert (await js('fixture.requests[1].url')).endswith('/1/1/1/3'), 'throwing trigger must report dispatch failure'
     await finish(command(1))
     assert await js('fixture.events.length') == 1
     await fresh()
     await finish({'id': 0})
     await js("fixture.models(0,false,false,false);ui_stacks_program_flow_state.value='main_menu';fixture.tick(250)")
-    assert (await js('fixture.requests[1].url')).endswith('/9/0/0')
+    assert (await js('fixture.requests[1].url')).endswith('/9/0/0/0')
     await js("window.dispatchEvent(new Event('unload'))")
     assert await js('fixture.requests[1].aborted && fixture.timers()===0')
 
@@ -256,12 +257,48 @@ async def check(browser: Browser, fixture: Path):
     await batch([lease()])
     await js("document.getElementById('fixture-panel').style.setProperty('visibility','collapse');fixture.tick(250)")
     await batch([lease()])
-    assert await js("document.getElementById('fixture-panel').style.visibility==='collapse'"), 'external changes block reassertion'
+    assert await js("getComputedStyle(document.getElementById('fixture-panel')).visibility==='collapse'"), 'external changes block reassertion'
     await js('fixture.tick(250)')
     await batch([])
     assert await js("document.getElementById('fixture-panel').style.visibility==='collapse'"), 'cleanup preserves external writes'
 
-    # Validation is atomic across the complete batch, including duplicate element aliases.
+    # A conflict belongs to its target, not to every mod sharing a response.
+    other_hidden = "getComputedStyle(document.getElementById('fixture-other')).visibility==='hidden'"
+    other_restored = "getComputedStyle(document.getElementById('fixture-other')).visibility==='collapse'"
+    for conflict in ([lease(), lease()], [lease(), lease(kind=2)],
+                     [lease(kind=2), lease(), lease(kind=2)]):
+        for items in (conflict + [lease('fixture-other')], [lease('fixture-other')] + conflict):
+            await fresh()
+            await batch([lease(), lease('fixture-other')])
+            assert await js(hidden + ' && ' + other_hidden)
+            await js('fixture.tick(250)')
+            await batch(items)
+            assert await js(visible), 'all aliases of a conflicting target must be restored'
+            assert await js(other_hidden), 'target conflict must not clear an unrelated lease'
+            await js('fixture.tick(250)')
+            await batch([lease(), lease('fixture-other')])
+            assert await js(hidden + ' && ' + other_hidden), 'resolved conflict can acquire again'
+            await js('fixture.tick(1000)')
+            assert await js(visible + ' && ' + other_restored), 'independent leases still expire'
+
+    # A malformed item or a lookup failure is local to that target too.
+    for bad in (None, lease(name='fixture-panel,body'), lease(ttl=0), lease(ttl=1001),
+                lease(kind=3), lease(name='x'*65)):
+        await fresh()
+        await batch([lease(), lease('fixture-other')])
+        await js('fixture.tick(250)')
+        await batch([bad, lease('fixture-other')])
+        assert await js(visible + ' && ' + other_hidden), 'bad item must not affect valid peers'
+    await fresh()
+    await batch([lease(kind=2), lease('fixture-other')])
+    await js('document.getElementsByClassName=function(){throw Error("lookup unavailable")};fixture.tick(250)')
+    await batch([lease(kind=2), lease('fixture-other')])
+    assert await js(visible + ' && ' + other_hidden), 'one lookup exception must not wedge polling or its peers'
+    await js('__crmlUiBridge.stop()')
+    assert await js(visible + ' && ' + other_restored), 'stop restores after target lookup failure'
+
+    # Invalid envelopes still reject the complete response. Invalid single-target
+    # batches also restore the previous target because there is no valid renewal.
     malformed = ([lease(), lease()], [lease(), lease(kind=2)], [lease(name='fixture-panel,body')],
                  [lease(ttl=0)], [lease(ttl=1001)], [lease(kind=3)], [lease(name='x'*65)],
                  [lease(name='x'+str(i)) for i in range(9)], {})
@@ -314,7 +351,8 @@ async def run(args):
     if not executable:
         raise SystemExit('Provide Edge/Chromium with --browser PATH')
     payload = (ROOT / 'runtime/ui_bootstrap.html').read_text(encoding='utf-8')
-    assert len(payload.encode()) <= 9800
+    # Same per-resource ceiling used by native_ui::load_payload.
+    assert len(payload.encode()) <= 32 * 1024
     assert payload.count('__CRML_UI_NONCE__') == 1
     directory = ROOT / '.local/ui-bootstrap-tests' / str(time.time_ns())
     directory.mkdir(parents=True)

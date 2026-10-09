@@ -154,9 +154,61 @@ void presentation_leases() {
     f.read();CHECK(present(7,"splash")==0);f.service.enable(false);f.service.enable(true);
     CHECK(f.poll(3,0)==200 && f.body.find("splash")==f.body.npos);
 }
+void action_receipts() {
+    Fixture f;CHECK(f.poll()==200);f.read();
+    auto submit=[&](uint64_t owner=7) {return f.service.submit_at(owner,f.generation,1,f.now);};
+    auto status=[&](uint64_t ticket,uint64_t owner=7) {return f.service.status_at(owner,ticket,f.now);};
+    auto report=[&](uint32_t ack,uint32_t outcome,uint32_t screen=1) {
+        return f.service.exchange(std::string(crml::ui::result_poll_prefix)+std::to_string(f.page)+"/"+
+            std::to_string(++f.sequence)+"/"+std::to_string(screen)+"/1/"+std::to_string(ack)+"/"+std::to_string(outcome),f.now,f.body);
+    };
+    CHECK(status(0)==-2 && status(UINT64_MAX)==-2);
+    auto ticket=submit();CHECK(ticket>0 && status(ticket)==CRML_UI_ACTION_QUEUED);
+    CHECK(status(ticket,8)==-2 && submit(8)==-2);
+    CHECK(report(static_cast<uint32_t>(ticket),1)==409); // No report before delivery.
+    CHECK(report(0,1)==400 && report(0,0)==200);
+    CHECK(status(ticket)==CRML_UI_ACTION_DELIVERED);
+    CHECK(report(static_cast<uint32_t>(ticket),0)==400 && report(static_cast<uint32_t>(ticket),4)==400);
+    CHECK(report(static_cast<uint32_t>(ticket),1,5)==200);
+    CHECK(status(ticket)==CRML_UI_ACTION_DISPATCHED); // Ack before new-screen invalidation.
+    CHECK(report(static_cast<uint32_t>(ticket),2,5)==200);
+    CHECK(status(ticket)==CRML_UI_ACTION_DISPATCHED); // Repeated ack cannot rewrite outcome.
+    f.read();ticket=submit();CHECK(ticket>0);
+    f.service.release(8);CHECK(status(ticket)==CRML_UI_ACTION_QUEUED);
+    f.service.release(7);CHECK(status(ticket)==CRML_UI_ACTION_CANCELLED);
+    ticket=submit();CHECK(ticket>0);f.now+=2001;
+    CHECK(status(ticket)==CRML_UI_ACTION_EXPIRED); // Status itself advances expiry.
+    CHECK(f.poll(5)==200);f.read();ticket=submit();CHECK(ticket>0);
+    CHECK(f.poll(5)==200);f.service.release(7);
+    CHECK(status(ticket)==CRML_UI_ACTION_OUTCOME_UNKNOWN);
+    CHECK(report(static_cast<uint32_t>(ticket),3,5)==200);
+    CHECK(status(ticket)==CRML_UI_ACTION_DISPATCH_FAILED); // Late same-page report resolves uncertainty.
+    f.read();ticket=submit();CHECK(ticket>0 && f.poll(5)==200);
+    f.now+=2001;CHECK(status(ticket)==CRML_UI_ACTION_OUTCOME_UNKNOWN);
+    CHECK(report(static_cast<uint32_t>(ticket),2,5)==200 && status(ticket)==CRML_UI_ACTION_SKIPPED);
+    f.read();ticket=submit();CHECK(ticket>0 && f.poll(5)==200);
+    CHECK(f.poll(5,1,static_cast<uint32_t>(ticket))==200);
+    CHECK(status(ticket)==CRML_UI_ACTION_OUTCOME_UNKNOWN); // Legacy ack is not dispatch proof.
+    const auto legacy_ticket=ticket;
+    ticket=submit();CHECK(ticket>0 && f.poll(5)==200);
+    CHECK(report(static_cast<uint32_t>(ticket),1,5)==200);
+    CHECK(report(static_cast<uint32_t>(legacy_ticket),2,5)==200);
+    CHECK(status(legacy_ticket)==CRML_UI_ACTION_SKIPPED && status(ticket)==CRML_UI_ACTION_DISPATCHED);
+    CHECK(report(static_cast<uint32_t>(legacy_ticket),1,5)==200 && status(legacy_ticket)==CRML_UI_ACTION_SKIPPED);
+    ticket=submit();CHECK(ticket>0 && f.poll(5)==200);
+    f.page=f.service.open_page();f.sequence=0;
+    CHECK(status(ticket)==CRML_UI_ACTION_OUTCOME_UNKNOWN && report(static_cast<uint32_t>(ticket),1)==409);
+    CHECK(f.poll()==200);f.read();ticket=submit();CHECK(ticket>0);
+    f.service.enable(false);CHECK(status(ticket)==CRML_UI_ACTION_CANCELLED && submit()==-1);
+    f.service.enable(true);CHECK(f.poll()==200);f.read();
+    const auto oldest=submit();CHECK(oldest>0);f.service.release(7);
+    for(unsigned i=0;i<64;++i) {ticket=submit(8);CHECK(ticket>0);f.service.release(8);}
+    CHECK(status(oldest)==-2 && status(ticket,8)==CRML_UI_ACTION_CANCELLED);
+    CHECK(f.service.submit_at(7,f.generation+1,1,f.now)==-3);
+}
 }
 int main() {
-    try {parser_and_availability();delivery_and_ownership();acknowledgements_across_screen_changes();boundaries_and_invalidations();expiration();presentation_leases();
+    try {parser_and_availability();delivery_and_ownership();acknowledgements_across_screen_changes();boundaries_and_invalidations();expiration();presentation_leases();action_receipts();
         std::cout<<"UI service parsing, lifetime, generation, bounded delivery and acknowledgement checks passed\n";return 0;}
     catch(const std::exception& error) {std::cerr<<error.what()<<'\n';return 1;}
 }

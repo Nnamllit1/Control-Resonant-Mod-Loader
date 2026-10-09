@@ -180,6 +180,17 @@ void test_ui_exchange_response() {
         CHECK(serve_ui(bridge,prefix+suffix,&response,100));
         CHECK(response.status==code && response.finishes==1 && response.result==0 && response.buffers==0);
     }
+    const auto results_prefix=std::string(ui::result_poll_prefix)+std::to_string(page)+"/";
+    {Response response;response.table=response_table;
+     CHECK(serve_ui(bridge,results_prefix+"4/1/1/1/2",&response,100));
+     CHECK(response.status==200 && response.finishes==1);}
+    const auto ticket=bridge.submit_at(7,snapshot.generation,1,100);CHECK(ticket==2);
+    {Response response;response.table=response_table;
+     CHECK(serve_ui(bridge,results_prefix+"5/1/1/1/2",&response,100));
+     CHECK(response.status==200 && bridge.status_at(7,ticket,100)==CRML_UI_ACTION_DELIVERED);}
+    {Response response;response.table=response_table;response.invalidate_on_finish=true;
+     CHECK(serve_ui(bridge,results_prefix+"6/1/1/2/1",&response,100));
+     CHECK(response.status==200 && response.finishes==1 && bridge.status_at(7,ticket,100)==CRML_UI_ACTION_DISPATCHED);}
     bridge.enable(false);
     {Response response;response.table=response_table;
      CHECK(serve_ui(bridge,prefix+"4/1/1/0",&response,100));
@@ -205,7 +216,138 @@ void test_ui_page_nonce() {
      CHECK(f.owner.transformed==0 && f.bytes()==f.document);}
 }
 }
-int run_tests() {test_documents();test_response();test_ui_exchange_response();test_ui_page_nonce();return 0;}
+void test_settings_response_and_document() {
+    auto& settings=process_settings();
+    auto& service=process_settings_ui();
+    auto& feedback=process_feedback();feedback.enable_renderer(true);
+    CHECK(feedback.attach(9201,"feedback-fixture"));
+    const auto ticket=feedback.show(9201,"Native response",0,10000);CHECK(ticket>0);
+    CHECK(settings.attach(9101,"resource-fixture"));
+    crml_setting_definition definition{};
+    definition.version=1;definition.kind=CRML_SETTING_BOOL;
+    strcpy_s(definition.key,"enabled");strcpy_s(definition.label,"Enabled");
+    definition.maximum=1;definition.step=1;
+    CHECK(settings.define(9101,definition)==1);
+    service.enable(true);
+    ui::Service bridge;bridge.enable(true);
+    Fixture first;
+    first.owner.bridge=&bridge;first.owner.settings=true;first.owner.feedback=true;
+    first.owner.payload="<script>var ui='__CRML_UI_NONCE__';var settings='__CRML_SETTINGS_PAGE__';var feedback='__CRML_FEEDBACK_PAGE__';</script>";
+    first.run();
+    CHECK(first.owner.transformed==1 && first.bytes().find("__CRML_")==std::string::npos);
+    const auto start=first.bytes().find("var settings='")+14;
+    const auto end=first.bytes().find("'",start);
+    const auto page=first.bytes().substr(start,end-start);
+    CHECK(!page.empty());
+    const auto prefix=std::string(settings_prefix)+page+"/";
+    const auto feedback_start=first.bytes().find("var feedback='")+14;
+    const auto feedback_page=first.bytes().substr(feedback_start,first.bytes().find("'",feedback_start)-feedback_start);
+    const auto feedback_route=std::string(feedback_prefix)+feedback_page+"/";
+    {Response response;response.table=response_table;response.invalidate_on_finish=true;
+     CHECK(serve_author(feedback_route+"1",&response,true));
+     CHECK(response.status==200 && response.finishes==1 && response.result==0);
+     CHECK(std::string(response.bytes.begin(),response.bytes.end()).find("Native response")!=std::string::npos);}
+    {Response response;response.table=response_table;response.fail_buffer=true;
+     CHECK(serve_author(feedback_route+"2/"+std::to_string(ticket),&response,true));
+     CHECK(response.status==200 && response.finishes==1 && response.result==1);}
+    CHECK(feedback.status(9201,ticket)==CRML_FEEDBACK_PRESENTED);
+    {Response response;response.table=response_table;response.invalidate_on_finish=true;
+     CHECK(serve_settings(prefix+"1/9101/1/1/1",&response));
+     CHECK(response.status==200 && response.result==0 && response.finishes==1);
+     CHECK(std::string(response.bytes.begin(),response.bytes.end()).find("resource-fixture")!=std::string::npos);}
+    crml_setting_value value{};
+    CHECK(settings.read(9101,std::span(&value,1))==1 && value.value==1 && value.revision==2);
+    {Response response;response.table=response_table;response.fail_buffer=true;
+     CHECK(serve_settings(prefix+"2",&response));
+     CHECK(response.status==200 && response.result==1 && response.finishes==1);}
+    {Response response;response.table=response_table;
+     CHECK(serve_settings(prefix+"2",&response));CHECK(response.status==409 && response.finishes==1);}
+    Fixture second;second.owner.bridge=&bridge;second.owner.settings=true;second.owner.feedback=true;second.owner.payload=first.owner.payload;second.run();
+    CHECK(second.owner.transformed==1 && second.bytes()!=first.bytes());
+    {Response response;response.table=response_table;response.invalidate_on_finish=true;
+     CHECK(serve_settings(prefix+"3",&response));CHECK(response.status==403 && response.finishes==1);}
+    service.enable(false);
+    {Response response;response.table=response_table;
+     CHECK(serve_settings(prefix+"4",&response));CHECK(response.status==503 && response.finishes==1);}
+    {Response response;response.table=response_table;
+     CHECK(!serve_settings("coui://base/unrelated",&response));CHECK(response.finishes==0);}
+    settings.detach(9101);bridge.enable(false);
+    {Response response;response.table=response_table;
+     CHECK(serve_author(feedback_route+"3",&response,true));CHECK(response.status==403);}
+    feedback.detach(9201);feedback.enable_renderer(false);
+}
+void test_payload_failure_isolation() {
+    struct Temporary {
+        std::filesystem::path root=std::filesystem::current_path()/("ui-payload-"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
+        Temporary(){CHECK(std::filesystem::create_directory(root));}
+        ~Temporary(){std::error_code e;for(auto* name:{"ui-bootstrap.html","native-ui-panel.html","native-ui-feedback.html","native-ui-tutorials.html","native-ui-drawing.html"})std::filesystem::remove(root/name,e);std::filesystem::remove(root,e);}
+    } directory;
+    std::ofstream(directory.root/"ui-bootstrap.html")<<"<script>var a='__CRML_UI_NONCE__';</script>";
+    std::ofstream(directory.root/"native-ui-feedback.html")<<"<script>var b='__CRML_FEEDBACK_PAGE__';</script>";
+    auto result=load_payload(directory.root,true,true,true,true);
+    CHECK(!result.tutorials && result.warnings.find("Tutorial image")!=std::string::npos);
+    std::ofstream(directory.root/"native-ui-tutorials.html")<<"<!-- crml-native-tutorial-layout-v1 -->";
+    result=load_payload(directory.root,true,true,true,true);
+    CHECK(result.tutorials);
+    CHECK(result.bridge && !result.settings && result.feedback && result.warnings.find("Settings")!=std::string::npos);
+    std::ofstream(directory.root/"native-ui-panel.html")<<"wrong token";
+    result=load_payload(directory.root,true,true,true);CHECK(result.bridge && !result.settings && result.feedback);
+    std::ofstream(directory.root/"native-ui-panel.html")<<"__CRML_SETTINGS_PAGE__";
+    std::ofstream(directory.root/"native-ui-feedback.html")<<"wrong token";
+    result=load_payload(directory.root,true,true,true);CHECK(result.bridge && result.settings && !result.feedback);
+    CHECK(result.text.find("wrong token")==std::string::npos);
+    result=load_payload(directory.root,true,true,false,true,true);
+    CHECK(!result.drawing && result.warnings.find("Drawing")!=std::string::npos && result.settings);
+    std::ofstream(directory.root/"native-ui-drawing.html")<<"__CRML_DRAWING_PAGE__";
+    result=load_payload(directory.root,true,true,false,true,true);
+    CHECK(result.drawing && result.settings && result.tutorials);
+}
+void test_drawing_response() {
+    auto& drawing=process_drawing();drawing.enable_renderer(true);
+    CHECK(drawing.attach(9301,"drawing-test"));
+    Fixture first;first.owner.drawing=true;first.owner.payload="<script>var page='__CRML_DRAWING_PAGE__';</script>";first.run();
+    CHECK(first.owner.transformed==1 && first.bytes().find("__CRML_DRAWING_PAGE__")==std::string::npos);
+    const auto page=drawing.open_page();
+    crml_drawing_frame frame{};frame.version=1;frame.size=sizeof(frame);frame.lifetime_ms=1000;frame.width=frame.height=.5f;
+    frame.label_count=1;frame.labels[0].font_vh=2;strcpy_s(frame.labels[0].text,"Drawn by guest");
+    CHECK(drawing.publish(9301,frame)==1);
+    const auto url=std::string(drawing_prefix)+std::to_string(page)+"/1";
+    {Response response;response.table=response_table;response.invalidate_on_finish=true;
+     CHECK(serve_author(url,&response,false,true));CHECK(response.status==200 && response.result==0 && response.finishes==1);
+     CHECK(std::string(response.bytes.begin(),response.bytes.end()).find("Drawn by guest")!=std::string::npos);}
+    {Response response;response.table=response_table;
+     CHECK(serve_author(url,&response,false,true));CHECK(response.status==409 && response.finishes==1);}
+    drawing.detach(9301);drawing.enable_renderer(false);
+    {Response response;response.table=response_table;
+     CHECK(serve_author(std::string(drawing_prefix)+std::to_string(page)+"/2",&response,false,true));CHECK(response.status==503);}
+}
+void test_shipped_payloads() {
+    struct Temporary {
+        std::filesystem::path root=std::filesystem::current_path()/("ui-shipped-"+std::to_string(GetCurrentProcessId())+"-"+std::to_string(GetTickCount64()));
+        Temporary(){CHECK(std::filesystem::create_directory(root));}
+        ~Temporary(){std::error_code e;for(auto* name:{"ui-bootstrap.html","native-ui-panel.html","native-ui-feedback.html","native-ui-tutorials.html","native-ui-drawing.html"})std::filesystem::remove(root/name,e);std::filesystem::remove(root,e);}
+    } directory;
+    const auto root=std::filesystem::path(__FILE__).parent_path().parent_path();
+    for(auto* name:{"panel","feedback","tutorials","drawing"})
+        std::filesystem::copy_file(root/"runtime"/"diagnostics"/(std::string("native_ui_")+name+".html"),directory.root/(std::string("native-ui-")+name+".html"));
+    std::filesystem::copy_file(root/"runtime"/"ui_bootstrap.html",directory.root/"ui-bootstrap.html");
+    const auto loaded=load_payload(directory.root,true,true,true,true,true);
+    CHECK(loaded.bridge && loaded.settings && loaded.feedback && loaded.tutorials && loaded.drawing);
+    CHECK(loaded.warnings.empty() && loaded.text.size()<=max_payload);
+}
+void test_tutorial_layout_binding() {
+    const std::string dynamic="<p cohinline data-bind-html=\"{{ui_tutorial_dynamic_message_text.translation}}\"></p>";
+    const std::string panel="<p cohinline data-bind-html=\"{{ui_tutorial_static_message_text.translation}}\"></p>";
+    std::string output;
+    CHECK(bind_tutorial_layout(dynamic+panel,output));
+    CHECK(output.find("cohinline data-bind-html")!=output.npos);
+    CHECK(output.find("data-bind-crml-tutorial-layout=\"{{ui_tutorial_static_message_text.translation}}\"")!=output.npos);
+    std::string again;
+    CHECK(!bind_tutorial_layout(output,again) && again.empty());
+    CHECK(!bind_tutorial_layout(dynamic,output) && output.empty());
+    CHECK(!bind_tutorial_layout(dynamic+dynamic+panel,output) && output.empty());
+}
+int run_tests() {test_tutorial_layout_binding();test_documents();test_response();test_ui_exchange_response();test_ui_page_nonce();test_settings_response_and_document();test_payload_failure_isolation();test_drawing_response();test_shipped_payloads();return 0;}
 }
 int main() {
     try {const auto result=crml::native_ui::run_tests();std::cout<<"Native UI route, response ABI, transformation and lifetime checks passed\n";return result;}

@@ -1,0 +1,2782 @@
+{
+  "schema": 1,
+  "title": "Native dynamic and static tutorial lifecycle",
+  "executable_sha256": "4f6596b08bb5bc7fe4150cf5b9f71d7bae87eea02d66627c03a5e05ffe84ea62",
+  "status": "Native tutorial lifecycle mapped; private-page hint and panel adapters plus a bounded Wasm API are implemented and automated-tested. Gameplay presentation and lifecycle qualification remain pending. Campaign tutorial registration is not exposed.",
+  "documentation": "../engine-paths.md#tutorials",
+  "checks": [
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e613fb",
+      "target": "0x1e60ef0",
+      "label": "Static page passes media token and URL to header submission"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e6111f",
+      "target": "0x1e293f0",
+      "label": "Static header polls resource dimensions before clearing streaming state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e29423",
+      "target": "0x17b4af0",
+      "label": "Header dimension query resolves media resource identity"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20365d0",
+      "target": "0x4aae850",
+      "label": "heron::tutorials::evaluate_triggers::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x203663f",
+      "target": "0x2043930",
+      "label": "heron::tutorials::evaluate_triggers::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20482da",
+      "target": "0x4aae4a0",
+      "label": "heron::tutorials::handle_requests::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20484a6",
+      "target": "0x2042c70",
+      "label": "heron::tutorials::handle_requests::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x203638f",
+      "target": "0x4aae140",
+      "label": "heron::tutorials::initialize_tutorials_post_save::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20364ef",
+      "target": "0x20428f0",
+      "label": "heron::tutorials::initialize_tutorials_post_save::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20361fc",
+      "target": "0x4aadf50",
+      "label": "heron::tutorials::initialize_tutorials_pre_save::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20362ef",
+      "target": "0x20440e0",
+      "label": "heron::tutorials::initialize_tutorials_pre_save::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2036712",
+      "target": "0x4aaf380",
+      "label": "heron::tutorials::update_active::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x203684f",
+      "target": "0x2043320",
+      "label": "heron::tutorials::update_active::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2036b50",
+      "target": "0x4aafb90",
+      "label": "heron::tutorials::update_completion::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2036ca4",
+      "target": "0x2042fd0",
+      "label": "heron::tutorials::update_completion::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2036965",
+      "target": "0x4aaf930",
+      "label": "heron::tutorials::update_selected::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2036a9a",
+      "target": "0x2043660",
+      "label": "heron::tutorials::update_selected::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20485a2",
+      "target": "0x4aaf6a0",
+      "label": "heron::tutorials::update_selection::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2048711",
+      "target": "0x2043e10",
+      "label": "heron::tutorials::update_selection::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1fea9ba",
+      "target": "0x4a8c7f0",
+      "label": "heron::ui_dynamic_tutorial::handle_input::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1feaba7",
+      "target": "0x1fea210",
+      "label": "heron::ui_dynamic_tutorial::handle_input::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1fea6d9",
+      "target": "0x4a8ca20",
+      "label": "heron::ui_dynamic_tutorial::sync::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1fea88c",
+      "target": "0x1fe9f70",
+      "label": "heron::ui_dynamic_tutorial::sync::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e60672",
+      "target": "0x4a25f20",
+      "label": "heron::ui_static_tutorial::handle_events::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e6073b",
+      "target": "0x1e622f0",
+      "label": "heron::ui_static_tutorial::handle_events::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e60883",
+      "target": "0x4a26520",
+      "label": "heron::ui_static_tutorial::handle_gameplay_tutorial_changes::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e60940",
+      "target": "0x1e62320",
+      "label": "heron::ui_static_tutorial::handle_gameplay_tutorial_changes::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e604c8",
+      "target": "0x4a25dc0",
+      "label": "heron::ui_static_tutorial::handle_input::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e605cf",
+      "target": "0x1e62300",
+      "label": "heron::ui_static_tutorial::handle_input::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e631da",
+      "target": "0x4a26040",
+      "label": "heron::ui_static_tutorial::process_events::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e633ef",
+      "target": "0x1e627f0",
+      "label": "heron::ui_static_tutorial::process_events::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e62fa0",
+      "target": "0x4a262a0",
+      "label": "heron::ui_static_tutorial::sync::system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e630f3",
+      "target": "0x1e62530",
+      "label": "heron::ui_static_tutorial::sync::system dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8eb8",
+      "target": "0x4bc7378",
+      "label": "set_tutorial_active binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8ec6",
+      "target": "0x23cd510",
+      "label": "set_tutorial_active callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8ed4",
+      "target": "0x4bc7390",
+      "label": "show_tutorial binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8ee2",
+      "target": "0x23cd660",
+      "label": "show_tutorial callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8ef0",
+      "target": "0x4bc73a0",
+      "label": "complete_tutorial binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8efe",
+      "target": "0x23cd780",
+      "label": "complete_tutorial callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1fea3ff",
+      "target": "0x1fe8e60",
+      "label": "Dynamic tutorial input worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1fea154",
+      "target": "0x1fe9040",
+      "label": "Dynamic tutorial facts worker"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1e622fb",
+      "target": "0x1e60ca0",
+      "label": "Static tutorial UI events worker"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1e62313",
+      "target": "0x1e60a00",
+      "label": "Static tutorial input worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e624a8",
+      "target": "0x1e61800",
+      "label": "Static tutorial gameplay-change worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e629f4",
+      "target": "0x1e60d50",
+      "label": "Static tutorial event processing worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e6273e",
+      "target": "0x1e61470",
+      "label": "Static tutorial facts worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cd6d5",
+      "target": "0x2c98df0",
+      "label": "show_tutorial first string argument"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cd72a",
+      "target": "0x23eac40",
+      "label": "show_tutorial validates identifier against TutorialData"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cd744",
+      "target": "0x1ecd330",
+      "label": "show_tutorial appends request after identifier validation"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23ead5f",
+      "target": "0x4bc55e0",
+      "label": "Unknown tutorial identifier error format"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23ead86",
+      "target": "0x2c96a40",
+      "label": "Reject unknown tutorial identifier"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20442c0",
+      "target": "0x2037720",
+      "label": "Pre-save dispatcher invokes asset-to-runtime initializer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20377f1",
+      "target": "0x2044d90",
+      "label": "Initializer checks existing tutorial key"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2037824",
+      "target": "0x20371d0",
+      "label": "Initializer constructs runtime pages from asset pages"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2037b46",
+      "target": "0x204cc50",
+      "label": "Initializer transfers owned value into insertion temporary"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2037bc2",
+      "target": "0x2042770",
+      "label": "Initializer inserts tutorial key and owned value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2042856",
+      "target": "0x204e8f0",
+      "label": "Table insertion reserves a slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2042886",
+      "target": "0x204cc50",
+      "label": "Table insertion moves owned value into slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e949",
+      "target": "0x204ec70",
+      "label": "Slot reservation can rebuild table storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e9f0",
+      "target": "0x204ec70",
+      "label": "Full table reservation can rebuild table storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20373eb",
+      "target": "0x31ddef0",
+      "label": "Page construction copies string from asset offset 0x74"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2037404",
+      "target": "0x31ddef0",
+      "label": "Page construction copies string from asset offset 0x10"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203741d",
+      "target": "0x31ddef0",
+      "label": "Page construction copies string from asset offset 0x38"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2037557",
+      "target": "0x204ce50",
+      "label": "Page vector append uses page move routine"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204ce93",
+      "target": "0x31ddf70",
+      "label": "Page move transfers string at 0x08"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204ceba",
+      "target": "0x31ddf70",
+      "label": "Page move transfers string at 0x20"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204cee1",
+      "target": "0x31ddf70",
+      "label": "Page move transfers string at 0x48"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e0fb",
+      "target": "0x204e020",
+      "label": "Page vector cleanup destroys conditional-message vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e105",
+      "target": "0x31ddc70",
+      "label": "Page vector cleanup destroys string at 0x48"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e10e",
+      "target": "0x31ddc70",
+      "label": "Page vector cleanup destroys string at 0x20"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e117",
+      "target": "0x31ddc70",
+      "label": "Page vector cleanup destroys string at 0x08"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e1c0",
+      "target": "0x204e0d0",
+      "label": "Whole-table cleanup destroys occupied slot page vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203bff3",
+      "target": "0x204e150",
+      "label": "Component-stride cleanup invokes whole tutorial table cleanup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1fe915d",
+      "target": "0x1e63e00",
+      "label": "Dynamic sync resolves active tutorial value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1fe92f9",
+      "target": "0x2036020",
+      "label": "Dynamic sync resolves conditional message text"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e616cf",
+      "target": "0x2036020",
+      "label": "Static sync resolves conditional message text"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2036066",
+      "target": "0x1e37140",
+      "label": "Conditional message predicate 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203608a",
+      "target": "0x1e37170",
+      "label": "Conditional message predicate 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20360b0",
+      "target": "0x1e371e0",
+      "label": "Conditional message predicate 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2042ed2",
+      "target": "0x20384a0",
+      "label": "Tutorial request dispatcher invokes request consumer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cd618",
+      "target": "0x1ecd330",
+      "label": "set_tutorial_active appends kind 0 or 1 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cd864",
+      "target": "0x1ecd330",
+      "label": "complete_tutorial appends kind 3 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20385ba",
+      "target": "0x2044d90",
+      "label": "Request consumer resolves tutorial slot before dispatch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20386fd",
+      "target": "0x2042260",
+      "label": "Kind 4 inserts a selection-queue entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2038776",
+      "target": "0x20370f0",
+      "label": "Kind 2 removes matching selected tutorial from Active"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203878d",
+      "target": "0x19c54c0",
+      "label": "Kind 2 appends tutorial identifier to Dismissed"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20387a9",
+      "target": "0x20370f0",
+      "label": "Kind 1 removes tutorial identifier from Active"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204321d",
+      "target": "0x203a670",
+      "label": "Completion dispatcher invokes completion worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203a75a",
+      "target": "0x2044d90",
+      "label": "Completion worker requires tutorial table entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203a7a2",
+      "target": "0x20370f0",
+      "label": "Completion worker conditionally removes Active identifier"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203ab7d",
+      "target": "0x50dd60",
+      "label": "Completion missing-entry assertion path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e60ebe",
+      "target": "0x1e61e80",
+      "label": "Static event processor invokes pending transition visitor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e61f7d",
+      "target": "0x1e286c0",
+      "label": "Primary static tutorial open uses native UI stack helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e6202c",
+      "target": "0x1e61d30",
+      "label": "Next-page transition tests end and may enqueue completion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e6203d",
+      "target": "0x1e63f30",
+      "label": "End-of-pages transition closes native tutorial state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e620f8",
+      "target": "0x1e63f30",
+      "label": "Explicit close transition closes native tutorial state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e63ff6",
+      "target": "0x1e28590",
+      "label": "Static close navigates UI stack with include flag false"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e28692",
+      "target": "0x17d79a0",
+      "label": "UI navigation helper adjusts stack cursor by computed delta"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17d7ac0",
+      "target": "0x17d9e50",
+      "label": "Stack cursor change invokes native transition helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e61d68",
+      "target": "0x1e63cc0",
+      "label": "Secondary page-end path looks up second tutorial table"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e61dab",
+      "target": "0x1e63e00",
+      "label": "Primary page-end path looks up first tutorial table"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62130",
+      "target": "0x1e61ea8",
+      "label": "Static pending transition variant 0 branch"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62134",
+      "target": "0x1e61fdb",
+      "label": "Static pending transition variant 1 branch"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62138",
+      "target": "0x1e61ff1",
+      "label": "Static pending transition variant 2 branch"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6213c",
+      "target": "0x1e62067",
+      "label": "Static pending transition variant 3 branch"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62140",
+      "target": "0x1e620f0",
+      "label": "Static pending transition variant 4 branch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2037dae",
+      "target": "0x20371d0",
+      "label": "Secondary asset records use shared runtime page builder"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2037e83",
+      "target": "0x20425c0",
+      "label": "Initializer inserts secondary tutorial record"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20426ae",
+      "target": "0x204e780",
+      "label": "Secondary insertion reserves a slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e7ca",
+      "target": "0x204e210",
+      "label": "Secondary reservation can compact existing storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e7d9",
+      "target": "0x204ea60",
+      "label": "Secondary reservation can allocate rebuilt storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e3b1",
+      "target": "0x204bd20",
+      "label": "Secondary compaction moves a slot within existing storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204e409",
+      "target": "0x204bd20",
+      "label": "Secondary compaction relocates an occupied slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e63844",
+      "target": "0x1e63950",
+      "label": "Secondary whole-table cleanup destroys page vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e63a0b",
+      "target": "0x31ddc70",
+      "label": "Secondary page cleanup destroys string at page offset 0x48"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e63a14",
+      "target": "0x31ddc70",
+      "label": "Secondary page cleanup destroys string at page offset 0x20"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e63a1d",
+      "target": "0x31ddc70",
+      "label": "Secondary page cleanup destroys string at page offset 0x08"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203bfea",
+      "target": "0x1e63800",
+      "label": "Component cleanup destroys secondary table"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4aabf90",
+      "target": "0x4838060",
+      "label": "Pre-save registration phase name pointer"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4aabf70",
+      "target": "0x3af6938",
+      "label": "Pre-save registration additional resolved phase name pointer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20361cd",
+      "target": "0x1af76b0",
+      "label": "Registration resolves variable-before-fixed named phase"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20361f7",
+      "target": "0x1af76b0",
+      "label": "Registration resolves fixed-update named phase"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2036269",
+      "target": "0x2046820",
+      "label": "Registration obtains component access descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203635d",
+      "target": "0x1d65db0",
+      "label": "Registration adds scheduler relationship with raw kind 2"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2044d60",
+      "target": "0x2037720",
+      "label": "Alternate initializer job calls the same initializer worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2044d20",
+      "target": "0x204cb70",
+      "label": "Alternate initializer job builds component query"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204cbba",
+      "target": "0x0a3d5608",
+      "label": "Job query first component: TutorialComponent hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204cbe4",
+      "target": "0xae510289",
+      "label": "Job query second component: TutorialData hash"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1fe930e",
+      "target": "0x1e54fa0",
+      "label": "Hint initial message submission"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1fe96d5",
+      "target": "0x1e54fa0",
+      "label": "Hint refreshed message submission"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e616e4",
+      "target": "0x1e54fa0",
+      "label": "Panel unchanged-page message submission"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e61392",
+      "target": "0x1e54fa0",
+      "label": "Panel changed-page message submission"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e54ff9",
+      "target": "0x1b279b0",
+      "label": "Temporary model string for comparison"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e5502b",
+      "target": "0x1b279b0",
+      "label": "Replace existing model string value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e550ee",
+      "target": "0x1b279b0",
+      "label": "Initialize model string value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b279e6",
+      "target": "0x3987fde",
+      "label": "Short model string byte copy"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b279fd",
+      "target": "0x3987fea",
+      "label": "Short model string trailing zero fill"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b27a0c",
+      "target": "0x1b2a420",
+      "label": "Long model string pool lookup or insertion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b2a4f8",
+      "target": "0x31de130",
+      "label": "Assign reused string pool slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b2a5af",
+      "target": "0x31de170",
+      "label": "Assign new string pool slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x31de2c9",
+      "target": "0x3987fde",
+      "label": "String assignment copies source bytes"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1e61768",
+      "target": "0x1e63f30",
+      "label": "Changed-page missing record closes panel through shared stack helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e61736",
+      "target": "0x1e61180",
+      "label": "Changed panel page submits its metadata and guarded page content"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1b28bdd",
+      "target": "0x494d000",
+      "label": "Fact dictionary garbage collection system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1b28cac",
+      "target": "0x1b297d0",
+      "label": "Fact dictionary garbage collection dispatcher registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b29849",
+      "target": "0x1b28d60",
+      "label": "Fact dictionary garbage collection worker"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x494cf00",
+      "target": "0x3af6938",
+      "label": "Fact dictionary collector registration phase name pointer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b28daf",
+      "target": "0x1b2a5f0",
+      "label": "Collector creates mark bitset sized to string pool count"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b29128",
+      "target": "0x3321ba0",
+      "label": "Collector hashes unmarked string before clearing it"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b29134",
+      "target": "0x31dddb0",
+      "label": "Collector clears string while retaining its storage"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b29169",
+      "target": "0x1b2a2e0",
+      "label": "Collector locates hash entry for tombstoning"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b291d8",
+      "target": "0x411a80",
+      "label": "Collector grows reusable pool index vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b28003",
+      "target": "0x31ddc70",
+      "label": "Whole dictionary reset destroys each pool string"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b280f5",
+      "target": "0x31ddc70",
+      "label": "Dictionary stream loader resets all existing pool strings"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b29a84",
+      "target": "0x31ddc70",
+      "label": "Whole dictionary destructor destroys each pool string"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203b4fc",
+      "target": "0x204e150",
+      "label": "Temporary primary table cleanup in component setup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203b53d",
+      "target": "0x204e150",
+      "label": "Empty primary table cleanup in setup reserve path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x203b56f",
+      "target": "0x204ec70",
+      "label": "Primary table rebuild in setup reserve path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20458ec",
+      "target": "0x1e63800",
+      "label": "Range-checked component destructor clears secondary table"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20458f6",
+      "target": "0x204e150",
+      "label": "Range-checked component destructor clears primary table"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23e6e8d",
+      "target": "0x20bc540",
+      "label": "Different-table erase analogue performs entity-key lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23e6ec1",
+      "target": "0x20bc540",
+      "label": "Different-table erase analogue repeats entity-key lookup"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23e6f42",
+      "target": "0xffffff80",
+      "label": "Erase analogue empty control immediate"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23e6f47",
+      "target": "0xfffffffe",
+      "label": "Erase analogue deleted control immediate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204eaaa",
+      "target": "0x3251540",
+      "label": "Secondary rebuild allocates aligned controls plus payload slots"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204eac6",
+      "target": "0x3987fea",
+      "label": "Secondary rebuild initializes control region"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2042e05",
+      "target": "0x2045a60",
+      "label": "Request dispatcher component offset builder"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20445a2",
+      "target": "0x20384a0",
+      "label": "Request archetype job worker call"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20444ea",
+      "target": "0x204c700",
+      "label": "Request archetype job query builder"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204c736",
+      "target": "0x2045a60",
+      "label": "Request job uses the same component offset builder"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x204841e",
+      "target": "0x2045fc0",
+      "label": "Request system access descriptor construction"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20484b4",
+      "target": "0x20444a0",
+      "label": "Request system archetype job registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2048451",
+      "target": "0x1d6ed30",
+      "label": "Request system registers ECS component access"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2048518",
+      "target": "0x1d65db0",
+      "label": "Request system raw dependency registration"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2046047",
+      "target": "0xed2c12b8",
+      "label": "Request access descriptor Completed type hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204604f",
+      "target": "0x2",
+      "label": "Request access descriptor Completed access mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2046056",
+      "target": "0x48941389",
+      "label": "Request access descriptor Requests type hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204605e",
+      "target": "0x3",
+      "label": "Request access descriptor Requests access mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2046065",
+      "target": "0x12707f01",
+      "label": "Request access descriptor Active type hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204606d",
+      "target": "0x3",
+      "label": "Request access descriptor Active access mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2046074",
+      "target": "0x9fc946e4",
+      "label": "Request access descriptor Dismissed type hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204607c",
+      "target": "0x3",
+      "label": "Request access descriptor Dismissed access mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2046083",
+      "target": "0xae510289",
+      "label": "Request access descriptor TutorialData type hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204608b",
+      "target": "0x3",
+      "label": "Request access descriptor TutorialData access mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2046092",
+      "target": "0x4a56ea3c",
+      "label": "Request access descriptor PendingCompletion type hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204609a",
+      "target": "0x3",
+      "label": "Request access descriptor PendingCompletion access mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20460a1",
+      "target": "0x423c371a",
+      "label": "Request access descriptor SelectionQueue type hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20460a9",
+      "target": "0x3",
+      "label": "Request access descriptor SelectionQueue access mode"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2036599",
+      "target": "0x20482b0",
+      "label": "Fixed Update phase handle passed to request system registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17ff4e9",
+      "target": "0x17fefe0",
+      "label": "FactBinding translation getter registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17ff536",
+      "target": "0x17ff390",
+      "label": "FactBinding locID getter registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ff0ff",
+      "target": "0x29dd850",
+      "label": "Translation getter obtains string-table manager"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ff14e",
+      "target": "0x29dde10",
+      "label": "Translation getter resolves identifier"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29dde8b",
+      "target": "0x29dfa00",
+      "label": "Primary localization lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29ddf36",
+      "target": "0x29dfa00",
+      "label": "Secondary localization lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de043",
+      "target": "0x29de2e0",
+      "label": "Missing key converted to fallback UTF16"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de051",
+      "target": "0x29df770",
+      "label": "Missing key fallback cache insertion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de05d",
+      "target": "0x319dea0",
+      "label": "Fallback UTF16 copied into cache entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de069",
+      "target": "0x29df930",
+      "label": "Fallback converted to output UTF8"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de3d8",
+      "target": "0x29e01b0",
+      "label": "Fallback UTF8 to UTF16 conversion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29df9b1",
+      "target": "0x29e0440",
+      "label": "Output UTF16 to UTF8 conversion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29df9c6",
+      "target": "0x31dde60",
+      "label": "Converted output copied into native string"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ff2b9",
+      "target": "0x32d7aa0",
+      "label": "ID and localization debug format"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ff2d1",
+      "target": "0x31dde60",
+      "label": "Getter copies debug or empty output into scratch string"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29defb1",
+      "target": "0x29df100",
+      "label": "Resource replacement clears fallback cache"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29df70b",
+      "target": "0x29df100",
+      "label": "Manager destructor clears fallback cache"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x180a87d",
+      "target": "0x180ba00",
+      "label": "LocString callback binds native type 3"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x180a863",
+      "target": "0x3",
+      "label": "LocString callback binding type"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1fe8ec1",
+      "target": "0x1e63e00",
+      "label": "Dynamic dismiss input looks up current tutorial"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1fe8eee",
+      "target": "0x29c82e0",
+      "label": "Dynamic dismiss input evaluates native action predicate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x254280d",
+      "target": "0x4c34648",
+      "label": "CLOSE_TUTORIAL action registration name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x254281b",
+      "target": "0x5dc75f0",
+      "label": "CLOSE_TUTORIAL action registration output"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2542b18",
+      "target": "0x1c59490",
+      "label": "Native action descriptor batch registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29c8355",
+      "target": "0x29c6350",
+      "label": "Native input predicate resolves action"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29c836f",
+      "target": "0x29cc3d0",
+      "label": "Native input predicate evaluates resolved action"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c70",
+      "target": "0xe8ec8148",
+      "label": "request direct dispatcher entry prefix bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c74",
+      "target": "0x48000000",
+      "label": "request direct dispatcher entry prefix bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c78",
+      "target": "0xf45018b",
+      "label": "request direct dispatcher entry prefix bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c7c",
+      "target": "0xc898b7",
+      "label": "request direct dispatcher entry prefix bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c80",
+      "target": "0xc1490000",
+      "label": "request direct dispatcher entry prefix bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c84",
+      "target": "0x34c0ae3",
+      "label": "request direct dispatcher entry prefix bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c88",
+      "target": "0x5848098",
+      "label": "request direct dispatcher entry prefix bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c8c",
+      "target": "0x808b4800",
+      "label": "request direct dispatcher entry prefix bytes +0x1c"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444a0",
+      "target": "0x81485740",
+      "label": "request archetype dispatcher entry prefix bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444a4",
+      "target": "0x100ec",
+      "label": "request archetype dispatcher entry prefix bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444a8",
+      "target": "0x18b4c00",
+      "label": "request archetype dispatcher entry prefix bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444ac",
+      "target": "0xb70fff33",
+      "label": "request archetype dispatcher entry prefix bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444b0",
+      "target": "0x4c8b49c2",
+      "label": "request archetype dispatcher entry prefix bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444b4",
+      "target": "0x854850c0",
+      "label": "request archetype dispatcher entry prefix bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444b8",
+      "target": "0x410a74c9",
+      "label": "request archetype dispatcher entry prefix bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444bc",
+      "target": "0x4880848b",
+      "label": "request archetype dispatcher entry prefix bytes +0x1c"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d612a0",
+      "target": "0x1d61390",
+      "label": "system conflict check compares access lists"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d5ff46",
+      "target": "0x1d61130",
+      "label": "conflict pair discovery checks system descriptors"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d5ffa2",
+      "target": "0x1d60450",
+      "label": "conflict pair discovery records canonical ID pair"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d6a4b9",
+      "target": "0x1d6aac0",
+      "label": "scheduler batch builds preceding graph"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d6a52e",
+      "target": "0x1d6aac0",
+      "label": "scheduler batch builds flagged singleton graph"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d6a5e4",
+      "target": "0x1d6aac0",
+      "label": "scheduler batch builds trailing graph"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d687ea",
+      "target": "0x1d69510",
+      "label": "graph execution enters main-thread completion pump"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d68d4e",
+      "target": "0x1d68f90",
+      "label": "direct callback completion schedules ready successor"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6ad49",
+      "target": "0x485b8b49",
+      "label": "graph builder reads conflict pair mask instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6ad4d",
+      "target": "0x30738b4d",
+      "label": "graph builder reads conflict control bytes instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6adb2",
+      "target": "0x385b8b4d",
+      "label": "graph builder reads conflict pair entries instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6b021",
+      "target": "0x48148966",
+      "label": "graph builder writes later sequence index into adjacency instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6b1d7",
+      "target": "0x9104ff43",
+      "label": "graph builder counts incoming dependencies instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6875c",
+      "target": "0xff7d894c",
+      "label": "execution stores graph pointer instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68764",
+      "target": "0xf75894c",
+      "label": "execution stores local counter buffer instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68d15",
+      "target": "0xc10f42f0",
+      "label": "direct callback releases successor dependency instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68bb6",
+      "target": "0xc10f42f0",
+      "label": "archetype callback releases successor dependency instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6960d",
+      "target": "0xc10f42f0",
+      "label": "main-thread callback releases successor dependency instruction prefix"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2038832",
+      "target": "0x19c54c0",
+      "label": "request consumer appends through deduplicating u32 helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e28a0f",
+      "target": "0x17d8b30",
+      "label": "tutorial visibility includes active ancestor screens"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e2864b",
+      "target": "0x17d8170",
+      "label": "tutorial closure finds first matching stack entry"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19c54f4",
+      "target": "0x8b490a8b",
+      "label": "u32 append helper scans existing identifiers instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19c5502",
+      "target": "0x9b840f",
+      "label": "u32 append helper duplicate returns without appending instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203a940",
+      "target": "0x74083944",
+      "label": "native selection queue erase retains subsequent order instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2038792",
+      "target": "0x445c6",
+      "label": "dismiss selected clears valid byte and sets changed flag instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8c73",
+      "target": "0x47de83b",
+      "label": "stack activity accepts an ancestor below applied index instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d79e1",
+      "target": "0xf27862c4",
+      "label": "stack navigation clamps negative target to zero instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6287e",
+      "target": "0x58428b49",
+      "label": "static event dispatcher reads mutable environment references instruction prefix"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e63377",
+      "target": "0x1e43290",
+      "label": "panel events registers TutorialState environment write"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e6339f",
+      "target": "0x17dbb10",
+      "label": "panel events registers UIStateStacks environment write"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e633c7",
+      "target": "0x1e42b10",
+      "label": "panel events registers AudioEventRequests environment write"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e633ea",
+      "target": "0x1d62950",
+      "label": "panel events finalizes environment scheduling flags"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d5fe3b",
+      "target": "0x1d60450",
+      "label": "environment conflicts insert system pair without entity query filter"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17d8b71",
+      "target": "0x17d8680",
+      "label": "stack state predicate requires native context activity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e285c4",
+      "target": "0x17d8cf0",
+      "label": "native close resolves named stack context"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5ed83",
+      "target": "0x309f8b48",
+      "label": "environment inverse-index writer list instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5f310",
+      "target": "0x24548b49",
+      "label": "environment reader iteration instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5f345",
+      "target": "0x24548b49",
+      "label": "environment writer iteration instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68fe9",
+      "target": "0x34b88041",
+      "label": "whole-system dispatch flag134 check instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68ff3",
+      "target": "0x36b88041",
+      "label": "mutable-environment flag136 check instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6901f",
+      "target": "0x850fc084",
+      "label": "mutable environments bypass archetype dispatch instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d86a7",
+      "target": "0xb8a93840",
+      "label": "native context checks explicit activity byte instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8913",
+      "target": "0x8d4c01b0",
+      "label": "nonzero explicit activity byte returns true instruction prefix"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e627f0",
+      "target": "0x245c8948",
+      "label": "panel direct dispatcher entry prefix bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e627f4",
+      "target": "0x57565510",
+      "label": "panel direct dispatcher entry prefix bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e627f8",
+      "target": "0x55415441",
+      "label": "panel direct dispatcher entry prefix bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e627fc",
+      "target": "0x57415641",
+      "label": "panel direct dispatcher entry prefix bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62800",
+      "target": "0x70ec8348",
+      "label": "panel direct dispatcher entry prefix bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62804",
+      "target": "0x48d08b4d",
+      "label": "panel direct dispatcher entry prefix bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62808",
+      "target": "0xf41018b",
+      "label": "panel direct dispatcher entry prefix bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6280c",
+      "target": "0xc890b7",
+      "label": "panel direct dispatcher entry prefix bytes +0x1c"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f30",
+      "target": "0x83485340",
+      "label": "panel native close entry prefix bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f34",
+      "target": "0x58b40ec",
+      "label": "panel native close entry prefix bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f38",
+      "target": "0x3eeeb6c",
+      "label": "panel native close entry prefix bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f3c",
+      "target": "0x25d28b4c",
+      "label": "panel native close entry prefix bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f40",
+      "target": "0xffffff",
+      "label": "panel native close entry prefix bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f44",
+      "target": "0x44d98b48",
+      "label": "panel native close entry prefix bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f48",
+      "target": "0xc5048d",
+      "label": "panel native close entry prefix bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f4c",
+      "target": "0xf000000",
+      "label": "panel native close entry prefix bytes +0x1c"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8cf0",
+      "target": "0x245c8948",
+      "label": "panel canonical stack lookup entry prefix bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8cf4",
+      "target": "0x83485710",
+      "label": "panel canonical stack lookup entry prefix bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8cf8",
+      "target": "0x8b4830ec",
+      "label": "panel canonical stack lookup entry prefix bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8cfc",
+      "target": "0x188b4802",
+      "label": "panel canonical stack lookup entry prefix bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8d00",
+      "target": "0x4808408b",
+      "label": "panel canonical stack lookup entry prefix bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8d04",
+      "target": "0xf0f869",
+      "label": "panel canonical stack lookup entry prefix bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8d08",
+      "target": "0x3480000",
+      "label": "panel canonical stack lookup entry prefix bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8d0c",
+      "target": "0xdf3b48fb",
+      "label": "panel canonical stack lookup entry prefix bytes +0x1c"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8170",
+      "target": "0x245c8948",
+      "label": "panel first state lookup entry prefix bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8174",
+      "target": "0x6c894808",
+      "label": "panel first state lookup entry prefix bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8178",
+      "target": "0x89481024",
+      "label": "panel first state lookup entry prefix bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d817c",
+      "target": "0x48182474",
+      "label": "panel first state lookup entry prefix bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8180",
+      "target": "0x20247c89",
+      "label": "panel first state lookup entry prefix bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8184",
+      "target": "0x83485641",
+      "label": "panel first state lookup entry prefix bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8188",
+      "target": "0x998b10ec",
+      "label": "panel first state lookup entry prefix bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d818c",
+      "target": "0xc8",
+      "label": "panel first state lookup entry prefix bytes +0x1c"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8680",
+      "target": "0x48c48b48",
+      "label": "panel native context activity entry prefix bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8684",
+      "target": "0x48105889",
+      "label": "panel native context activity entry prefix bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8688",
+      "target": "0x48186889",
+      "label": "panel native context activity entry prefix bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d868c",
+      "target": "0x57207089",
+      "label": "panel native context activity entry prefix bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8690",
+      "target": "0x55415441",
+      "label": "panel native context activity entry prefix bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8694",
+      "target": "0x57415641",
+      "label": "panel native context activity entry prefix bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8698",
+      "target": "0x50ec8348",
+      "label": "panel native context activity entry prefix bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d869c",
+      "target": "0x4ce28b4c",
+      "label": "panel native context activity entry prefix bytes +0x1c"
+    }
+  ],
+  "systems": [
+    {
+      "name": "heron::tutorials::evaluate_triggers::system",
+      "signature_rva": "0x4aae850",
+      "dispatcher_rva": "0x2043930",
+      "dispatcher_registration_rva": "0x203663f"
+    },
+    {
+      "name": "heron::tutorials::handle_requests::system",
+      "signature_rva": "0x4aae4a0",
+      "dispatcher_rva": "0x2042c70",
+      "dispatcher_registration_rva": "0x20484a6"
+    },
+    {
+      "name": "heron::tutorials::initialize_tutorials_post_save::system",
+      "signature_rva": "0x4aae140",
+      "dispatcher_rva": "0x20428f0",
+      "dispatcher_registration_rva": "0x20364ef"
+    },
+    {
+      "name": "heron::tutorials::initialize_tutorials_pre_save::system",
+      "signature_rva": "0x4aadf50",
+      "dispatcher_rva": "0x20440e0",
+      "dispatcher_registration_rva": "0x20362ef"
+    },
+    {
+      "name": "heron::tutorials::update_active::system",
+      "signature_rva": "0x4aaf380",
+      "dispatcher_rva": "0x2043320",
+      "dispatcher_registration_rva": "0x203684f"
+    },
+    {
+      "name": "heron::tutorials::update_completion::system",
+      "signature_rva": "0x4aafb90",
+      "dispatcher_rva": "0x2042fd0",
+      "dispatcher_registration_rva": "0x2036ca4"
+    },
+    {
+      "name": "heron::tutorials::update_selected::system",
+      "signature_rva": "0x4aaf930",
+      "dispatcher_rva": "0x2043660",
+      "dispatcher_registration_rva": "0x2036a9a"
+    },
+    {
+      "name": "heron::tutorials::update_selection::system",
+      "signature_rva": "0x4aaf6a0",
+      "dispatcher_rva": "0x2043e10",
+      "dispatcher_registration_rva": "0x2048711"
+    },
+    {
+      "name": "heron::ui_dynamic_tutorial::handle_input::system",
+      "signature_rva": "0x4a8c7f0",
+      "dispatcher_rva": "0x1fea210",
+      "dispatcher_registration_rva": "0x1feaba7"
+    },
+    {
+      "name": "heron::ui_dynamic_tutorial::sync::system",
+      "signature_rva": "0x4a8ca20",
+      "dispatcher_rva": "0x1fe9f70",
+      "dispatcher_registration_rva": "0x1fea88c"
+    },
+    {
+      "name": "heron::ui_static_tutorial::handle_events::system",
+      "signature_rva": "0x4a25f20",
+      "dispatcher_rva": "0x1e622f0",
+      "dispatcher_registration_rva": "0x1e6073b"
+    },
+    {
+      "name": "heron::ui_static_tutorial::handle_gameplay_tutorial_changes::system",
+      "signature_rva": "0x4a26520",
+      "dispatcher_rva": "0x1e62320",
+      "dispatcher_registration_rva": "0x1e60940"
+    },
+    {
+      "name": "heron::ui_static_tutorial::handle_input::system",
+      "signature_rva": "0x4a25dc0",
+      "dispatcher_rva": "0x1e62300",
+      "dispatcher_registration_rva": "0x1e605cf"
+    },
+    {
+      "name": "heron::ui_static_tutorial::process_events::system",
+      "signature_rva": "0x4a26040",
+      "dispatcher_rva": "0x1e627f0",
+      "dispatcher_registration_rva": "0x1e633ef"
+    },
+    {
+      "name": "heron::ui_static_tutorial::sync::system",
+      "signature_rva": "0x4a262a0",
+      "dispatcher_rva": "0x1e62530",
+      "dispatcher_registration_rva": "0x1e630f3"
+    }
+  ],
+  "script_bindings": [
+    {
+      "name": "set_tutorial_active",
+      "name_rva": "0x4bc7378",
+      "registration_rva": "0x23e8eb8",
+      "callback_registration_rva": "0x23e8ec6",
+      "callback_rva": "0x23cd510"
+    },
+    {
+      "name": "show_tutorial",
+      "name_rva": "0x4bc7390",
+      "registration_rva": "0x23e8ed4",
+      "callback_registration_rva": "0x23e8ee2",
+      "callback_rva": "0x23cd660"
+    },
+    {
+      "name": "complete_tutorial",
+      "name_rva": "0x4bc73a0",
+      "registration_rva": "0x23e8ef0",
+      "callback_registration_rva": "0x23e8efe",
+      "callback_rva": "0x23cd780"
+    }
+  ],
+  "identifier_contract": {
+    "callback_rva": "0x23cd660",
+    "lookup_rva": "0x23eac40",
+    "request_append_rva": "0x1ecd330",
+    "behavior": "show_tutorial reads one string identifier, computes a folded 32-bit hash, validates it against the entity tutorial-data table and appends request kind4. Unknown identifiers raise a script argument error. This is not a title/body text API.",
+    "table_entry_stride": "0x68",
+    "ownership": "Entity TutorialData contains an owned hash table. Its initializer, move insertion and whole-table destruction are traced below. These paths do not establish safe custom registration or individual removal during gameplay."
+  },
+  "presentation": {
+    "document_sha256": "2a56b5e655746d09f80b592b9e19d787eaccf72778a3df90b7773a564ecad527",
+    "dynamic": {
+      "root_class": "tutorial-dynamic-toast",
+      "model_prefix": "ui_tutorial_dynamic_",
+      "features": [
+        "localized heading and rich-text message",
+        "streamed header image",
+        "timer progress",
+        "game input dismiss callout"
+      ],
+      "visibility": "HUD dynamic-tutorial visibility and nonzero tutorial state."
+    },
+    "static": {
+      "root_class": "tutorial-static__window",
+      "model_prefix": "ui_tutorial_static_",
+      "flow": "game/static_tutorial",
+      "features": [
+        "center or side layout",
+        "localized heading and rich-text message",
+        "streamed header image",
+        "native UI input and pending events",
+        "fullscreen blur state in sync signature"
+      ]
+    },
+    "input_boundary": "Static input handling checks UI stack membership and native input before changing pending state. Displaying an unrelated DOM panel does not establish input capture, pause, or native dismissal."
+  },
+  "custom_mod_requirements": [
+    "Define bounded, owner-scoped tutorial descriptors rather than exposing raw pointers or unrestricted engine requests.",
+    "Establish creation and destruction of custom tutorial data separately from triggering an existing game identifier.",
+    "Passive key hints must resolve current bindings; do not assume a hardcoded keyboard key also represents controller or rebound input.",
+    "Dismissible panels require native UI ownership, conflict handling and verified restoration on dismissal, reload, menu changes and guest failure.",
+    "Keep mod completion state separate from game tutorial/save progression.",
+    "Preserve existing game tutorial queues, localization and plain-text guest boundaries."
+  ],
+  "construction_and_ownership": {
+    "evidence": "Static instruction tracing on the fingerprinted executable; not a callable ABI or gameplay validation.",
+    "initializer_rva": "0x2037720",
+    "source": "Pre-save system signature reads contentgame::TutorialComponent and writes heron::tutorials::component::TutorialData through an ECS entity access definition and command buffer.",
+    "component_stride": "0x70",
+    "table_offset": "0x08",
+    "asset_tutorial_stride": "0xc8",
+    "runtime_slot_stride": "0x68",
+    "runtime_value_offset_in_slot": "0x08",
+    "initializer_behavior": "Skips keys already found, constructs owned page and auxiliary vectors for missing keys, moves the value into a table slot, destroys moved-from temporaries and records component changes through the supplied command buffer. A second table at component offset 0x38 is populated separately.",
+    "value_move_rva": "0x204cc50",
+    "value_vectors": [
+      "0x00: pages",
+      "0x20: auxiliary vector",
+      "0x30: auxiliary vector"
+    ],
+    "value_move_behavior": "Move-constructs into a distinct fresh/non-owning destination: transfers each vector pointer, count and capacity and clears the source vector; scalar fields are copied. It does not free prior destination storage and is not safe for replacement or self-move. This is not a copy of borrowed guest memory.",
+    "insert_rva": "0x2042770",
+    "reserve_rva": "0x204e8f0",
+    "storage_rebuild_rva": "0x204ec70",
+    "collision_behavior": "Existing 32-bit keys return the existing slot without replacing its value or consuming the incoming value. Only successful new-slot insertion moves the incoming value. The caller must clean up the temporary on either path, as the initializer does. Original full identifier strings are not compared here. Mod namespace strings alone do not eliminate hash collisions.",
+    "invalidation": "Slot reservation may rebuild storage or relocate slots within the existing allocation through 0x204e490. Unchanged allocation address or capacity does not preserve slot pointers. A raw pointer returned by a lookup must not be treated as a stable handle across insertions or component changes. Moving a slot does not necessarily move its nested page allocation.",
+    "whole_table_cleanup_rva": "0x204e150",
+    "cleanup_behavior": "Visits occupied slots, frees both auxiliary vectors, destroys page vectors and frees table storage. Component-stride cleanup invokes this for the table at offset 0x08. This is whole-table cleanup, not a safe per-mod removal operation.",
+    "pages": {
+      "builder_rva": "0x20371d0",
+      "asset_page_stride": "0x90",
+      "runtime_page_stride": "0x88",
+      "move_rva": "0x204ce50",
+      "vector_cleanup_rva": "0x204e0d0",
+      "string_offsets": [
+        "0x08",
+        "0x20",
+        "0x48"
+      ],
+      "conditional_message_vector_offset": "0x70",
+      "conditional_message_stride": "0x50",
+      "message_resolver_rva": "0x2036020",
+      "message_resolution": "Both UI paths use this resolver. It selects the first conditional message whose three predicates pass, or falls back to the page string at 0x48. It returns a borrowed pointer and length into page-owned data, not a newly allocated string. The borrow requires the owning page or conditional string storage to remain alive and unchanged.",
+      "predicate_semantics": "Not established by these call references; do not interpret them as a generic guest action-binding interface."
+    },
+    "unresolved": [
+      "Custom text construction, localization and input glyph resolution through the native presentation path.",
+      "Permitted engine phase and component lifetime for inserting and retiring owner-scoped records.",
+      "Per-entry erasure and cancellation of queued/selected/active references before freeing a record.",
+      "Native input ownership and restoration for mod-authored dismissible panels.",
+      "Isolation from game tutorial completion and save data."
+    ]
+  },
+  "request_lifecycle": {
+    "status": "Static control-flow trace; component names follow the registered ECS access signature. No guest cancellation or runtime registration API is implemented.",
+    "consumer_rva": "0x20384a0",
+    "request_stride": "0x08",
+    "request_fields": {
+      "0x00": "kind byte",
+      "0x04": "32-bit tutorial identifier"
+    },
+    "kinds": [
+      {
+        "kind": 0,
+        "meaning": "activate",
+        "producer": "set_tutorial_active(identifier, true)",
+        "effect": "Conditionally appends to Active after Active, Dismissed and Completed/repeat-limit checks."
+      },
+      {
+        "kind": 1,
+        "meaning": "deactivate",
+        "producer": "set_tutorial_active(identifier, false)",
+        "effect": "If the identifier is found in Active, removes its matches and clears value flag bits 0x18. Merely having a TutorialData entry does not cause those flags to clear. Does not itself clear selected state, SelectionQueue, pending requests, completion or UI state."
+      },
+      {
+        "kind": 2,
+        "meaning": "dismiss selected",
+        "effect": "Only acts when TutorialData selected-valid and identifier match. Removes from Active, adds to Dismissed, clears a value timer, clears selected-valid and sets a change flag. Does not erase tutorial data or directly remove all other references."
+      },
+      {
+        "kind": 3,
+        "meaning": "request completion",
+        "producer": "complete_tutorial(identifier)",
+        "effect": "Conditionally appends to PendingCompletion after completion/repeat-limit checks through0x19c54c0, which rejects an existing matching identifier. Separate completion processing changes progression. This deduplication does not establish idempotency for other producers or already completed operations."
+      },
+      {
+        "kind": 4,
+        "meaning": "request display",
+        "producer": "show_tutorial(identifier)",
+        "effect": "Skips the currently selected identifier and duplicate selection-queue entries, checks completion/repeat limits and inserts a 12-byte queue record ordered by a value field."
+      }
+    ],
+    "completion_worker_rva": "0x203a670",
+    "completion_effects": "Updates a per-value counter and timer, conditionally removes Active membership, clears matching selected-valid state, updates TriggerData, adds to Completed if absent, removes matching SelectionQueue entries and emits through the LuaEvents environment. This is progression, not neutral UI cancellation.",
+    "missing_entry_behavior": "The request consumer skips identifiers absent at its initial lookup. The completion worker instead reaches an assertion path when a PendingCompletion identifier has no table entry. Records must not be erased while completion references remain.",
+    "retirement_constraint": "Deactivation, dismissal, UI closure, completion and data destruction are distinct. None of the traced functions alone provides owner-scoped retirement. Cancel or drain relevant requests and selection/completion references in the permitted engine phase before destroying data; preserve unrelated game entries.",
+    "save_scope": "The native Completed component is changed by completion. Persistence/save serialization of custom identifiers has not been established; do not reuse it as mod-owned persistence.",
+    "queue_layout": {
+      "header": "{pointer at+0, u32 count at+8, u32 capacity at+12}; plain counts, no flags observed",
+      "empty": "Non-null retained storage with zero count is valid.",
+      "Requests": {
+        "stride": 8,
+        "identifier_offset": 4,
+        "kind_offset": 0
+      },
+      "PendingCompletion": {
+        "stride": 4,
+        "identifier_offset": 0
+      },
+      "SelectionQueue": {
+        "stride": 12,
+        "identifier_offset": 0,
+        "signed_rank_offset": 4,
+        "timer_offset": 8
+      },
+      "Active": {
+        "stride": 4,
+        "identifier_offset": 0
+      },
+      "selected": "TutorialData identifier+0, valid byte+4, changed byte+0x69"
+    },
+    "internal_withdrawal": {
+      "implementation": "runtime/tutorial_context.cpp RequestScope::withdraw and runtime/tutorial_requests.cpp",
+      "status": "Implemented internal queue-only operation, exercised with native-layout test buffers. No registration owner or live call path is connected; the diagnostic observer remains read-only. Not a guest API or a gameplay-qualified retirement adapter.",
+      "preconditions": "Caller already owns the registered key; current request dispatcher scope and expected full world/entity identity must resolve. Component and payload ranges must be readable, disjoint, and bounded to4096 entries per vector; matching queues must be writable before commit.",
+      "effect": "Stably removes matching identifiers from Requests, PendingCompletion and SelectionQueue. Preserves unrelated record bytes/order, allocated buffers and capacities. Reports Active membership and selected identity without changing either.",
+      "unchanged": "Completed, Dismissed, Active, TutorialData, native UI state, payload ownership and allocation.",
+      "failure": "Rejected preparation performs no mutation. Unexpected fault during in-place commit returns partial; retain the payload and require reconciliation/recovery, never blindly retry or claim retirement. Range checks do not provide synchronization.",
+      "limits": "Admission, activation, display/input, Lua/trigger events and native panel references can outlive queue withdrawal or create later requests. No freeing or removal of registered data follows this operation alone."
+    }
+  },
+  "static_presentation_lifecycle": {
+    "status": "Static paths only; native focus restoration, competing menus and mod-authored transitions still need live qualification.",
+    "event_module": "UIStaticTutorialModule",
+    "continue_event": "static_tutorial_continue",
+    "pending_visitor_rva": "0x1e61e80",
+    "variants": [
+      "0: open primary tutorial",
+      "1: open secondary tutorial",
+      "2: next page/end",
+      "3: relative page change with bounds",
+      "4: close presentation"
+    ],
+    "page_end_rva": "0x1e61d30",
+    "primary_path": "Resolves first table at TutorialData+0x08. Passing the final page appends native request kind 3 before the UI transition closes presentation. A missing primary record returns false from this page-end helper; this branch neither completes nor closes it.",
+    "secondary_path": "Resolves second table at TutorialData+0x38, with 0x20-byte slots and value at slot+0x08. Its page-end branch returns the page bound result, or true for a missing record, without appending that completion request. This is a candidate separate presentation path, not proof of isolation or permission to add arbitrary records.",
+    "close_rva": "0x1e63f30",
+    "close_behavior": "Calls UI stack navigation helper 0x1e28590 with a false include flag, then unconditionally clears TutorialState+0x14. The helper does nothing if the stack or target state is absent, so clearing the flag does not prove a stack transition occurred. It does not erase either tutorial data table.",
+    "stack_navigation": "The helper computes target index minus current index, subtracts one for the false include flag and calls 0x17d79a0. That routine clamps/updates the stack cursor and invokes a native transition helper. This is not an owner-specific remove operation; another UI state above the tutorial can be affected.",
+    "ownership_requirement": "A mod adapter must check the selected tutorial identity and native stack context before requesting closure, then observe the resulting transition. A return from the helper is not proof of restored gameplay input.",
+    "not_established": [
+      "Registration and individual erasure of secondary records",
+      "Custom action glyph resolution",
+      "Game phase ordering and component lifetime",
+      "Focus/pause restoration after reload, fault or intervening menu",
+      "Guest-facing cancellation receipts"
+    ],
+    "visibility_constraint": "0x1e289d0 calls0x17d8b30, which accepts a current screen or an ancestor below the applied index after a native context-active check. TutorialState+0x30 is not an exclusive/top-screen ownership flag.",
+    "close_preconditions": [
+      "Current tutorial identifier and primary/secondary mode must match the owned registration.",
+      "Preserve native context-active semantics through0x17d8680; a matching screen name alone is insufficient.",
+      "First matching tutorial entry from0x17d8170 must equal current applied index at stack+0xbc, with0<index<count at+0xc8. Search includes retained forward history.",
+      "Check and invoke within the same appropriate UI boundary; a request-phase or earlier JS check does not establish execution-time ownership.",
+      "Observe later visibility retirement and input restoration. Native close returning or active flag clearing is not completion acknowledgment."
+    ],
+    "event_boundary": {
+      "signature_rva": "0x4a26040",
+      "dispatcher_rva": "0x1e627f0",
+      "worker_rva": "0x1e60d50",
+      "entity_access": {
+        "TutorialData": "read",
+        "Requests": "write"
+      },
+      "mutable_environments": [
+        "heron::ui_static_tutorial::env::TutorialState",
+        "coregame::env::UIStateStacks",
+        "heron::audio_ui::env::AudioEventRequests"
+      ],
+      "arguments": "RDX,R8,R9 from system+0x58 environment array entries+8,+0x10,+0x18.",
+      "remaining": "Scoped process_events binding and guarded close are implemented with native-layout tests. Live registration ownership, presentation/input retirement and callable guest admission remain incomplete.",
+      "environment_scheduling": {
+        "status": "Static registration-to-conflict-to-dispatch trace for the fingerprinted executable, not live custom-panel qualification.",
+        "registration_rva": "0x1e631b0",
+        "writes": [
+          {
+            "name": "TutorialState",
+            "type_hash": "0xbca2cd2b",
+            "call_rva": "0x1e63377",
+            "binder_rva": "0x1e43290",
+            "argument_slot": 1
+          },
+          {
+            "name": "UIStateStacks",
+            "type_hash": "0xc92b7ddf",
+            "call_rva": "0x1e6339f",
+            "binder_rva": "0x17dbb10",
+            "argument_slot": 2
+          },
+          {
+            "name": "AudioEventRequests",
+            "type_hash": "0xddf9af37",
+            "call_rva": "0x1e633c7",
+            "binder_rva": "0x1e42b10",
+            "argument_slot": 3
+          }
+        ],
+        "system_fields": {
+          "0x38": "environment read hash vector; count at0x40",
+          "0x48": "environment write hash vector; count at0x50",
+          "0x58": "resolved environment argument pointer vector",
+          "0x133": "set by mutable environment binders"
+        },
+        "conflict_builder_rva": "0x1d5eb50",
+        "writer_inverse_index": "Builds environment-hash to writer-system-ID lists from system+0x48/+0x50; the environment registry hash array is+0x50 with count+0x58.",
+        "pair_generation_rva": "0x1d5fd70",
+        "coverage": "Each system environment read list and write list is compared with the inverse writer list. Self-pairs are skipped; read/write and write/write pairs insert into the same canonical conflict set used by graph construction.",
+        "entity_filter_independence": "Environment pair generation does not call the ECS component conflict predicate0x1d61390. Required/excluded entity components and alternative groups do not suppress shared-environment conflicts.",
+        "dispatch": "Finalization0x1d62950 derives scheduler flags; checks at0x1d68fe9/0x1d68ff3/0x1d6901f route mutable-environment work to whole-system execution instead of archetype-parallel subdivision.",
+        "permission_scope": "A hook inside the original process_events callback shares its declared TutorialState/UIStateStacks/AudioEventRequests access for that invocation. It may not retain the environment pointers or move mutations onto the runtime worker. This is graph-local exclusion, not a main-thread guarantee or global engine quiescence.",
+        "remaining": "Registration ownership, exact presentation match, competing screen handling, later input/visibility retirement and native payload lifetime still govern any adapter."
+      }
+    },
+    "context_activity": {
+      "rva": "0x17d8680",
+      "abi": "bool(context in RCX, UIStateStacks environment in RDX)",
+      "explicit_flag": "Nonzero context+0xb8 takes0x17d86ae->0x17d8913 and returns true. Do not invert this as a disabled flag.",
+      "fallback": "With the explicit flag clear, examines other contexts and their applied state names recursively. A name match or a single flag cannot replace the full native predicate."
+    },
+    "internal_close": {
+      "implementation": "runtime/tutorial_panel.cpp PanelScope::close_owned",
+      "binding": "Reviewed executable profile, five32-byte native entry checks and exact event callsite; bound before dispatcher detour installation.",
+      "scope": "Whole-system process_events only; current system ID/callback slots, mutable environment declarations and flags, exact argument pointers, full world/entity and two component-array round trips.",
+      "ownership_precondition": "Trusted registration ledger must already own a live record matching world/entity, TutorialState object, key and primary/secondary mode. These fields alone do not establish ownership or exclude address reuse.",
+      "canonical_names": "Decode bounded borrowed string views from runtime-initialized globals0x5d52aa8 and0x5d52de0, the same objects used by native close. No guest strings select the target.",
+      "guard": "No occupied pending event; active owned key/mode; native context activity; first target index equals current applied index and0<index<count. Reject ancestors, earlier duplicates, root and forward-only matches. Recheck identity/state/names after native lookups.",
+      "outcomes": "Successful native close returns await_sync. Inactive is not retired. Fault after entering close returns partial and requires reconciliation; no automatic retry or payload release.",
+      "unchanged": "No TutorialData writes, record erasure, completion/dismissal history changes, callback retirement acknowledgement or input-restoration claim.",
+      "observation": "Read-only observer establishes PanelScope and samples identity but never invokes close_owned.",
+      "tests": "tests/test_tutorial_panel.cpp and tests/test_tutorial_observer.cpp: native-layout guards, exact call-through, foreign/pending/stack refusal, changed snapshots, guarded memory and C++/SEH scope cleanup.",
+      "remaining": "Live record construction/registration ledger, native sync and input retirement, per-key erase, guest API and gameplay qualification."
+    }
+  },
+  "secondary_registration": {
+    "status": "Static construction and whole-table cleanup traced. No callable owner-scoped registration/removal adapter or live scheduling guarantee.",
+    "table_offset_in_tutorial_data": "0x38",
+    "asset_record_stride": "0x20",
+    "asset_record_fields": {
+      "0x00": "32-bit key",
+      "0x08": "source page pointer",
+      "0x10": "source page count",
+      "0x18": "scalar copied to runtime value+0x10; meaning not established here"
+    },
+    "runtime_slot_stride": "0x20",
+    "runtime_slot_fields": {
+      "0x00": "32-bit key",
+      "0x08": "owned page pointer",
+      "0x10": "page count",
+      "0x14": "page capacity",
+      "0x18": "copied scalar"
+    },
+    "insert_rva": "0x20425c0",
+    "reserve_rva": "0x204e780",
+    "compact_rva": "0x204e210",
+    "rebuild_rva": "0x204ea60",
+    "slot_move_rva": "0x204bd20",
+    "whole_table_cleanup_rva": "0x1e63800",
+    "page_vector_cleanup_rva": "0x1e63950",
+    "ownership": "New-slot insertion transfers page pointer/count/capacity and clears the source vector. Duplicate 32-bit keys return existing entries without consuming incoming pages. The native initializer destroys the temporary on either path. Native page strings and conditional-message allocations require their own destructors.",
+    "invalidation": "Both allocation replacement and in-place compaction can relocate slots. The slot-move helper constructs a destination and destroys the moved-from source; it is not assignment over a live owning destination. Cached slot pointers are not stable.",
+    "erasure_scope": "The reviewed destructor calls destroy a whole table or a page vector. Direct call-site inspection did not establish an individual key-erasure operation; inlining and indirect calls were not excluded. A page-vector destructor does not update hash-table control bytes, size, lookup chains or active UI references.",
+    "native_page_source": "Uses the same asset-to-runtime page builder as primary tutorials. This does not make raw Wasm strings compatible native page objects."
+  },
+  "registration_scheduling": {
+    "registration_rva": "0x2036180",
+    "named_phase": "Variable update before fixed",
+    "additionally_resolved_phase": "Fixed Update",
+    "relationship_kind_raw": 2,
+    "relationship_call_rva": "0x203635d",
+    "access_descriptor_rva": "0x2046820",
+    "components": [
+      {
+        "name": "contentgame::TutorialComponent",
+        "type_hash": "0x0a3d5608",
+        "access_mode_raw": 2
+      },
+      {
+        "name": "heron::tutorials::component::TutorialData",
+        "type_hash": "0xae510289",
+        "access_mode_raw": 3
+      }
+    ],
+    "interpretation": "Component access modes agree with the registered signature and initializer read/write behavior. Registration resolves both phase names. The relationship call receives the new system identifier and a handle field from the Variable update before fixed lookup result, not the Fixed Update lookup result. Resolving the latter name does not establish an edge to it. Raw relationship kind is retained without claiming the complete scheduler ordering contract.",
+    "mutation_boundary": "The native initializer runs under an ECS access definition with writable TutorialData and records component changes through a command buffer. Native UI readers do not provide equivalent write permission. Neither these names nor return from a UI callback establishes an arbitrary worker-thread mutation point.",
+    "remaining_evidence": "Actual phase ordering, concurrent readers, entity replacement and teardown need observation before selecting an adapter mutation point. No new live evidence was collected for this map."
+  },
+  "diagnostic": {
+    "status": "Initial schema1 capture observed phases0..3. Schema6 additionally resolves current entity identities within request and whole-system panel-event scopes. Automated native-layout and hook tests; the revised scopes have no gameplay qualification yet.",
+    "source": "runtime/diagnostics/tutorial_observer.cpp",
+    "marker": "crml/tutorial-observer.enabled",
+    "capture_seconds": 600,
+    "sample_interval_ms_per_phase": 250,
+    "sample_limit_per_phase": 1024,
+    "buffer_capacity": 256,
+    "phases": [
+      {
+        "id": 0,
+        "name": "initialize",
+        "worker_rva": "0x2037720",
+        "return_rva": "0x20442c5",
+        "arguments": 2,
+        "tutorial_data_word": 1,
+        "row_word": 3,
+        "alternate_return_rvas": [
+          "0x2044d65"
+        ]
+      },
+      {
+        "id": 1,
+        "name": "hint_sync",
+        "worker_rva": "0x1fe9040",
+        "return_rva": "0x1fea159",
+        "arguments": 5,
+        "tutorial_data_word": 0,
+        "row_word": 2
+      },
+      {
+        "id": 2,
+        "name": "panel_sync",
+        "worker_rva": "0x1e61470",
+        "return_rva": "0x1e62743",
+        "arguments": 7,
+        "tutorial_data_word": 0,
+        "row_word": 2
+      },
+      {
+        "id": 3,
+        "name": "panel_events",
+        "worker_rva": "0x1e60d50",
+        "return_rva": "0x1e629f9",
+        "arguments": 4,
+        "tutorial_data_word": 0,
+        "row_word": 3
+      },
+      {
+        "id": 4,
+        "name": "requests",
+        "worker_rva": "0x20384a0",
+        "return_rva": "0x2042ed7",
+        "alternate_return_rvas": [
+          "0x20445a7"
+        ],
+        "arguments": 1,
+        "tutorial_data_word": 4,
+        "row_word": 8
+      }
+    ],
+    "interpretation": [
+      "Storage tokens hash a TutorialData array location with a per-process salt. They are not entity handles, generation counters or proof of lifetime.",
+      "Overlap-at-entry covers instrumented call intervals including observer overhead; it does not identify a shared entity or all engine readers.",
+      "Absence of sampled overlap does not prove exclusive scheduling or authorize writes.",
+      "Queries are copied only at reviewed call sites. No strings, table slots, pages or borrowed pointers are retained.",
+      "Call counters cover the capture window; query rejections apply only to sampled calls. Dropped samples are counted.",
+      "These wrappers call the original implementation once and do not submit requests, register records, close panels or modify engine data.",
+      "The observer does not keep the runtime worker alive. Capture stops on worker exit or after ten minutes.",
+      "Closed admission prevents new observation spans. admitted_pending includes admitted spans before Recorder entry and through event publication. final=1 is emitted only after a closed gate reaches zero and buffered events are drained; this is not an engine reader-retirement fence.",
+      "C++ and recovered Windows structured-exception unwinds restore dispatcher TLS and observation admission; native exceptions propagate through the observer.",
+      "Sampling is global per phase, not per caller or row. sample_budget_used saturates at1024 and sample_budget_exhausted makes loss of further sample coverage explicit. Totals continue after sample exhaustion.",
+      "One capture per process; start does not rearm after stop. Shutdown does not wait for admitted calls, so the last report can remain final=0."
+    ],
+    "log_schema": 6
+  },
+  "runtime_observations": {
+    "scope": "One bounded capture on the mapped executable; ordinary gameplay and menu transitions.",
+    "ui_queries": "Sampled hint-sync, panel-sync and panel-event aggregates passed the reviewed caller/layout checks.",
+    "threading": "Each UI boundary executed on multiple worker threads. A cached thread ID cannot be treated as ownership of these structures.",
+    "initializer": "One initializer call returned normally but was rejected before reading its query because the caller was not the originally reviewed dispatcher. Its actual return RVA was not logged; attribution to the alternate job remains unconfirmed.",
+    "overlap": "No overlap or queue drops were recorded in this capture. This does not prove exclusive access, complete reader coverage or a safe mutation point.",
+    "lifetimes": "Storage tokens changed during the session; they are not generational entity identities and cannot establish teardown or reload safety.",
+    "shutdown": "No closing capture record was present. Worker teardown and the Steam running-state issue are not established by this trace."
+  },
+  "alternate_initializer_job": {
+    "wrapper_rva": "0x2044cc0",
+    "query_builder_rva": "0x204cb70",
+    "worker_call_rva": "0x2044d60",
+    "worker_rva": "0x2037720",
+    "query_layout": {
+      "TutorialComponent_array_word": 0,
+      "TutorialData_array_word": 1,
+      "entity_backing_word": 2,
+      "row_word": 3
+    },
+    "scope": "Static alternate caller, same two-argument worker ABI. No permission for arbitrary callers or game-data writes."
+  },
+  "text_submission": {
+    "status": "Static string transfer and stock template contract; custom text presentation and resource reclamation are not gameplay-verified.",
+    "borrowed_page_message_resolver_rva": "0x2036020",
+    "model_submission_rva": "0x1e54fa0",
+    "model_string_writer_rva": "0x1b279b0",
+    "short_value": {
+      "length_limit_exclusive": 16,
+      "tag": 4,
+      "inline_offset": "0x08",
+      "inline_bytes": 16,
+      "behavior": "Copies length bytes into the model value and zero-fills the remaining inline buffer."
+    },
+    "long_value": {
+      "minimum_length": 16,
+      "tag": 5,
+      "pool_function_rva": "0x1b2a420",
+      "index_offset": "0x08",
+      "pool_entry_stride": "0x48",
+      "behavior": "Looks up a content hash, returns an existing index on a hit, or assigns bytes into a reused/new engine string slot. The model value stores an index, not the original tutorial-page pointer.",
+      "limits": "Static reclamation is mapped below. Live collection cadence, peak allocation bounds, collision handling beyond the reviewed hash lookup and arbitrary user-text localization behavior are not established."
+    },
+    "dirty_state": "Writer updates value byte+3 and model dirty bookkeeping. The submit helper compares existing values and marks the model path changed when needed.",
+    "stock_bindings": {
+      "heading": "locID controls visibility; translation displayed as text",
+      "message": "translation rendered with data-bind-html/cohinline",
+      "dynamic": "ui_tutorial_dynamic_heading, ui_tutorial_dynamic_message_text",
+      "static": "ui_tutorial_static_heading, ui_tutorial_static_message_text"
+    },
+    "authoring_implication": "Unknown localization keys provide an echo candidate, not a literal-text contract. A guest adapter needs explicit text versus localization-key semantics, body escaping, finite distinct-text admission and owned cancellation. Do not expose raw HTML or mutate shared localization state.",
+    "ownership_implication": "Tutorial page strings and UI-model storage are separate lifetimes. Do not free the engine string pool or assume erasing a tutorial clears displayed model values.",
+    "localization": {
+      "binding_callback_rva": "0x180a7f0",
+      "binding_type": 3,
+      "translation_getter_rva": "0x17fefe0",
+      "string_table_lookup_rva": "0x29dde10",
+      "behavior": "The stock LocString wrapper forwards locID, not the supplied translation field. The native getter resolves known identifiers first; a valid UTF8 missing identifier is converted to UTF16, cached and converted back as an echo fallback.",
+      "literal_limitations": "This is not an exact-literal API: an existing localization key can resolve to different text, while id and idandloc debug modes change presentation. Heading is a text sink; body is an HTML sink. Neither fallback nor string copying escapes guest text.",
+      "cache": {
+        "manager_offset": "0x48",
+        "node_bytes": 456,
+        "additional_allocation": "Copied UTF8 key and UTF16 value can allocate out of line.",
+        "clear_rva": "0x29df100",
+        "clear_boundaries": [
+          "Localization resource replacement at 0x29def30",
+          "Manager destruction at 0x29df620"
+        ],
+        "constraint": "No periodic or practical size eviction established. Distinct-text admission needs a finite budget in addition to queue/rate limits. This cache is separate from the FactDictionary pool and cannot be reset as mod-owned cleanup."
+      },
+      "status": "Static shared localization path; custom tutorial text, escaping and key-glyph substitution not gameplay-verified."
+    }
+  },
+  "retirement_constraints": {
+    "static_unchanged_page": "At 0x1e61698 a failed table lookup returns through 0x1e6173b without calling the close helper. Missing or out-of-range data in this branch does not independently close the panel.",
+    "static_changed_page": "At 0x1e6171b a failed lookup takes 0x1e61752 and tail-calls close helper0x1e63f30 from0x1e61768. Close still navigates the shared UI stack; it is not mod-owner removal.",
+    "dynamic": "Deselection in state2 enters fading state3. State3 still reaches record lookup0x1fe95fe and text refresh0x1fe96d5. On timer expiry, state is set to0 at0x1fe90f6, but displayed ID is only cleared or replaced on a subsequent state0 invocation. Dynamic input0x1fe8e60 reads that ID without a presentation-state gate, so hidden state0 alone does not drain the completion producer.",
+    "required_sequence": [
+      "Stop admitting new requests for the retiring owner; account for queued and selected IDs.",
+      "Close or deselect the owned presentation through its native lifecycle without navigating unrelated menus.",
+      "Observe completion and resolve outstanding readers and model references in a supported engine phase.",
+      "Remove only the owned table entry with a verified erase operation, then release its owned pages using the matching allocator."
+    ],
+    "unproven": [
+      "Per-owner hash-table erasure",
+      "Exclusive mutation and reclamation phase",
+      "Owner-aware UI stack dismissal with intervening menus",
+      "Live string collection cadence and bounded retained allocation",
+      "Mod text localization and markup boundary"
+    ],
+    "scope": "Requirements for a campaign-table registration adapter, which is not exposed. The implemented native_private_adapter below avoids campaign-table insertion and per-key erasure; its gameplay qualification remains pending.",
+    "static_out_of_range_page": "A successful lookup on the changed-page branch calls0x1e61180 at0x1e61736. That helper updates layout/current-page/page-count models, then an out-of-range page branches at0x1e61215 to return0x1e61408 without replacing heading/message or closing the panel. A valid table key is not enough; page bounds must remain valid until presentation retirement.",
+    "static_acknowledgement": "Close0x1e63f30 clears active+0x14 after shared stack navigation; sync0x1e61470 separately updates visible+0x30 and, for primary-mode+0x3c==0, restores saved state+0x3d through0x17fb400. Close return alone is not that restoration. Pending UI variants0/1 contain target IDs; continue/relative-page/close variants act on current module state and must not be attributed to a retired owner solely by variant."
+  },
+  "model_string_reclamation": {
+    "status": "Static native collector and reset paths; not a callable guest cleanup API or gameplay-verified memory bound.",
+    "native_type": "coregame::global::FactDictionary",
+    "native_system": "garbageCollectFactDictionary",
+    "signature_rva": "0x494d000",
+    "registration_rva": "0x1b28a70",
+    "dispatcher_rva": "0x1b297d0",
+    "worker_rva": "0x1b28d60",
+    "arguments_from_signature": [
+      "coregame::global::FactDictionary &",
+      "const coregame::env::LuaFactEvents &",
+      "query of LuaEnableFactListeners and LuaFactListeners, both access mode 2"
+    ],
+    "registration_phase": "Resolves Fixed Update through the string view at0x494cf00. Registration edge kind2 is recorded without inferring exact scheduling order, cadence or exclusive mutation permission.",
+    "mark_sources": [
+      {
+        "source": "Occupied dictionary entries",
+        "entry_stride": "0x28",
+        "tag_offset": "0x10",
+        "pool_index_offset": "0x18",
+        "evidence_rva": "0x1b28e25"
+      },
+      {
+        "source": "Entries in enabled LuaFactListeners rows",
+        "entry_stride": "0x38",
+        "tag_offset": "0x10",
+        "pool_index_offset": "0x18",
+        "evidence_rva": "0x1b28f67"
+      },
+      {
+        "source": "LuaFactEvents values",
+        "entry_stride": "0x18",
+        "tag_offset": "0x00",
+        "pool_index_offset": "0x08",
+        "evidence_rva": "0x1b29040"
+      }
+    ],
+    "mark_behavior": "Creates a pool-count-sized bitset, then marks tag5 indices from the three sources. Only the listener path has an explicit pool-index bound check in these reviewed loops; do not construct arbitrary native values.",
+    "sweep_behavior": "Resets free-index count at model+0xf8. For each unmarked index below pool count, hashes the existing string, clears its logical contents, tombstones the matching hash entry if present, then appends the index to the reusable vector at model+0xf0. This sweep does not shrink pool count or destroy pool strings.",
+    "clear_string_rva": "0x31dddb0",
+    "clear_string_behavior": "Sets string length to zero and writes the first terminator into inline or heap storage. Does not free the allocation or reset capacity.",
+    "whole_reset_rva": "0x1b27fb0",
+    "stream_load_with_whole_reset_rva": "0x1b28090",
+    "whole_destructor_rva": "0x1b299c0",
+    "whole_reset_behavior": "Iterates all0x48-byte pool strings through destructor0x31ddc70, then clears pool/index bookkeeping. The whole-object destructor additionally frees backing buffers. These are not owner-scoped operations.",
+    "stream_load_constraint": "0x1b28090 resets the existing pool before deserializing and repopulating dictionary data from a reader. It is not a standalone per-owner reset entry point.",
+    "destruction_callback_constraint": "0x1b299c0 aligns its first pointer argument, checks aligned address+0x1128 against its second end-pointer argument, and returns the next address after destruction or zero when insufficient space remains. The described effect does not establish a callable one-argument destructor ABI.",
+    "adapter_constraint": "Retire model references and pending listener/event references through their native lifecycles. Let the native collector decide slot reuse; never clear a pooled string or reset the dictionary merely because one mod has unloaded. Pool indices are recyclable and are not persistent guest handles.",
+    "unestablished": [
+      "Live collector cadence and synchronization with tutorial/UI producers",
+      "Maximum retained allocation under repeated distinct or long messages",
+      "Per-mod retirement of model and queued listener/event references"
+    ]
+  },
+  "record_retirement": {
+    "status": "Static structural evidence and offline copied-data model only. No live tutorial erasure or callable retirement adapter.",
+    "cleanup_callers": {
+      "setup_function_rva": "0x203ab90",
+      "temporary_primary_cleanup_call_rva": "0x203b4fc",
+      "empty_primary_cleanup_call_rva": "0x203b53d",
+      "reserve_rebuild_call_rva": "0x203b56f",
+      "range_checked_destructor_rva": "0x20458c0",
+      "destructor_behavior": "Aligns the first pointer to8bytes and requires aligned+0x70 <= second end pointer. Destroys the secondary table at+0x38 followed by primary at+0x08, returning next address or zero. Not a one-argument or per-key destructor.",
+      "finding": "These additional callers destroy whole tables or temporary setup data. The bounded direct-call inspection still does not establish a per-key tutorial erase function; indirect or inlined alternatives are not excluded."
+    },
+    "metadata_analogue": {
+      "function_rva": "0x23e6e40",
+      "write_region": [
+        "0x23e6edf",
+        "0x23e6f6d"
+      ],
+      "provenance": "A DIFFERENT native table with a64-bit entity key. The function is not compatible with32-bit tutorial keys and must not be called as a tutorial erase operation.",
+      "transfer_evidence": "Tutorial secondary lookup0x1e63cc0, reserve0x204e780, insertion0x20425c0 and rebuild0x204ea60 use the same metadata offsets, control-byte meanings,16-byte groups and mirrored writes. Only this metadata behavior is compared; payload/key semantics are not transferred.",
+      "table_relative_fields": {
+        "control_pointer": "0x00",
+        "slot_pointer": "0x08",
+        "size": "0x10",
+        "capacity_mask": "0x18",
+        "growth_left": "0x28"
+      },
+      "controls": {
+        "empty": "0x80",
+        "deleted": "0xfe",
+        "sentinel": "0xff",
+        "occupied": "0x00..0x7f"
+      },
+      "group_width": 16,
+      "calculation": [
+        "Target index must identify an occupied payload slot strictly below mask.",
+        "Read16-byte groups starting at index and before_start=(index-16)&mask; detect only0x80 as empty.",
+        "Choose0x80 only if both empty masks are nonzero and clz16(before_empty_mask)+ctz16(after_empty_mask)<16; otherwise choose0xfe.",
+        "Write selected control at index and mirror=((index-16)&mask)+(mask&15)+1; these offsets can alias.",
+        "Decrement size; increment growth_left only when the selected control is0x80."
+      ],
+      "control_extent": "Secondary rebuild initializes mask+16 bytes, puts sentinel at index mask, and allocates control prefix(mask+0x18)&~7 before the payload. The mirror of index15 for mask31 is47, in alignment padding beyond initialized bytes0..46. Group reads do not consume that padding byte. Small masks1/3/7 use mirror=index+mask+1, not index+16.",
+      "growth_relation": "Secondary rebuild sets growth_left=mask-(mask>>3)-size without a special case for mask7.",
+      "limits": "No metadata delta owns or destroys a tutorial payload, cancels references or grants a mutation phase. A copied snapshot cannot prove it remains current. Preserve native controls including sentinel/clones/empty padding; do not synthesize groups by cycling only logical payload slots."
+    },
+    "adapter_requirements": [
+      "Establish a coherent writable phase and revalidate component identity and the owned key immediately before any mutation.",
+      "Retire selected, queued, active presentation and pending completion references before payload disposal.",
+      "Use verified type-specific destruction exactly once; metadata erasure alone does not free pages or strings.",
+      "Keep empty/tombstone choice, mirrored controls, size and growth bookkeeping consistent without touching other keys."
+    ]
+  },
+  "request_writer_boundary": {
+    "status": "Static native request access contract; observer forwards calls without writing engine data. No live mutation permission or owner-retirement adapter established.",
+    "registration_rva": "0x20482b0",
+    "access_descriptor_rva": "0x2045fc0",
+    "component_offset_builder_rva": "0x2045a60",
+    "worker_rva": "0x20384a0",
+    "worker_arguments": "One pointer to a borrowed nine-word aggregate. Same TutorialData base and row layout in both reviewed callers.",
+    "components": [
+      {
+        "name": "Completed",
+        "type_hash": "0xed2c12b8",
+        "access_mode_raw": 2,
+        "aggregate_word": 0
+      },
+      {
+        "name": "Requests",
+        "type_hash": "0x48941389",
+        "access_mode_raw": 3,
+        "aggregate_word": 1
+      },
+      {
+        "name": "Active",
+        "type_hash": "0x12707f01",
+        "access_mode_raw": 3,
+        "aggregate_word": 2
+      },
+      {
+        "name": "Dismissed",
+        "type_hash": "0x9fc946e4",
+        "access_mode_raw": 3,
+        "aggregate_word": 3
+      },
+      {
+        "name": "TutorialData",
+        "type_hash": "0xae510289",
+        "access_mode_raw": 3,
+        "aggregate_word": 4
+      },
+      {
+        "name": "PendingCompletion",
+        "type_hash": "0x4a56ea3c",
+        "access_mode_raw": 3,
+        "aggregate_word": 5
+      },
+      {
+        "name": "SelectionQueue",
+        "type_hash": "0x423c371a",
+        "access_mode_raw": 3,
+        "aggregate_word": 6
+      }
+    ],
+    "aggregate_tail": {
+      "entity_backing_word": 7,
+      "row_word": 8
+    },
+    "tutorial_data_stride": "0x70",
+    "dispatchers": [
+      {
+        "rva": "0x2042c70",
+        "worker_call_rva": "0x2042ed2",
+        "return_rva": "0x2042ed7"
+      },
+      {
+        "rva": "0x20444a0",
+        "query_builder_rva": "0x204c700",
+        "worker_call_rva": "0x20445a2",
+        "return_rva": "0x20445a7"
+      }
+    ],
+    "scheduling": "The parent resolves Fixed Update into its local phase handle at0x20361f7, then passes that handle to request registration at0x2036599. Registration passes the component descriptor to0x1d6ed30 and records raw dependency kind2 through0x1d65db0. This names the native phase but does not establish exact dependency direction, scheduling cadence or exclusive permission for an arbitrary adapter.",
+    "observation": "Schema6 keeps five sampled worker phases and three scoped outer-dispatch hooks. Request samples resolve all seven component arrays against the current full ECS handle and world. Panel-event samples resolve two component arrays and verify the three mutable environment arguments. Reports contain salted world-address/entity tokens; neither is persistent save identity or proof of a world lifetime. No requests are submitted.",
+    "remaining": "Implement owner-scoped request/presentation retirement using only the components authorized at each boundary. Actual tutorial batch membership, native cleanup and custom presentation require gameplay qualification; full engine quiescence is not established.",
+    "parent_phase": "Fixed Update",
+    "parent_registration_rva": "0x2036180",
+    "parent_call_rva": "0x2036599",
+    "identity": {
+      "dispatcher_abi": "void(const void* world_view, uint16_t system_or_archetype, const void* system). Direct calls receive system ID; archetype calls receive archetype index.",
+      "world": "Read the world pointer from world_view+0 only during the current thread-local dispatcher scope. Nested rejected scopes shadow the outer scope. No fallback to the last observed world.",
+      "entity": "Read the full u64 handle at aggregate[7]+0x10+aggregate[8]*8. Low32 is entity index, high32 is generation.",
+      "component_strides": [
+        16,
+        16,
+        16,
+        16,
+        112,
+        16,
+        16
+      ],
+      "checks": "Recognized system callback slots+0x140/+0x148; direct system ID or job archetype; bounded row/capacity; current generation, entity location, chunk table/header and row count; all seven component hash/base/stride matches; final query and identity round trip.",
+      "limits": "A read-only consistency check is not a lock or an ABA-proof world lifetime. Raw component pointers are not retained after callbacks. Checks do not grant writable access to UI stack or other undeclared components."
+    },
+    "scheduler_contract": {
+      "access_consumer_rva": "0x1d6ed30",
+      "descriptor": "Twelve-byte records {u32 component_hash, u32 access, u32 match_kind}. For these request records match_kind=0; access2 populates read hashes, access3 write hashes. Some metadata kinds are excluded from access-list processing.",
+      "system_descriptor_offset": "0xc8",
+      "descriptor_spans": {
+        "0x08": "read hashes",
+        "0x18": "write hashes",
+        "0x28": "required hashes",
+        "0x38": "excluded hashes"
+      },
+      "span_layout": "{u64 count, pointer}; sorted hash lists, not bit masks",
+      "conflict_predicate_rva": "0x1d61390",
+      "conflict_rules": "Required/excluded intersections reject coexistence; read/write, write/read or write/write intersection yields a candidate conflict. Alternative-group filtering can suppress candidates.",
+      "pair_recording": {
+        "call_rva": "0x1d5ffa2",
+        "insert_rva": "0x1d60450",
+        "registry_controls": "0x30",
+        "registry_pairs": "0x38",
+        "registry_mask": "0x48"
+      },
+      "graph_builder_rva": "0x1d6aac0",
+      "graph_abi": "RCX output graph, RDX ordered {count,u16* system_ids} span, R8 registry.",
+      "graph_fields": {
+        "0x00": "ordered system IDs",
+        "0x10": "per-node successor vectors",
+        "0x20": "initial dependency counts",
+        "0x30": "root sequence indices"
+      },
+      "edge_direction": "Earlier sequence index i precedes later index j when the registry pair conflicts. Numeric system IDs are canonicalized only for lookup; they do not determine execution order. Redundant direct edges can be replaced by paths through an existing conflicting successor. Leaves reference terminal index N.",
+      "batch_builder_rva": "0x1d6a3d0",
+      "batch_split": "System flags+0x130/+0x131 split the supplied sequence into graphs, including flagged singletons. Flag meanings and ordering producer are not established by this trace.",
+      "execution_rva": "0x1d686c0",
+      "execution": "Copies graph dependency counts to execution-local mutable storage, then schedules roots. Direct callback1d68caf, archetype callback1d68aaa and main-thread callback1d695db return before releasing successor counters. Archetype jobs add dependency counts before dispatch.",
+      "scope": "Within a constructed graph, declared conflicting systems are ordered by sequence position directly or through dependency paths. This does not establish exclusion from work outside the graph/update batch or ownership of unrelated UI/cache state."
+    }
+  },
+  "native_private_adapter": {
+    "images": {
+      "stock_header": "The source page media token at +0x08 becomes runtime page +0x00; source string24 at +0x74 becomes runtime page URL string at +0x08. Static submission 0x1e613fb passes both to 0x1e60ef0. Valid-token submission starts a streaming state; 0x1e6111f queries resource dimensions through 0x1e293f0 before releasing that state. Supplying an arbitrary URL alone does not establish this contract.",
+      "sizing_reference": "https://docs.coherent-labs.com/cpp-gameface/content_development/supported_features_tables/cssproperties/",
+      "renderer_reference": "https://docs.coherent-labs.com/cpp-gameface/content_development/inlinelayout/",
+      "sdk_content_image": "tutorial_present copies a version-1 fixed-size descriptor with a bounded canonical game UI PNG URL and layout. A host-owned custom Cohtml binding recognizes inert image metadata and builds a sibling image/text container outside the stock cohinline paragraph; placement, alignment, percentage width, maximum vh height and vh gap are bounded. The body remains escaped plain guest text. No arbitrary HTML, custom texture registration, disk or network URL access is provided. Image and layout variations count toward the process-wide localization cache bound using the rendered string; explicit defaults and zero defaults share entries. The text-only tutorial_show ABI is unchanged.",
+      "evidence": "Gameplay captures confirm separate image/text blocks, but auto-height/object-fit stretched the texture. The follow-up naturalWidth/naturalHeight sizing path initialized images to zero and a later user report found no visible image; the exact unavailable getter/load/measurement stage was not captured. That dependency is removed. Current rendering uses the same fixed-area background-image/background-size:contain/no-repeat pattern present in the stock challenge-menu and menu-context-image CSS. The full texture fits proportionally inside the requested width/height area, aligned toward text. No HTMLImageElement, load callbacks, size getters, frame polling or resize handler is involved. Production-binding tests inspect painted screenshot pixels for three texture ratios, six placements and two resolutions, with img creation forbidden. User gameplay confirmation reports the background path working, including image visibility and proportions. This qualifies basic presentation on the October hotfix, not every world-transition, competing tutorial or focus-restoration path. PRESENTED acknowledges native tutorial state only."
+    },
+    "status": "Implemented for the fingerprinted October hotfix. Native panel rendering is observed in a gameplay capture; logs show repeated hint timeout and panel retirement. Missing-glyph prefixes are removed. Automated tests cover guest cancellation and native retirement guards; complete focus restoration and world-transition qualification remain pending.",
+    "sources": ["runtime/tutorial_payload.cpp", "runtime/tutorial_native.cpp", "runtime/tutorial_hint.cpp", "runtime/mod_tutorials.cpp", "sdk/include/crml_tutorial.h"],
+    "payload": "One bounded native asset page with initialized string40/string24 headers, empty media and conditional messages. The reviewed native builder deep-copies title/body into allocator-owned runtime pages. Plain guest body text is escaped for the stock HTML sink. Unknown localization keys echo the authored text. No format-character prefix is added: U+2060/U+2063 rendered as missing-glyph boxes in the game font. Existing localization keys and debug modes can alter display.",
+    "panel": "A private secondary table is constructed by native insertion with its exact seven-argument ABI. Original ECS TutorialData remains unchanged. Only verified owned event/sync callbacks borrow a query whose TutorialData points at this private table. The event boundary verifies full current entity identity and mutable environments before publishing stock pending variant1; native navigation, rendering and input handling remain in the stock worker.",
+    "panel_retirement": "Owner cancellation uses guarded stock close. Native sync must return with active and synchronized-active false and no pending event; a subsequent verified event boundary clears the owned private identifier and destroys the private table with its native whole-table destructor. Foreign keys and occupied pending events are preserved. Per-key ECS erasure is not needed by this adapter.",
+    "hint": "The stock hint sync worker receives a private primary lookup table, page and private native state only while the game hint channel is idle. Host duration/cancellation requests fade through the stock state machine. Cleanup waits for state zero and displayed identifier zero. No private identifier is added to game requests, completion or save data.",
+    "prompt": "An additive dynamic-toast kind shares the hint's private primary table and state. Native lookup 0x1e63e00 returns the value pointer at slot+8 (LEA [r9+8] at 0x1e63f09); dynamic sync reads value+0x18 at 0x1fe9313 for the stock CLOSE_TUTORIAL callout and value+0x48/+0x4c at 0x1fe9677/0x1fe96a3 for timer visibility/progress. The adapter writes slot+8+those offsets. Its first build wrote them relative to slot start: title/body displayed, but live screenshot showed no dismiss action or progress bar. At reviewed dynamic-input caller return 0x1fea404, the native input worker receives a private TutorialData query and capacity-one private Requests vector while the game hint channel is idle. Its kind-3 completion remains private and requests host fade; no game Requests or campaign completion entry receives the private ID. The action comes from the game's current CLOSE_TUTORIAL binding, not a hardcoded key or arbitrary mod action. The corrected layout has focused native-layout tests; live dismissal and timer behavior await another capture.",
+    "bounds": "One private panel and one private hint may be live. Uncertain native allocation/mutation faults quarantine the affected allocation and disable further admission; they do not authorize speculative destruction or repeated allocating retries. The host bounds queued requests and distinct text. Hook conflicts are refused, so diagnostic observer hook ownership cannot be silently mistaken for an installed adapter.",
+    "tests": ["tests/test_tutorial_payload.cpp", "tests/test_tutorial_native.cpp", "tests/test_tutorial_hint.cpp", "tests/test_tutorial_panel.cpp", "tests/test_mod_tutorials.cpp"],
+    "limits": "Tests exercise payload ABI and fault ownership, insertion transfer, borrowed-query arbitration, open/close/retirement guards, native-state acknowledgement, owner cancellation and bounded host storage with mocked native calls. They do not execute the game renderer, native input restoration or live engine allocations. Existing static registration/erasure sections describe the separate game-owned ECS path and are not prerequisites for the private-table adapter."
+  },
+  "tutorial_action_boundary": {
+    "status": "Static stock UI and dynamic input path; no arbitrary guest action-to-glyph adapter established.",
+    "dynamic": {
+      "worker_rva": "0x1fe8e60",
+      "action": "CLOSE_TUTORIAL",
+      "action_id_storage_rva": "0x5dc75f0",
+      "conditions": "Requires input backing, a nonzero displayed tutorial ID, a successful primary-table lookup, value+0x18 equal to 1 and a true native input predicate at 0x29c82e0.",
+      "result": "Appends request kind 3 and the displayed tutorial ID to Requests. This is the completion path, not owner-scoped cancellation.",
+      "stock_prompt": "Visibility is gated by ui_tutorial_dynamic_dismiss_input == 1. The key label/icon/hold display comes from ui_action_keys_CLOSE_TUTORIAL fields.",
+      "settings_relation": "The stock controls schema connects AUDIO_LOG_PLAY and CLOSE_TUTORIAL; independent guest rebinding is not established."
+    },
+    "static": {
+      "continue_action": "MENU_SELECT",
+      "page_action": "MENU_HORIZONTAL",
+      "mouse_event": "static_tutorial_continue",
+      "constraint": "These are native navigation controls, not caller-selected guest actions. Existing page-end behavior distinguishes primary completion from secondary panel closure."
+    },
+    "adapter_constraint": "Keep user completion separate from owner cancellation and unload. Native dismiss glyphs do not prove arbitrary inline action hints or support for guest-defined action bindings."
+  }
+}

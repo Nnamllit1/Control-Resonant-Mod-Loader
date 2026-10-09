@@ -55,11 +55,22 @@ nav:
       - Troubleshooting: troubleshooting.md
   - Make a mod:
       - Your first mod: developing.md
+      - Test guest behavior: mod-testing.md
+      - Save mod data: mod-storage.md
+      - Mod settings: mod-settings.md
+      - Dynamic lists: mod-lists.md
+      - Schematic drawing: mod-drawing.md
+      - Mod feedback: mod-feedback.md
+      - Native tutorials: mod-tutorials.md
+      - Action bindings: mod-input.md
+      - Action restrictions: action-rules.md
       - Package format and API: api.md
+      - Contracts and evidence: sdk-contracts.md
       - Sandbox limits: sandbox.md
   - Contributing:
       - Build from source: building.md
       - Architecture: architecture.md
+      - Extend the native bridge: extending-runtime.md
       - Engine research:
           - Overview: engine-research.md
           - Subsystem atlas: engine-atlas.md
@@ -70,6 +81,7 @@ nav:
           - Lua bytecode tools: binlua.md
           - Engine Lua integration: engine-lua.md
           - Physics dynamics: physics-dynamics.md
+          - Dialogue observation: dialogue-observation.md
       - Diagnostics and examples:
           - Engine diagnostics: engine-validation.md
           - Entity inspector: entity-inspector.md

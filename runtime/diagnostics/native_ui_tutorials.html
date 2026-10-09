@@ -1,0 +1,91 @@
+<!-- crml-native-tutorial-layout-v1 -->
+<script>
+(function () {
+    'use strict';
+    if (window.__crmlTutorialLayout) return;
+    var stopped = false, registered = false, owners = [];
+    var prefix = '<span data-crml-tutorial-image="';
+    function decode(value) {
+        if (typeof value !== 'string' || value.indexOf(prefix) !== 0 || value.length > 8192) return null;
+        var box = document.createElement('div'); box.innerHTML = value;
+        var source = box.firstChild;
+        if (!source || box.childNodes.length !== 1 || source.nodeName !== 'SPAN') return null;
+        var url = source.getAttribute('data-crml-tutorial-image') || '';
+        var layout = (source.getAttribute('data-crml-tutorial-layout') || '').split(',');
+        if (url.length > 256 || !/^coui:\/\/base\/textures\/uiresources\/[A-Za-z0-9_./-]+\.png$/.test(url) ||
+            url.indexOf('..') !== -1 || layout.length !== 5) return null;
+        for (var i = 0; i < layout.length; ++i) {
+            if (!/^[0-9]+$/.test(layout[i])) return null;
+            layout[i] = Number(layout[i]);
+        }
+        if (layout[0] > 1 || layout[1] > 2 || layout[2] < 1 || layout[2] > 100 ||
+            layout[3] < 1 || layout[3] > 32 || layout[4] < 1 || layout[4] > 4) return null;
+        // Host body text is escaped, with BR as its only element. This is not
+        // a second general-purpose HTML or CSS entry point.
+        for (var child = source.firstChild; child; child = child.nextSibling)
+            if (child.nodeType !== 3 && !(child.nodeType === 1 && child.nodeName === 'BR')) return null;
+        return { url: url, layout: layout, body: source.innerHTML };
+    }
+    function Layout() { this.node = null; this.element = null; this.value = null; this.display = ''; }
+    Layout.prototype.deinit = function () {
+        if (this.node && this.node.parentNode) this.node.parentNode.removeChild(this.node);
+        if (this.element) this.element.style.display = this.display;
+        var at = owners.indexOf(this); if (at >= 0) owners.splice(at, 1);
+        this.node = null; this.element = null; this.value = null;
+    };
+    Layout.prototype.update = function (element, value) {
+        if (stopped) return;
+        if (this.element === element && this.node && this.node.parentNode === element.parentNode && this.value === value) return;
+        var content = decode(value);
+        if (!content || !element.parentNode) { this.deinit(); return; }
+        if (this.node && (this.element !== element || this.node.parentNode !== element.parentNode)) this.deinit();
+        if (!this.node) {
+            if (owners.length >= 8) return;
+            this.element = element; this.display = element.style.display;
+            this.node = document.createElement('div');
+            this.node.className = element.className;
+            this.node.setAttribute('data-crml-tutorial-layout', '1');
+            this.node.style.display = 'flex'; this.node.style.flexDirection = 'column';
+            element.parentNode.insertBefore(this.node, element);
+            owners.push(this);
+        }
+        var row = document.createElement('div'), image = document.createElement('div');
+        row.style.display = 'flex'; row.style.flexDirection = 'row'; row.style.width = '100%';
+        row.style.justifyContent = ['center', 'flex-start', 'flex-end'][content.layout[1]];
+        row.style[content.layout[0] ? 'marginTop' : 'marginBottom'] = content.layout[4] + 'vh';
+        // Use the game's own menu-image pattern. No HTMLImageElement size
+        // getters, load callbacks or layout reads are needed for game textures.
+        image.setAttribute('data-crml-tutorial-media', '1');
+        image.style.width = content.layout[2] + '%'; image.style.height = content.layout[3] + 'vh';
+        image.style.flex = '0 0 auto';
+        image.style.backgroundImage = 'url("' + content.url + '")';
+        image.style.backgroundSize = 'contain'; image.style.backgroundRepeat = 'no-repeat';
+        image.style.backgroundPosition = ['center', 'left', 'right'][content.layout[1]] +
+            (content.layout[0] ? ' top' : ' bottom');
+        row.appendChild(image);
+        var text = document.createElement('p'); text.setAttribute('cohinline', '');
+        text.style.margin = '0'; text.style.width = '100%'; text.innerHTML = content.body;
+        while (this.node.firstChild) this.node.removeChild(this.node.firstChild);
+        this.node.appendChild(content.layout[0] ? text : row);
+        this.node.appendChild(content.layout[0] ? row : text);
+        // Only CRML-owned image content is promoted out of the inline paragraph.
+        // The original binding remains in place for ordinary game tutorials.
+        element.style.display = 'none'; this.value = value;
+    };
+    function ready() {
+        if (stopped || registered || !window.engine || typeof engine.registerBindingAttribute !== 'function') return;
+        try { engine.registerBindingAttribute('crml-tutorial-layout', Layout); registered = true; }
+        catch (_) { /* Keep the original readable text if this renderer rejects the binding. */ }
+    }
+    function stop() {
+        if (stopped) return; stopped = true;
+        owners.slice().forEach(function (owner) { owner.deinit(); });
+        if (window.engine && typeof engine.off === 'function') engine.off('Ready', ready);
+        window.removeEventListener('pagehide', stop);
+    }
+    window.__crmlTutorialLayout = { stop: stop, status: function () { return { registered: registered, owners: owners.length }; } };
+    window.addEventListener('pagehide', stop);
+    if (window.engine && engine.whenReady && typeof engine.whenReady.then === 'function') engine.whenReady.then(ready);
+    else { if (window.engine && typeof engine.on === 'function') engine.on('Ready', ready); ready(); }
+}());
+</script>

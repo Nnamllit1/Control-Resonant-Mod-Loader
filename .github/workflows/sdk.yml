@@ -1,0 +1,30 @@
+name: Runtime and SDK
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Build and check packaged SDK
+    runs-on: windows-2022
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install browser test dependency
+        run: python -m pip install -r requirements-tests.txt
+      - name: Build, test and exercise extracted SDK
+        shell: powershell
+        run: .\release.ps1 -Output .local/sdk-ci

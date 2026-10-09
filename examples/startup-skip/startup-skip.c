@@ -27,7 +27,7 @@ static int boot_asset(const crml_media_state* media) {
 }
 static void media_tick(float dt) {
     crml_media_state media;
-    if (crml_media_read(&media, sizeof(media)) != 1 || media.size != sizeof(media) ||
+    if (crml_startup_read_media(&media) != 1 || media.size != sizeof(media) ||
         media.version != CRML_MEDIA_STATE_VERSION || !media.generation) {
         media_observed = 0;
         media_retry = 0;
@@ -47,7 +47,7 @@ static void media_tick(float dt) {
         !(media.flags & (CRML_MEDIA_ENGINE_NAME | CRML_MEDIA_MAPPED_NAME)) || !boot_asset(&media)) return;
     ++media_attempts;
     media_retry = 0;
-    if (crml_media_skip(media_generation) == 0) MESSAGE("Startup skip: media skip requested.");
+    if (crml_startup_skip_media(media_generation) == 0) MESSAGE("Startup skip: media skip requested.");
 }
 static void presentation_tick(const crml_ui_state* ui, float dt) {
     const uint32_t eligible = ui->screen == CRML_UI_SCREEN_PHOTOSENSITIVITY ||
@@ -60,11 +60,11 @@ static void presentation_tick(const crml_ui_state* ui, float dt) {
         if (!presentation_desired || changed || presentation_retry >= 0.25f) {
             presentation_desired = 1;
             presentation_retry = 0;
-            crml_ui_present(ui->generation, CRML_UI_TARGET_CLASS, "splash", 6, 1, 750);
+            crml_ui_element_set_hidden(ui->generation, CRML_UI_TARGET_CLASS, "splash", 6, 1, 750);
         }
     } else if (presentation_desired && (changed || presentation_retry >= 0.25f)) {
         presentation_retry = 0;
-        if (crml_ui_present(ui->generation, CRML_UI_TARGET_CLASS, "splash", 6, 0, 0) == 0)
+        if (crml_ui_element_set_hidden(ui->generation, CRML_UI_TARGET_CLASS, "splash", 6, 0, 0) == 0)
             presentation_desired = 0;
     }
 }
@@ -72,7 +72,7 @@ void crml_tick(float dt) {
     // The media path runs even when the native UI view is not ready yet.
     media_tick(dt);
     crml_ui_state ui;
-    if (crml_ui_read(&ui, sizeof(ui)) != 1 || ui.size != sizeof(ui) ||
+    if (crml_startup_read_screen(&ui) != 1 || ui.size != sizeof(ui) ||
         ui.version != CRML_UI_STATE_VERSION || !ui.generation) {
         // An unavailable interval breaks the stability window, but does not
         // replenish this generation's attempt budget.

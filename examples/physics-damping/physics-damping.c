@@ -28,7 +28,7 @@ void crml_tick(float elapsed_seconds) {
     // An edge, not a held key, starts a search. Bindings live in mod.ini.
     if (pressed & SELECT_BUTTON) {
         const int32_t result = crml_physics_select_near(search_offset[0], search_offset[1], search_offset[2], search_radius);
-        if (result == 0) {
+        if (result == CRML_PHYSICS_SELECT_ACCEPTED) {
             static const char message[] = "Physics: search queued.";
             crml_log(1, message, sizeof(message) - 1);
         } else {
@@ -41,8 +41,8 @@ void crml_tick(float elapsed_seconds) {
     if (pressed & APPLY_BUTTON) {
         const uint64_t target = crml_physics_target();
         if (target != 0) {
-            const int32_t result = crml_physics_apply(target, damping, duration_ms);
-            if (result == 0) {
+            const int32_t result = crml_prop_set_linear_damping(target, damping, duration_ms);
+            if (result == CRML_PHYSICS_APPLY_ACCEPTED) {
                 retained_target = target;
                 sampled_match_logged = 0;
                 static const char message[] = "Physics: damping queued.";
@@ -61,9 +61,9 @@ void crml_tick(float elapsed_seconds) {
     if (retained_target != 0) {
         crml_physics_state sample;
         const int32_t result = crml_physics_read(retained_target, &sample, sizeof(sample));
-        if (result == -3) {
+        if (result == CRML_PHYSICS_READ_INVALID_TARGET) {
             retained_target = 0;
-        } else if (result == 1 && sample.version == 1 && !sampled_match_logged
+        } else if (result == CRML_PHYSICS_READ_COPIED && sample.version == 1 && !sampled_match_logged
                    && (sample.flags & CRML_PHYSICS_STATE_DAMPING)
                    && sample.linear_damping == damping) {
             static const char message[] = "Physics: sampled damping matches request.";
@@ -72,17 +72,19 @@ void crml_tick(float elapsed_seconds) {
         }
     }
     const int32_t status = crml_physics_status();
-    if (status == 0 || status == 6 || status == 7 || status == 8 || status == 9)
+    if (status == CRML_PHYSICS_STATUS_IDLE || status == CRML_PHYSICS_STATUS_FINISHED
+        || status == CRML_PHYSICS_STATUS_RETIRED || status == CRML_PHYSICS_STATUS_GAME_CONFLICT
+        || status == CRML_PHYSICS_STATUS_REFUSED)
         retained_target = 0;
     if (status != previous_status) {
         previous_status = status;
-        if (status == 3) {
+        if (status == CRML_PHYSICS_STATUS_SELECTED) {
             static const char message[] = "Physics: prop selected.";
             crml_log(1, message, sizeof(message) - 1);
-        } else if (status == 4) {
+        } else if (status == CRML_PHYSICS_STATUS_ACTIVE) {
             static const char message[] = "Physics: damping active.";
             crml_log(1, message, sizeof(message) - 1);
-        } else if (status == 0) {
+        } else if (status == CRML_PHYSICS_STATUS_IDLE) {
             static const char message[] = "Physics: no selected prop.";
             crml_log(1, message, sizeof(message) - 1);
         }

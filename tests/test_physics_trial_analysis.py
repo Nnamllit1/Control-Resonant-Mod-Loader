@@ -44,6 +44,20 @@ class AnalysisTests(unittest.TestCase):
         for bad in (-1, True):
             with self.assertRaises(ValueError): self.read([{**stats, 'lifetime_missed': bad}])
 
+    def test_engine_leases_preserve_legacy_event_sequence(self):
+        lease = dict(type='engine_lease', sequence=2, tick_ms=2, thread=1,
+                     owner=88, target=44, entity='101', body='201', result='restored')
+        report = self.read([self.event(1, 6, 1), lease, self.event(3, 6, 0)])
+        self.assertEqual(report['engine_leases'], [lease])
+        self.assertEqual([e['reason'] for e in report['lifetime_events']], ['scene_destroy', 'body_release'])
+        self.assertEqual(report['events'], 3)
+        self.assertEqual(report['selections'], {})
+        self.assertFalse(report['gameplay_effect_verified'])
+        for field, value in [('owner', 0), ('target', 0), ('owner', True),
+                             ('body', '-1'), ('result', 'success'), ('sequence', 4)]:
+            with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                self.read([self.event(1, 6, 1), {**lease, field: value}])
+
     def test_baseline_is_captured_at_application(self):
         report = self.read([self.event(1, 0, 0, .25, .5), self.event(2, 2, 256, .75, 8),
                             self.event(3, 1, 6), self.event(4, 2, 256, 8, .75), self.event(5, 1, 9)])

@@ -1,0 +1,148 @@
+<!-- CRML passive guest feedback, rendered in the engine's existing UI document -->
+<script>
+(function () {
+    'use strict';
+    if (window.__crmlFeedback) return;
+    var page = '__CRML_FEEDBACK_PAGE__';
+    if (!/^[1-9][0-9]*$/.test(page)) return;
+    var root = null, request = null, sequence = 0, acknowledgements = [], items = [];
+    var timer = null, frame = null, stopped = false, revision = 0;
+    function now() { return window.performance && performance.now ? performance.now() : Date.now(); }
+    function integer(value) { return typeof value === 'number' && isFinite(value) && Math.floor(value) === value; }
+    function clear(keepAcknowledgements) {
+        revision++; if (!keepAcknowledgements) acknowledgements = []; items = [];
+        if (frame !== null) { cancelAnimationFrame(frame);frame = null; }
+        if (root && root.parentNode) root.parentNode.removeChild(root);
+        root = null;
+    }
+    function prune() {
+        var stamp = now();
+        items = items.filter(function (item) {
+            if (stamp < item.until) return true;
+            if (item.node.parentNode) item.node.parentNode.removeChild(item.node);
+            return false;
+        });
+        if (!items.length && root) clear(true);
+        if (document.hidden) clear(true);
+    }
+    function render(messages, sentAt) {
+        messages.forEach(function (message) {
+            if (!message || typeof message.ticket !== 'string' || !/^[1-9][0-9]*$/.test(message.ticket) || typeof message.text !== 'string' || message.text.length > 240 ||
+                typeof message.name !== 'string' || message.name.length > 95 || typeof message.id !== 'string' || message.id.length > 64 ||
+                !integer(message.severity) || message.severity < 0 || message.severity > 3 ||
+                !integer(message.remaining_ms) || message.remaining_ms <= 0 || message.remaining_ms > 10000) throw new Error('Invalid feedback');
+        });
+        // Empty replies are the normal idle state. In Cohtml even a temporary
+        // append/remove invalidates the shared game UI tree.
+        if (!messages.length) { if (root) clear(true);return; }
+        if (root && document.documentElement.contains(root) && !document.hidden && messages.length === items.length &&
+            messages.every(function (message, i) { return message.ticket === items[i].ticket; })) {
+            // Receipts are immutable. Keep existing DOM nodes so polling does
+            // not repeat live-region announcements or restart presentation.
+            items.forEach(function (item, i) { item.until = Math.min(item.until, sentAt + messages[i].remaining_ms); });
+            prune();return;
+        }
+        if (document.hidden || !document.body) { clear(true); return; }
+        revision++;
+        if (root && !document.documentElement.contains(root)) clear(true);
+        if (!root) {
+            root = document.createElement('div');
+            root.setAttribute('data-crml-feedback', '1');
+            root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'polite');
+            // Reuse the game's static tutorial panel styles, without its model
+            // bindings, interactive actions, blur or animation. No extracted
+            // markup or styles are bundled.
+            // Keep an independent lane: native toasts are absolutely positioned
+            // under the quest HUD, so appending to that container would overlap.
+            root.style.cssText = 'position:absolute;right:4vw;top:8vh;width:32vw;max-width:640px;pointer-events:none;z-index:1000;color:#e8e8e8;font-family:AlteredGrotesk,sans-serif;font-weight:400;font-style:normal;letter-spacing:0;text-shadow:none;text-transform:none';
+            document.body.appendChild(root);
+        }
+        var labels = ['', 'Success', 'Warning', 'Error'];
+        var previous = items, next = [];
+        messages.forEach(function (message) {
+            var until = sentAt + message.remaining_ms;
+            if (until <= now()) return;
+            var existing = previous.filter(function (item) { return item.ticket === message.ticket; })[0];
+            if (existing) {
+                // Leave surviving nodes attached, even when another owner
+                // joins/leaves. Reparenting can restart native CSS animations.
+                existing.until = Math.min(existing.until, until);next.push(existing);return;
+            }
+            var node = document.createElement('div');
+            node.setAttribute('data-crml-mod', message.id);
+            node.className = 'tutorial-static__window';
+            node.style.cssText = 'position:relative;flex-direction:column;width:100%;height:auto;box-sizing:border-box;pointer-events:none;padding:1vh 1.4vh;margin-bottom:.8vh;overflow-wrap:break-word;background-color:rgba(23,23,23,.72);animation:none;transition:none;transform:none;backdrop-filter:none';
+            var content = document.createElement('div');
+            content.className = 'tutorial-static__window__body--right-side';
+            content.style.cssText = 'width:100%;min-width:0';
+            var title = document.createElement('div');
+            title.style.cssText = 'font-size:1.5vh;line-height:1.9vh;opacity:.75;margin-bottom:.35vh';
+            title.textContent = message.name + (message.name !== message.id ? ' [' + message.id + ']' : '') +
+                (labels[message.severity] ? ' / ' + labels[message.severity] : '');
+            var text = document.createElement('p');
+            text.className = 'tutorial-static__window__body__message';
+            text.style.cssText = 'width:100%;margin:0;opacity:1;animation:none;transition:none;transform:none';
+            // The stock message binds HTML for localization formatting. Mod
+            // feedback remains plain text and has no engine model bindings.
+            text.textContent = message.text;
+            content.appendChild(title);content.appendChild(text);node.appendChild(content);root.appendChild(node);
+            next.push({node:node, ticket:message.ticket, until:until});
+        });
+        previous.forEach(function (item) {
+            if (next.indexOf(item) < 0 && item.node.parentNode) item.node.parentNode.removeChild(item.node);
+        });
+        items = next;
+        if (!items.length) { clear(true); return; }
+        var rendered = revision;
+        if (frame !== null) cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(function () {
+            frame = null;
+            if (stopped || rendered !== revision || document.hidden || !root || !document.documentElement.contains(root)) return;
+            prune();acknowledgements = items.map(function (item) { return item.ticket; });
+        });
+    }
+    function poll() {
+        if (stopped) return;
+        prune();
+        if (request || document.hidden) return;
+        var xhr = new XMLHttpRequest(), sentAt = now();request = xhr;
+        var url = 'coui://base/crml/feedback/v1/' + page + '/' + (++sequence);
+        if (acknowledgements.length) url += '/' + acknowledgements.join(',');
+        xhr.open('GET', url, true);xhr.timeout = 1000;
+        function releaseRequest() {
+            xhr.onload = xhr.onerror = xhr.ontimeout = xhr.onabort = null;
+            if (request === xhr) request = null;
+        }
+        function fail() { if (request !== xhr) return;releaseRequest();clear(); }
+        xhr.onerror = fail;xhr.ontimeout = fail;xhr.onabort = fail;
+        xhr.onload = function () {
+            if (request !== xhr || stopped) return;
+            // Replaced pages and stopped services cannot become valid again
+            // with this token. Do not keep a discarded page polling forever.
+            if (xhr.status === 403 || xhr.status === 409 || xhr.status === 503) { stop();return; }
+            if (xhr.status !== 200) { fail(); return; }
+            try {
+                if (xhr.responseText.length > 8192) throw new Error('Feedback too large');
+                var packet = JSON.parse(xhr.responseText);
+                if (!packet || !Array.isArray(packet.messages) || packet.messages.length > 4) throw new Error('Invalid feedback response');
+                render(packet.messages, sentAt);releaseRequest();
+            } catch (_) { fail(); }
+        };
+        try { xhr.send(); } catch (_) { fail(); }
+    }
+    function stop() {
+        if (stopped) return;
+        stopped = true;if (timer !== null) { clearInterval(timer);timer = null; }
+        window.removeEventListener('pagehide', stop);window.removeEventListener('unload', stop);
+        if (request) {
+            var pending = request;request = null;
+            pending.onload = pending.onerror = pending.ontimeout = pending.onabort = null;
+            pending.abort();
+        }
+        clear();
+    }
+    window.__crmlFeedback = {stop:stop};
+    window.addEventListener('pagehide', stop);window.addEventListener('unload', stop);
+    timer = setInterval(poll, 250);poll();
+})();
+</script>

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "capabilities": ["input.motion", "input.actions", "player.motion"],
+  "initial": {"heading": {"right": [1, 0]}},
+  "frames": [
+    {"dt_ms": 10, "state": {"keys": ["F6", "W"]}},
+    {"dt_ms": 10, "state": {"input_fresh": false}},
+    {"dt_ms": 10, "state": {"input_fresh": true, "keys": []}}
+  ],
+  "expect": [
+    {"op": "motion_set", "frame": 1, "result": 1, "args": [1, 0, 0, 5]},
+    {"op": "motion_cancel", "frame": 2, "result": 0},
+    {"op": "motion_set", "frame": 2, "result": -1, "args": [1, 0, 0, 0]},
+    {"op": "motion_set", "frame": 3, "result": 0, "args": [0, 0, 0, 0]},
+    {"op": "motion_set", "frame": 3, "result": 0, "args": [0, 0, 0, 0]}
+  ]
+}

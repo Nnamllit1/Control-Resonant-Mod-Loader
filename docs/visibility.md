@@ -24,6 +24,13 @@ Removing the `visibility` mod folder disables its heartbeat, but restore install
 
 ## What runs in Wasm
 
-The example imports `input_buttons` and `visibility_set`. Its Wasm code reads the bounded input mask, chooses F7, and sends a boolean visibility request. Change the mask from 1 to 2 in `visibility.wat` to select F8 without rebuilding the native runtime. `visibility.c` is the equivalent SDK example.
+The Photo Visibility example also checks `visibility_read` before renewal. It
+stops on lease expiry and reports when the adapter has observed a hidden mesh.
+The API distinguishes an accepted lease from hidden-component evidence and
+command publication. These flags do not establish completed rendering or
+visibility restoration; see the
+[lease observation contract](api.md#visibility-lease-observations).
+
+The example imports `input_buttons` and `visibility_set`. Its Wasm code reads the bounded input mask, chooses F7, and sends a boolean visibility request. Change `CRML_BUTTON_F7` to `CRML_BUTTON_F8` in `visibility.c` to select F8 without rebuilding the native runtime. C is the normal build input; the WAT file remains a reference fixture.
 
 The runtime implements the engine-facing operation: it validates capability and ownership, expires stale requests, and applies the native renderer command on the correct engine phase. Wasm never writes engine memory directly. The older example only called `visibility_poll`, leaving both the F7 decision and renderer operation in native code; that import is retained for compatibility.

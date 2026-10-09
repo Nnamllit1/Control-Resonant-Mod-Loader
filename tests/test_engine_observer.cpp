@@ -65,6 +65,12 @@ void test_body_observation() {
     const auto before=actor; expect(BodyRead::ok);
     require(result.handle==handles[1] && result.linear_damping==.25f && result.angular_damping==.5f && !result.alternate,"normal damping snapshot");
     require(actor==before && body_slot_count(owner_at)==2,"read-only body snapshot and bounded count");
+    uint32_t slots{};
+    require(read_body_slot_count(owner_at,slots) && slots==2,"checked native slot count");
+    put(owner,0x2d8,0u);
+    require(read_body_slot_count(owner_at,slots) && slots==0,"valid empty table distinct from failure");
+    put(owner,0x2d8,2u);
+    require(!read_body_slot_count(0,slots) && slots==0,"failed count clears output");
     {
         std::array<unsigned char,0x400> motion_scene{};
         put(actor,0x18,reinterpret_cast<uintptr_t>(motion_scene.data()));

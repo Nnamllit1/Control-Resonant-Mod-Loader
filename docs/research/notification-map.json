@@ -1,0 +1,560 @@
+{
+  "schema": 1,
+  "title": "HUD notification producers and stock toast presentation",
+  "executable_sha256": "4f6596b08bb5bc7fe4150cf5b9f71d7bae87eea02d66627c03a5e05ffe84ea62",
+  "status": "Static research. No notification producer is exposed as a callable SDK adapter by this map.",
+  "documentation": "../engine-paths.md#hud-notifications",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8f60",
+      "target": "0x4bc73f8",
+      "label": "hud_notification binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8f6e",
+      "target": "0x23cdb50",
+      "label": "hud_notification callback registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cdb64",
+      "target": "0x2c98f30",
+      "label": "Read first script string argument and its atom identifier"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23cdbc2",
+      "target": "0xa7e07c2d",
+      "label": "Required HUD notification environment type hash"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cdbd8",
+      "target": "0x483160",
+      "label": "Required environment lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cdc45",
+      "target": "0x1fb1830",
+      "label": "Append or deduplicate predefined notification type"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cdcc0",
+      "target": "0x2c96a40",
+      "label": "Invalid enum argument error path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23cdcdd",
+      "target": "0x2c971b0",
+      "label": "Missing required ECS environment error path"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f035ec",
+      "target": "0x4a4b510",
+      "label": "handle_process_requests exact system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f0381f",
+      "target": "0x4a4b6c0",
+      "label": "update_timer exact system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f03993",
+      "target": "0x4a4b820",
+      "label": "update exact system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f036dd",
+      "target": "0x1f08e70",
+      "label": "process requests dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f038ee",
+      "target": "0x1f08ec0",
+      "label": "timer dispatcher registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f03aa6",
+      "target": "0x1f08e90",
+      "label": "fixed update dispatcher registration"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1f08e83",
+      "target": "0x1f048a0",
+      "label": "process dispatcher reaches worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f08eb0",
+      "target": "0x1f03bb0",
+      "label": "fixed update dispatcher reaches worker"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1f08ecf",
+      "target": "0x1f04dd0",
+      "label": "timer dispatcher reaches worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f0aa20",
+      "target": "0x1f0d1f0",
+      "label": "native payload builder enqueues request"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f0d20c",
+      "target": "0x800",
+      "label": "atomic producer ticket counter offset"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f0d238",
+      "target": "0x164",
+      "label": "segmented queue entries per block"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f0d245",
+      "target": "0xb8",
+      "label": "native request stride"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f0d230",
+      "target": "0x1f0b6b0",
+      "label": "producer obtains native allocated block"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1f0d25b",
+      "target": "0x1f09df0",
+      "label": "producer moves native request into queue"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f09e51",
+      "target": "0x1f08680",
+      "label": "request moves optional variant"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f08948",
+      "target": "0x1f087fd",
+      "label": "variant7 selects native string mover"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f0881d",
+      "target": "0x31ddf70",
+      "label": "variant7 transfers native string storage"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f0a554",
+      "target": "0x1f0a4cc",
+      "label": "variant7 destructor case"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1f0a4d4",
+      "target": "0x31ddc70",
+      "label": "variant7 invokes native string destructor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f04a3d",
+      "target": "0x1f09df0",
+      "label": "drain moves segmented requests into pending vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f04a7d",
+      "target": "0x1f0b1c0",
+      "label": "drain destroys moved segmented requests"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f04c73",
+      "target": "0x1f07df0",
+      "label": "request kind resolves shared category"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f04c82",
+      "target": "0x1f0ae40",
+      "label": "consumer appends through category limit gate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f0aed8",
+      "target": "0x1f0d0b0",
+      "label": "eligible request appended to category pending vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f03da2",
+      "target": "0x1f0a6e0",
+      "label": "fixed update selects next active category request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f0a791",
+      "target": "0x1f09df0",
+      "label": "selected request moved into active storage"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f674ff",
+      "target": "0x4a65380",
+      "label": "Loot notification sync signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f67624",
+      "target": "0x1f693c0",
+      "label": "Loot sync dispatcher registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f693e0",
+      "target": "0x1f68320",
+      "label": "Loot sync dispatcher worker"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f6836d",
+      "target": "0x5",
+      "label": "Loot sync selects active notification kind five"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f68376",
+      "target": "0x1f02ce0",
+      "label": "Active category request lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f68576",
+      "target": "0x1f69460",
+      "label": "Copy per-slot fact handles"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f685ca",
+      "target": "0x31ddef0",
+      "label": "Copy preferred message identifier"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f686f7",
+      "target": "0x17f69a0",
+      "label": "Write item string fact"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f68710",
+      "target": "0x17f69a0",
+      "label": "Write message string fact"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f68a2a",
+      "target": "0xd0",
+      "label": "Loot item stride"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f68a3b",
+      "target": "0x130",
+      "label": "Per-slot fact handle stride"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f6a2ce",
+      "target": "0x4a65018",
+      "label": "Message fact suffix"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f6a3a5",
+      "target": "0x4a6500c",
+      "label": "Item fact suffix"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f6a745",
+      "target": "0x1f69460",
+      "label": "Install generated per-slot fact handles"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17f6a3e",
+      "target": "0x1b279b0",
+      "label": "Create string fact value for comparison"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17f6aa0",
+      "target": "0x1b279b0",
+      "label": "Write changed string fact value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x180a87d",
+      "target": "0x180ba00",
+      "label": "Localization binding wrapper calls generic model binding"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x180a863",
+      "target": "0x3",
+      "label": "Localization wrapper supplies model type three"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17ff4e9",
+      "target": "0x17fefe0",
+      "label": "FactBinding translation getter registration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17ff536",
+      "target": "0x17ff390",
+      "label": "FactBinding locID getter registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ff0ff",
+      "target": "0x29dd850",
+      "label": "Translation getter obtains string-table manager"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ff14e",
+      "target": "0x29dde10",
+      "label": "Translation getter resolves identifier"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29dde8b",
+      "target": "0x29dfa00",
+      "label": "Primary localization lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29ddf36",
+      "target": "0x29dfa00",
+      "label": "Secondary localization lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de043",
+      "target": "0x29de2e0",
+      "label": "Missing key converted to fallback UTF16"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de051",
+      "target": "0x29df770",
+      "label": "Missing key fallback cache insertion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de05d",
+      "target": "0x319dea0",
+      "label": "Fallback UTF16 copied into cache entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de069",
+      "target": "0x29df930",
+      "label": "Fallback converted to output UTF8"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29de3d8",
+      "target": "0x29e01b0",
+      "label": "Fallback UTF8 to UTF16 conversion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29df9b1",
+      "target": "0x29e0440",
+      "label": "Output UTF16 to UTF8 conversion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29df9c6",
+      "target": "0x31dde60",
+      "label": "Converted output copied into native string"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ff2b9",
+      "target": "0x32d7aa0",
+      "label": "ID and localization debug format"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17ff2d1",
+      "target": "0x31dde60",
+      "label": "Getter copies debug or empty output into scratch string"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29defb1",
+      "target": "0x29df100",
+      "label": "Resource replacement clears fallback cache"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29df70b",
+      "target": "0x29df100",
+      "label": "Manager destructor clears fallback cache"
+    }
+  ],
+  "script_binding": {
+    "name": "hud_notification",
+    "callback_rva": "0x23cdb50",
+    "argument": "The first argument is a string atom resolved through a predefined enum lookup. An unknown value reaches the invalid-enum argument error path.",
+    "enum_table_rva": "0x5db87d0",
+    "enum_count_rva": "0x5db87d8",
+    "enum_base_rva": "0x5db87e0",
+    "enum_invalid_rva": "0x5db87e4",
+    "required_environment_hash": "0xa7e07c2d",
+    "enqueue_rva": "0x1fb1830",
+    "record_stride": "0xc",
+    "deduplication": "Existing records with the same 32-bit type suppress a new append. This helper has no mod-owner argument.",
+    "result": "The callback returns zero Lua values. No receipt, arbitrary message string or caller-controlled duration is forwarded to the append helper.",
+    "scope": "This predefined HUD notification path is distinct from the stock loot toast slots. Its limitations do not prove that every game notification producer has the same interface."
+  },
+  "stock_toasts": {
+    "document_sha256": "2a56b5e655746d09f80b592b9e19d787eaccf72778a3df90b7773a564ecad527",
+    "container_class": "notification-toasts",
+    "slot_count": 8,
+    "model_prefix": "hud_notification_toasts_",
+    "message": "The slot message and item labels consume translation fields; the message uses an HTML binding rather than a plain text node.",
+    "visibility": "The container is suppressed when notification HUD visibility is disabled, the toast queue is empty, or the player's hide-loot-notifications option is enabled.",
+    "ownership": "These slots are game-owned presentation state. Overwriting a slot or its models does not establish a separate mod-owned notification.",
+    "adapter_requirements": [
+      "Trace the producer and normal update phase before constructing or modifying native queue records.",
+      "Establish arbitrary text handling, attribution, expiry, dismissal and cleanup without clearing or replacing game messages.",
+      "Preserve the feedback API's text-only contract when using a component that normally consumes rich localized HTML.",
+      "Do not acknowledge presentation solely because a model was assigned; respect hidden HUD state and renderer lifecycle."
+    ],
+    "native_sync": {
+      "registration_rva": "0x1f672f0",
+      "dispatcher_rva": "0x1f693c0",
+      "worker_rva": "0x1f68320",
+      "active_request_lookup_rva": "0x1f02ce0",
+      "request_kind": 5,
+      "payload_variant": 0,
+      "item_stride": "0xd0",
+      "fact_handle_stride": "0x130",
+      "selection": "Active lookup requires the requested kind in its category and a present active record. Sync additionally requires a present variant with tag zero. Population stops at the first item whose ready byte at +0xbd is zero; it does not skip that item and continue.",
+      "message_source": "Native string at item +0x28 when its length is nonzero, otherwise the string at +0x0. The item label uses the string at +0x0.",
+      "fact_fields": {
+        "message": {
+          "handle_offset": "0xf0",
+          "write_call_rva": "0x1f68710"
+        },
+        "item": {
+          "handle_offset": "0x100",
+          "write_call_rva": "0x1f686f7"
+        }
+      },
+      "fact_setter_rva": "0x17f69a0",
+      "string_value_setter_rva": "0x1b279b0",
+      "text_contract": "These writes establish native string facts. They do not establish literal display text: the stock message/item models expose localization translations."
+    },
+    "localization": {
+      "globals_sha256": "e6f3a2bbb2afc18b6098808af781e6794a3f7f621f82c0be6b44baad49aee1fc",
+      "binding": "The JavaScript localization binding passes locID to DataAPI.bindLocString; it does not pass a caller-supplied translation field. core_get reads the translation of an existing bound model.",
+      "native_binding_wrapper_rva": "0x180a7f0",
+      "generic_binding_rva": "0x180ba00",
+      "translation_getter_rva": "0x17fefe0",
+      "loc_id_getter_rva": "0x17ff390",
+      "model_property_registration_rva": "0x17ff3b0",
+      "lookup_rva": "0x29dde10",
+      "fallback_to_utf16_rva": "0x29de2e0",
+      "output_to_utf8_rva": "0x29df930",
+      "missing_key_behavior": "After primary and secondary lookup miss, the original UTF8 identifier is converted to UTF16, cached, and converted back to UTF8 for output. This is a statically traced literal-text candidate for valid UTF8 absent from both tables, not gameplay-qualified arbitrary text support.",
+      "getter_modes": "Normal lookup can translate a matching existing key. The id setting exposes the identifier; idandloc combines identifier and lookup result. The getter returns borrowed binding or shared scratch storage.",
+      "fallback_cache": {
+        "manager_offset": "0x48",
+        "size_offset": "0x50",
+        "node_allocation_bytes": 456,
+        "insertion_rva": "0x29df770",
+        "resource_replace_rva": "0x29def30",
+        "clear_rva": "0x29df100",
+        "manager_destructor_rva": "0x29df620",
+        "bounds": "No practical capacity or periodic eviction was observed in the reviewed lookup/insertion paths. Resource replacement and manager destruction clear the cache; refresh frequency is not established. Nodes can additionally allocate out-of-line key/value storage."
+      },
+      "adapter_requirements": [
+        "Bound distinct missing keys as well as active message count and publication rate. Queue expiry does not reclaim localization cache entries.",
+        "Preserve valid UTF8, length limits and the plain-text contract at the HTML-bound message sink.",
+        "Define behavior for existing-key collisions and localization debug modes before promising literal text.",
+        "Do not clear the shared localization cache to implement mod unload or message dismissal.",
+        "Copy borrowed translation results before their binding or shared scratch lifetime ends."
+      ]
+    }
+  },
+  "native_request_queue": {
+    "scope": "A richer notification path than the predefined script binding. The loot synchronizer consumes active kind 5 with variant tag 0; the single-string variant 7 is not the loot-toast payload.",
+    "registration_rva": "0x1f03510",
+    "workers": {
+      "process_requests": "0x1f048a0",
+      "fixed_update": "0x1f03bb0",
+      "timer": "0x1f04dd0"
+    },
+    "producer_rva": "0x1f0d1f0",
+    "producer_arguments": "NotificationProcessRequests environment and mutable native request; scheduler-borrowed environment lifetime.",
+    "request_size": "0xb8",
+    "entries_per_block": 356,
+    "request_fields": {
+      "0x0": "32-bit notification kind",
+      "0x10": "Optional native variant storage",
+      "0xa0": "Variant tag",
+      "0xa8": "Optional-present byte",
+      "0xb0": "Copied 32-bit field; meaning not established",
+      "0xb4": "32-bit field used by countdown logic"
+    },
+    "move_rva": "0x1f09df0",
+    "ownership": "Enqueue destructively moves native strings and vectors and clears source storage. Borrowed guest byte buffers do not satisfy this contract.",
+    "string_variant": {
+      "tag": 7,
+      "move_rva": "0x31ddf70",
+      "destroy_rva": "0x31ddc70",
+      "meaning": "Owns a native string. Whether this is display text, a localization key or another identifier is not established."
+    },
+    "limits": "Reviewed category consumer caps pending requests at ten and applies additional per-kind limits. Categories are shared with game notifications; no mod-specific receipt or cancellation contract is established.",
+    "scheduling": "The atomic producer count is incremented before payload allocation and initialization. This does not establish safe concurrent enqueue from an arbitrary worker; the normal engine scheduling contract remains required.",
+    "remaining_gaps": [
+      "Qualify the statically traced missing-key fallback for mod text: distinct-key budget, collision/debug-mode policy, and HTML escaping; then verify in-game presentation.",
+      "Establish native payload construction, allocator ownership and safe producer phase.",
+      "Establish mod attribution, coexistence, expiry, reload/unload cleanup and delivery receipts."
+    ]
+  },
+  "stock_panel_presentation": {
+    "stylesheet_resource": "data/uiresources/game/ui/ui.bundle.css",
+    "stylesheet_sha256": "3552d54333c16b65fc2d577b3bef1279f6235b395a54a9b990efd00b610b1e2c",
+    "panel_class": "tutorial-static__window",
+    "message_class": "tutorial-static__window__body__message",
+    "appearance": "Static tutorial panels use a dark translucent background, a thin translucent light border and regular game typography. The dynamic tutorial toast additionally uses backdrop blur and transforms.",
+    "mod_component": "CRML reuses the static panel classes with independently owned plain-text elements, content-sized geometry and reduced background opacity. It disables transitions and animations, and does not attach native tutorial bindings or actions.",
+    "verification": "Class definitions inspected in the reviewed stylesheet. Browser tests cover cleanup and idle DOM behavior; they do not establish native renderer performance or visual quality."
+  }
+}

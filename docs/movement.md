@@ -44,16 +44,34 @@ Try short movements in open space, rotate the camera, and repeat all four horizo
 
 When camera heading is unavailable, this example requests only vertical motion. When a teleport, player/world replacement, stale sample or missed heartbeat cancels the lease, the example turns itself off; press F6 again after normal gameplay resumes. A camera snapshot describes observed orientation, not exclusive ownership of the game's camera.
 
+Activation requires a player sample no older than 100 ms. An existing lease can
+renew using a sample up to 250 ms old, matching the controller's maximum step
+gap. Renewal publishes intent; live controller checks still run before movement
+is applied. A brief frame hitch therefore does not use the stricter activation
+cutoff to cancel an otherwise valid lease.
+
 ## Mod source and API
 
-`examples/movement/movement.wat` is compiled by the build; `movement.c` is equivalent readable C source for Clang's wasm32 target. Both live beside the manifest. The guest reads fixed buttons, calculates normalized world velocity, and calls `motion_set`. To change controls or speed, edit and rebuild the guest. The native runtime does not interpret F6 or WASD as movement commands in this mode.
+`examples/movement/movement.c` is compiled by the build; `movement.wat` remains a low-level reference fixture. Both live beside the manifest. The guest reads fixed buttons, calculates normalized world velocity, and calls `motion_set`. To change controls or speed, edit the C source and rebuild the guest. The native runtime does not interpret F6 or WASD as movement commands in this mode.
 
 The service performs player and generation checks, enforces the speed and lease bounds, creates private controller-call arguments, and suppresses the character's contact/push pass. It does not overwrite the original transform/keyframing argument arrays. Native cleanup remains available after a guest trap or shutdown.
 
 See the [API contract](api.md#experimental-movement-requests) for result semantics, capabilities, and limits.
+
+The current C example requires runtime `0.1.0-alpha.4.4.dev.0` or later. On a
+failed renewal it reads `motion_read` and logs the cancellation reason before
+cleanup clears it. The WAT fixture preserves the older ABI-only behavior.
+See [cancellation snapshots](api.md#movement-cancellation-snapshots) for receipt
+lifetime and the distinction between lease acceptance and applied movement.
 
 ## Diagnostics and removal
 
 `crml.log` identifies the service, loaded mod and whether the boundary guard started. If its checks fail, movement remains available with normal engine recovery. `movement-probe.jsonl` uses diagnostic schema 7 with mode `wasm-movement`. `motion_requests` counts accepted set/release requests; `motion_velocity` records the sampled requested world velocity while active. `overrides` counts controller-call substitutions. `last_override` compares the requested position with the controller's result, and `last_stop` records cancellation. Input counters indicate filtering, not by themselves proof that every gameplay action was suppressed. The legacy fall/reset counters remain zero; the scoped guard has separate counters in `fall-recovery.jsonl`.
 
 The capture samples once per second for up to ten minutes and is replaced on the next launch. To disable this mod, close the game and remove its package folder. If an installer-owned movement marker remains, remove it with `python tools/install.py "$gameDir" --update --disable-movement-wasm --apply`. On Alpha 4.2 removing a marker does not disable capabilities requested by other installed mods.
+
+`last_stop.source` distinguishes a rejected player sample, keyboard freshness,
+a request-side stop and the controller callback. `last_stop.sample_age_ms`
+records sample age for request-side stops; `UINT64_MAX` means the sample was
+absent or its timestamp was ahead of the sampled clock. Controller-side stops
+use zero in that field.

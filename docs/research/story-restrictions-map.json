@@ -1,0 +1,1980 @@
+{
+  "schema": 1,
+  "executable_sha256": "4f6596b08bb5bc7fe4150cf5b9f71d7bae87eea02d66627c03a5e05ffe84ea62",
+  "scope": "Build-specific story-mode state, named warning, manager provenance and native action admission chain. Includes the bounded player.action_rules adapter; native instruction fixtures do not establish full gameplay behavior.",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e7ff4",
+      "target": "0x4bc6500",
+      "label": "set_story_mode_enabled binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8002",
+      "target": "0x23c0c50",
+      "label": "set_story_mode_enabled binding callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1ef464c",
+      "target": "0x4a46d20",
+      "label": "Story mode notification system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1ef4845",
+      "target": "0x1ef4540",
+      "label": "Story mode notification dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x22d11ad",
+      "target": "0x4b6b5c0",
+      "label": "Input pre-handle system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x22d12e9",
+      "target": "0x22d3dc0",
+      "label": "Input pre-handle dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2257df",
+      "target": "0x4bc4bd0",
+      "label": "HUD notification enum name action_blocked_by_story_mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x225825",
+      "target": "0xd",
+      "label": "HUD notification enum assigns numeric value 13"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x227c207",
+      "target": "0x4b51c70",
+      "label": "Player-mode update system name"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x227c257",
+      "target": "0x2282d60",
+      "label": "Player-mode system registration helper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2282fe7",
+      "target": "0x2284ae0",
+      "label": "Player-mode update dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2284d59",
+      "target": "0x227d9b0",
+      "label": "Player-mode update worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23c0cb4",
+      "target": "0x227bca0",
+      "label": "Story script binding updates status flag"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23df764",
+      "target": "0x72d38548",
+      "label": "Story binding component lookup hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227db84",
+      "target": "0x4000000",
+      "label": "Effective mode maps to story input-logic identifier"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x227db8f",
+      "target": "0x22d0650",
+      "label": "Player-mode worker sets story input-logic state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d06d4",
+      "target": "0x22d15f0",
+      "label": "Input state setter updates active-index tracking"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d079e",
+      "target": "0x22d1a30",
+      "label": "Blocking query resolves action pair"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d1af6",
+      "target": "0x22d1930",
+      "label": "Resolved action-pair conflict decision"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d1c8d",
+      "target": "0x22d1930",
+      "label": "Admission checks action pair in first direction"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d1cac",
+      "target": "0x22d1930",
+      "label": "Admission checks action pair in reverse direction"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d08cd",
+      "target": "0x22d1b70",
+      "label": "Action request invokes admission"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d19c8",
+      "target": "0x22d0b40",
+      "label": "Pair conflict includes relationship exception"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d1a18",
+      "target": "0x22d17e0",
+      "label": "Mutual exclusions use native priority resolution"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23b82ea",
+      "target": "0x4bbc270",
+      "label": "melee_attack::handle_requests system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23b8525",
+      "target": "0x23b3a60",
+      "label": "melee_attack::handle_requests registered dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23b4022",
+      "target": "0x23a8390",
+      "label": "melee_attack::handle_requests dispatcher helper"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23a8513",
+      "target": "0x1",
+      "label": "melee_attack::handle_requests requested action ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23a851a",
+      "target": "0x22d07e0",
+      "label": "melee_attack::handle_requests action request"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26a4d22",
+      "target": "0x4ca65b0",
+      "label": "dodge::handle_requests system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26a4e91",
+      "target": "0x26a0ac0",
+      "label": "dodge::handle_requests registered dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26a154e",
+      "target": "0x2698a50",
+      "label": "dodge::handle_requests dispatcher helper"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2698ba7",
+      "target": "0x2",
+      "label": "dodge::handle_requests requested action ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2698bab",
+      "target": "0x22d07e0",
+      "label": "dodge::handle_requests action request"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2444aaa",
+      "target": "0x4be2b80",
+      "label": "jump::handle_input system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2444cd9",
+      "target": "0x2440ea0",
+      "label": "jump::handle_input registered dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2441156",
+      "target": "0x243b0f0",
+      "label": "jump::handle_input dispatcher helper"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243b31b",
+      "target": "0x10",
+      "label": "jump::handle_input requested action ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x243b31f",
+      "target": "0x22d07e0",
+      "label": "jump::handle_input action request"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26e60fa",
+      "target": "0x4cc3120",
+      "label": "dash::handle_active_state system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26e622a",
+      "target": "0x26e9630",
+      "label": "dash::handle_active_state registered dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26e9874",
+      "target": "0x26e6660",
+      "label": "dash::handle_active_state dispatcher helper"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x26e6771",
+      "target": "0x10000",
+      "label": "dash::handle_active_state requested action ID"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26e677b",
+      "target": "0x22d07e0",
+      "label": "dash::handle_active_state action request"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2308af3",
+      "target": "0x4b85330",
+      "label": "Parkour request system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2308bf9",
+      "target": "0x230fc40",
+      "label": "Parkour request dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2310195",
+      "target": "0x230c230",
+      "label": "Parkour request helper"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x230c497",
+      "target": "0x20",
+      "label": "Parkour input action identifier"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x230c49e",
+      "target": "0x22d07e0",
+      "label": "Parkour input admission request"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d143f",
+      "target": "0x9988f341",
+      "label": "Input pre-handle LogicData component hash"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a25a13",
+      "target": "0x48f9e60",
+      "label": "Lua fact listener update system name"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a25a2e",
+      "target": "0x1d62450",
+      "label": "Lua fact listener system registration"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1bcec39",
+      "target": "0x412ab53",
+      "label": "Gameplay/camera world selector displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a3dad4",
+      "target": "0x42bbcc0",
+      "label": "Separate global-fact world selector displacement"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a256b0",
+      "target": "0x1a2542b",
+      "label": "FactDictionary tag 1 dispatches to numeric conversion"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a256b8",
+      "target": "0x1a25466",
+      "label": "FactDictionary tag 3 dispatches to entity conversion"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23c0d54",
+      "target": "0x227bca0",
+      "label": "Separate status-mask2 binding writer"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x2742dfd",
+      "target": "0x227bca0",
+      "label": "Status-mask4 tail transfer; no local return address"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227bca0",
+      "target": "0x141b60f",
+      "label": "Status writer reads second byte"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227bca7",
+      "target": "0xc20a0674",
+      "label": "Status writer set versus clear branch"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227bcaf",
+      "target": "0xd022d2f6",
+      "label": "Status writer complement mask before clear"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x27499f0",
+      "target": "0x2741e50",
+      "label": "Observed mask4 writer inherited return from per-entity worker call"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d1f78",
+      "target": "0x22d1b70",
+      "label": "Recursive admission consumes directional comparator"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d1fa0",
+      "target": "0x22d1d20",
+      "label": "Admission recursively evaluates an interfering entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d1ccf",
+      "target": "0x22d17e0",
+      "label": "Comparator retains simultaneous-active priority branch"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x22d0a04",
+      "target": "0x22d1d20",
+      "label": "Action result wrapper tail-forwards to recursive evaluator"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22d20ef",
+      "target": "0x22d1d20",
+      "label": "Evaluator recursively processes changed requested state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2698cb8",
+      "target": "0x22d0980",
+      "label": "Dodge request handler obtains result word"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26e683f",
+      "target": "0x22d0980",
+      "label": "Dash request handler obtains result word"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23a85bd",
+      "target": "0x22d0980",
+      "label": "Melee result consumer obtains result word"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26a0d81",
+      "target": "0x2698be0",
+      "label": "Dodge dispatcher invokes result consumer"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26eb272",
+      "target": "0x4cc3420",
+      "label": "Dash handle_requests system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26eb3b9",
+      "target": "0x26e8ee0",
+      "label": "Dash handle_requests dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26e9161",
+      "target": "0x26e67c0",
+      "label": "Dash dispatcher invokes result consumer"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26a4f80",
+      "target": "0x4ca6a60",
+      "label": "Dodge on_start system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26a50f5",
+      "target": "0x26a0e90",
+      "label": "Dodge on_start dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26a11cb",
+      "target": "0x2698e20",
+      "label": "Dodge dispatcher invokes start worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2698f70",
+      "target": "0x22d01e0",
+      "label": "Dodge start worker reads action state bit4"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26eb4a2",
+      "target": "0x4cc3750",
+      "label": "Dash on_start system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26eb61b",
+      "target": "0x26e9260",
+      "label": "Dash on_start dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26e954a",
+      "target": "0x26e68f0",
+      "label": "Dash dispatcher invokes start worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26e695d",
+      "target": "0x22d01e0",
+      "label": "Dash start worker reads action state bit4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23a883e",
+      "target": "0x22d01e0",
+      "label": "Melee downstream worker reads action state bit4"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a43536",
+      "target": "0x48fd760",
+      "label": "Current nl_global_fact name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a43544",
+      "target": "0x1a3d8c0",
+      "label": "Current nl_global_fact callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a3d958",
+      "target": "0x1a4a6a0",
+      "label": "Global fact callback delegates a supplied value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a4a975",
+      "target": "0x17a9520",
+      "label": "Numeric fact update locates existing bucket"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a4aa57",
+      "target": "0x17a8060",
+      "label": "Numeric fact update inserts missing bucket"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a4366a",
+      "target": "0x48fd850",
+      "label": "Global fact listener add binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a43678",
+      "target": "0x1a3f390",
+      "label": "Global fact listener add callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a436a2",
+      "target": "0x48fd898",
+      "label": "Global fact listener remove binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a436b0",
+      "target": "0x1a3f4f0",
+      "label": "Global fact listener remove callback"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1a3f44a",
+      "target": "0x1a498e0",
+      "label": "Global fact subscription delegates registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a49d0d",
+      "target": "0x1a256d0",
+      "label": "Append per-fact listener and cached value"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a25a7c",
+      "target": "0x1a27910",
+      "label": "Lua fact system environment access metadata"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a25a9e",
+      "target": "0x1a27660",
+      "label": "Lua fact system listener query metadata"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a25ac0",
+      "target": "0x1a268b0",
+      "label": "Lua fact dirty-consumer dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a26954",
+      "target": "0x1a25b80",
+      "label": "Lua fact dispatcher gathers changed listener values"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a25ded",
+      "target": "0x17a9520",
+      "label": "Dirty listener locates its fact bucket"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a261f2",
+      "target": "0x1a270f0",
+      "label": "Gatherer compacts listener records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a262cf",
+      "target": "0x3987fea",
+      "label": "Gatherer clears dictionary dirty-bit words"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a25b51",
+      "target": "0x18c8060",
+      "label": "Gatherer registers shared Lua phase relation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a2e72a",
+      "target": "0x1a25b80",
+      "label": "Alternate Lua fact consumer explicitly gathers first"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a2e80b",
+      "target": "0x1a253e0",
+      "label": "Alternate consumer pushes copied fact argument"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a2e827",
+      "target": "0x2c9ab60",
+      "label": "Alternate consumer invokes Lua callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a2e87d",
+      "target": "0x1a303d0",
+      "label": "Alternate consumer clears queued fact events"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a29653",
+      "target": "0x1a2e4e0",
+      "label": "Alternate consumer world-context wrapper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a2c01c",
+      "target": "0x1a253e0",
+      "label": "Lua update pushes copied fact argument"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a2c03d",
+      "target": "0x2c9ab60",
+      "label": "Lua update invokes fact callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a2c0d4",
+      "target": "0x1a303d0",
+      "label": "Lua update clears queued fact events"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a310b1",
+      "target": "0x1a29680",
+      "label": "Lua update wrapper reaches inline fact consumer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19db54b",
+      "target": "0x1a30ff0",
+      "label": "Fixed-update worker invokes Lua update wrapper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19db4f6",
+      "target": "0x1a30740",
+      "label": "Fixed-update worker installs VM world context"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19db554",
+      "target": "0x1a308e0",
+      "label": "Fixed-update worker clears VM world context"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19e271e",
+      "target": "0x19db3f0",
+      "label": "Fixed-update dispatcher invokes worker"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19d8f2a",
+      "target": "0x48ed950",
+      "label": "luaFixedUpdate registered system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x19d8f97",
+      "target": "0x19e26b0",
+      "label": "luaFixedUpdate registered dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19d9035",
+      "target": "0x18c8120",
+      "label": "Fixed-update registers shared Lua phase relation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x19d9044",
+      "target": "0x18c8060",
+      "label": "Fixed-update registers pre-physics hierarchy relation"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x5aed748",
+      "target": "0x4949dd0",
+      "label": "sg_fixedRateUpdateLuaScript phase label"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x48e8088",
+      "target": "0x48586d0",
+      "label": "Parent Hierarchy Pre Physics phase label"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18c80f5",
+      "target": "0x1d65db0",
+      "label": "Named relation helper appends kind1 tag-to-system edge"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18c81b8",
+      "target": "0x1d65db0",
+      "label": "Named relation helper appends kind2 system-to-tag edge"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x273fd6f",
+      "target": "0x4ce58b0",
+      "label": "Conversation handle_active_state system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x273fdd9",
+      "target": "0x27496b0",
+      "label": "Conversation handle_active_state dispatcher"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x5b227c0",
+      "target": "0x4c9e5f0",
+      "label": "Input Logic Handle General Active State phase label"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x5b22ef0",
+      "target": "0x4c9f3f8",
+      "label": "ConversationGraphUpdate phase label"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e8010",
+      "target": "0x4bc6518",
+      "label": "set_flashback_mode_enabled binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x23e801e",
+      "target": "0x23c0cf0",
+      "label": "set_flashback_mode_enabled binding callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e26326",
+      "target": "0x1d74150",
+      "label": "Status descriptor registration by component hash"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2287b34",
+      "target": "0x1d74150",
+      "label": "Player-status descriptor registration by component hash"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d741e1",
+      "target": "0x1d743a0",
+      "label": "Missing component descriptor insertion"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x227dbbb",
+      "target": "0x22d0650",
+      "label": "Conversation effective mode updates separate action rule"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227db99",
+      "target": "0x8000000",
+      "label": "Conversation effective-mode action identifier"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e262c2",
+      "target": "0x1e24d80",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e262cd",
+      "target": "0x1e24d90",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e75a6d",
+      "target": "0x1e6ede0",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e75a79",
+      "target": "0x1e6edf0",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1fb9350",
+      "target": "0x1fb6b90",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1fb935b",
+      "target": "0x1fb6ba0",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x202f5e9",
+      "target": "0x202e6c0",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x202f5f5",
+      "target": "0x202e6d0",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2048183",
+      "target": "0x203e0c0",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x204818e",
+      "target": "0x203e0d0",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20d3957",
+      "target": "0x20d1f80",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20d3962",
+      "target": "0x20d1f90",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x21e8cbc",
+      "target": "0x21e7f70",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x21e8cc7",
+      "target": "0x21e7f80",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2287acc",
+      "target": "0x227f940",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2287ad8",
+      "target": "0x227f950",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2444b3f",
+      "target": "0x243e6e0",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2444b4a",
+      "target": "0x243e6f0",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x281551f",
+      "target": "0x280d840",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x281552a",
+      "target": "0x280d850",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x28f1116",
+      "target": "0x28eca30",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x28f1122",
+      "target": "0x28eca40",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x28fabb5",
+      "target": "0x28f8820",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x28fabc0",
+      "target": "0x28f8830",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x291d20a",
+      "target": "0x2914010",
+      "label": "Status descriptor initialize callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x291d216",
+      "target": "0x2914020",
+      "label": "Status descriptor copy callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7e660",
+      "target": "0x483160",
+      "label": "Generic component registry hash lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7e6a7",
+      "target": "0x32cebf0",
+      "label": "Destination archetype component index lookup"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7e247",
+      "target": "0x1d7e5b0",
+      "label": "Component initialization/copy row-range invocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7e2b6",
+      "target": "0x1d7e5b0",
+      "label": "Component initialization/copy row-range invocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7e300",
+      "target": "0x1d7e5b0",
+      "label": "Component initialization/copy row-range invocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d764bb",
+      "target": "0x1d7e1d0",
+      "label": "Component range dispatcher invocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7ceb7",
+      "target": "0x1d7e1d0",
+      "label": "Component range dispatcher invocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7cef2",
+      "target": "0x1d7e1d0",
+      "label": "Component range dispatcher invocation"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1d7cd67",
+      "target": "0x49e8708",
+      "label": "ECS flush parallel job parent label"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x49e8858",
+      "target": "0x1d77f80",
+      "label": "Component row job virtual entry"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x49e87e0",
+      "target": "0x1d77e50",
+      "label": "Component batch job virtual entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d77e58",
+      "target": "0x1d7cbf0",
+      "label": "Queued component batch dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d81091",
+      "target": "0x1d7cbf0",
+      "label": "Inline component batch dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7cec6",
+      "target": "0x32c0830",
+      "label": "Component batch parent job completion wait"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d76dc4",
+      "target": "0x1d80fb0",
+      "label": "Flush submits component batch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d76e05",
+      "target": "0x1d80fb0",
+      "label": "Flush submits component batch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7747b",
+      "target": "0x32c0830",
+      "label": "Outer component batch parent completion wait"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d89bf8",
+      "target": "0x2c9bf50",
+      "label": "World cleanup frees entity-location allocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d89c1b",
+      "target": "0x1d721f0",
+      "label": "World cleanup destroys entity generation storage"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x1d89c79",
+      "target": "0x1d706f0",
+      "label": "World cleanup tail to archetype storage destructor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b324d1",
+      "target": "0x1d89b80",
+      "label": "Owning world cleanup caller"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b32a4a",
+      "target": "0x1d89b80",
+      "label": "Owning world cleanup caller"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b32c66",
+      "target": "0x1d89b80",
+      "label": "Owning world cleanup caller"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7220f",
+      "target": "0x2c9bf50",
+      "label": "Entity generation-table aggregate frees its data member"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d6fa4a",
+      "target": "0x1d74e80",
+      "label": "World command flush passes explicit world/storage arguments"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d8ae0a",
+      "target": "0x1d74e80",
+      "label": "Queued command flush passes explicit world/storage arguments"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d748d7",
+      "target": "0x1d74e80",
+      "label": "Collected command flush passes explicit world/storage arguments"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d75b83",
+      "target": "0x1d764d0",
+      "label": "Command flush dispatches component flush range"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d75bba",
+      "target": "0x1d764d0",
+      "label": "Command flush inline component range"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d8abad",
+      "target": "0x1d72230",
+      "label": "World handle allocation wrapper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d76352",
+      "target": "0x1d72100",
+      "label": "Retirement clears entity locations before generation update"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d76369",
+      "target": "0x1d723f0",
+      "label": "Retirement publishes incremented entity generations"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7d54a",
+      "target": "0x1d723f0",
+      "label": "Inline retirement publishes incremented entity generations"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d898fd",
+      "target": "0x1d72180",
+      "label": "World constructor initializes entity generation allocator"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d89aad",
+      "target": "0x1d72180",
+      "label": "Alternate world constructor initializes entity generation allocator"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d86536",
+      "target": "0x3987fde",
+      "label": "Relocation copies entity handle range"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d772a6",
+      "target": "0x3987fde",
+      "label": "Inline relocation copies entity handle range"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d771c5",
+      "target": "0x1d864c0",
+      "label": "Flush relocates handles and location entries"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d77217",
+      "target": "0x1d864c0",
+      "label": "Second flush handle/location relocation batch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d76f49",
+      "target": "0x1d7ed00",
+      "label": "Flush constructs component movement records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d76f70",
+      "target": "0x1d810b0",
+      "label": "Dispatch first component movement records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d76fda",
+      "target": "0x1d7fba0",
+      "label": "Flush constructs second component movement records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d77001",
+      "target": "0x1d810b0",
+      "label": "Dispatch second component movement records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7707e",
+      "target": "0x1d7f560",
+      "label": "Flush constructs third component movement records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d770a5",
+      "target": "0x1d810b0",
+      "label": "Dispatch third component movement records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7f195",
+      "target": "0x483160",
+      "label": "First movement builder resolves component descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7f851",
+      "target": "0x483160",
+      "label": "Second movement builder resolves component descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d7fe25",
+      "target": "0x483160",
+      "label": "Third movement builder resolves component descriptor"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x49e86b0",
+      "target": "0x1d77870",
+      "label": "Custom component movement worker vtable"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x49e86c8",
+      "target": "0x1d77930",
+      "label": "Second custom component movement worker vtable"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x49e86e0",
+      "target": "0x1d779f0",
+      "label": "Raw component movement worker vtable"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1d77a73",
+      "target": "0x3987fe4",
+      "label": "Raw component worker copies count times element size"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23c0c65",
+      "target": "0x2c96f40",
+      "label": "Story binding validates argument type before write"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23c0c72",
+      "target": "0x2c98d70",
+      "label": "Story binding decodes boolean before write"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23c0c94",
+      "target": "0x23df5b0",
+      "label": "Story binding resolves Status before write"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1ef3e87",
+      "target": "0x22d0400",
+      "label": "Story notification reads active requested action mask"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x243b298",
+      "target": "0x2984750",
+      "label": "Airborne input ability query 1"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x243b2ec",
+      "target": "0x2984750",
+      "label": "Airborne input ability query 2"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x20d3b16",
+      "target": "0x20d2c40",
+      "label": "Sprint active-state dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20d2e89",
+      "target": "0x20d1220",
+      "label": "Sprint active-state worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x20d1339",
+      "target": "0x22d07e0",
+      "label": "Sprint action request"
+    }
+  ],
+  "limitations": [
+    "The script-controlled story mode aggregates area, conversation, elevator, television, quest, and toggling reasons; the native status bit does not distinguish them.",
+    "Melee, dodge, jump and one dash request path are statically identified. Reason-specific override safety, current player ownership and other action paths still require evidence.",
+    "A read-only pairwise observer is not permission to clear mode flags, alter definitions, or force success. No guest restriction capability or validated story-area override exists.",
+    "Native active lists and definition variants can change; out-of-callback reads and persistent raw handles are unsupported.",
+    "Gameplay evidence must establish the actual affected ability, restriction reason, native result and restoration while independent locks remain effective."
+  ],
+  "state_chain": {
+    "component": "heron::player_status::component::Status",
+    "lookup_hash": "0x72d38548",
+    "stride": 2,
+    "script_flag": "set_story_mode_enabled updates bit 0 of the second byte via 0x227bca0; reasons are aggregated before this binding.",
+    "effective_mode": "Worker 0x227d9b0 prioritizes second-byte bit 2 -> mode 16, bit 1 -> mode 8, bit 0 -> mode 4; otherwise derives mode 1/2 from CombatStatus.",
+    "rule_update": "The worker sets logic identifier 0x04000000 when effective mode & 0x0c is nonzero. It separately updates dead, teleported and mode-16 rules.",
+    "side_effects": "Changing effective mode also submits camera requests, sets another component flag and emits an event. Rewriting the aggregate mode is not an ability-only override.",
+    "independent_modes": {
+      "story": "set_story_mode_enabled writes flag mask1. Effective mode4 activates LogicData ID0x04000000.",
+      "flashback": "set_flashback_mode_enabled at0x23c0cf0 writes flag mask2 through the shared writer at0x23c0d54. Effective mode8 activates the same LogicData ID0x04000000. The rule ID alone cannot distinguish story areas from flashback mode.",
+      "conversation": "conversation::handle_active_state writes flag mask4. Effective mode16 activates separate LogicData ID0x08000000, through the tail call at0x227dbbb.",
+      "priority": "Conversation mask4 is evaluated before flashback mask2, which is evaluated before story mask1. A policy must preserve higher-priority native restrictions, including when several bits are set.",
+      "mode_store": "Player-mode update stores the derived mode into Status byte0 at0x227db4e. This store does not replace the flag byte1.",
+      "override_constraint": "A story-only exception must reject active flashback/conversation flags and any inconsistent derived mode. Mask1 still being set plus rule ID0x04000000 is insufficient: mode8 can carry the same rule while flashback takes priority."
+    }
+  },
+  "warning_chain": {
+    "notification_id": 13,
+    "native_enum_name": "action_blocked_by_story_mode",
+    "worker": "0x1ef3df0",
+    "post_call": "0x1ef3e9d",
+    "conditions": "Reads active story input logic 0x04000000 and excludes logic 0x10000000, then checks relevant action activity before posting.",
+    "limit": "Does not suppress other warnings or establish complete ability transition behavior.",
+    "active_query": "0x22d0400",
+    "query_call": "0x1ef3e87",
+    "query_return": "0x1ef3e8c",
+    "active_predicate": "Iterates LogicData active index vector and tests entry ID against requested mask, then entry state bit4. It does not consume the comparator failure result.",
+    "exception": "Only the reviewed query caller removes currently leased supported action bits under the same applied-area provenance and lifecycle qualification as action arbitration. Other mask bits and callers retain native behavior.",
+    "guards": [
+      {
+        "rva": "0x22d0400",
+        "bytes": "488b81d0070000448b81d80700004e8d04c0493bc07428660f1f8400000000004c8b084f8d14894a8554d108740842f644d11c04750c4883c008493bc075e132c0c3b001c3"
+      },
+      {
+        "rva": "0x1ef3e77",
+        "bytes": "488bd3488bcf4883e2fe84c0480f44d3e874c53d00488b5c245084c0740d"
+      }
+    ]
+  },
+  "input_logic_layout": {
+    "component_stride": "0x810",
+    "entry_count": 50,
+    "entry_stride": "0x28",
+    "entry_id": "uint64 +0x08",
+    "entry_state": "uint8 +0x1c",
+    "active_indices": "pointer +0x7d0, uint32 count +0x7d8",
+    "definition": "Resolved by 0x22d0050 from entry ID and variant index; do not keep its pointer beyond the native call.",
+    "definition_exclusions": "uint64 +0x10",
+    "definition_policy": "uint8 +0x21",
+    "setter": "0x22d0650 writes state 1/2 for false/true, then 0x22d15f0 maintains active indices. Directly changing a state byte would bypass bookkeeping."
+  },
+  "pairwise_decision": {
+    "function": "0x22d1930",
+    "caller_returns": [
+      "0x22d1afb",
+      "0x22d1c92",
+      "0x22d1cb1"
+    ],
+    "arguments": [
+      "LogicData pointer",
+      "left entry pointer",
+      "left definition pointer",
+      "right entry pointer",
+      "right definition pointer",
+      "output flag byte pointer"
+    ],
+    "result": "AL boolean pair-conflict decision; sixth argument may be set by the original routine.",
+    "semantics": "Definition exclusion masks interact with entry states, relationship exceptions, mutual priorities and same-ID handling. Admission invokes this function in both directions; left and right must not be labeled universally as requested and blocking.",
+    "observation": "The diagnostic copies scalar entry/definition fields for pairs containing the story-rule identifier and records the unchanged native result. No engine addresses, content text or mutable references are exported.",
+    "limit": "A pair conflict is not a final ability denial or activation result. Other admission branches and ability-specific checks remain in force."
+  },
+  "action_paths": [
+    {
+      "id": "0x1",
+      "system": "heron::melee_attack::handle_requests::system",
+      "dispatcher": "0x23b3a60",
+      "helper": "0x23a8390",
+      "request_call": "0x23a851a",
+      "observed_story_conflict": true
+    },
+    {
+      "id": "0x2",
+      "system": "heron::dodge::handle_requests::system",
+      "dispatcher": "0x26a0ac0",
+      "helper": "0x2698a50",
+      "request_call": "0x2698bab",
+      "observed_story_conflict": true
+    },
+    {
+      "id": "0x10",
+      "system": "heron::jump::handle_input::system",
+      "dispatcher": "0x2440ea0",
+      "helper": "0x243b0f0",
+      "request_call": "0x243b31f",
+      "observed_story_conflict": true
+    },
+    {
+      "id": "0x10000",
+      "system": "heron::dash::handle_active_state::system",
+      "dispatcher": "0x26e9630",
+      "helper": "0x26e6660",
+      "request_call": "0x26e677b",
+      "observed_story_conflict": true
+    },
+    {
+      "id": "0x20",
+      "system": "heron::parkour::handle_requests::system",
+      "dispatcher": "0x230fc40",
+      "helper": "0x230c230",
+      "request_call": "0x230c49e",
+      "observed_story_conflict": true
+    }
+  ],
+  "conflict_observations": {
+    "stable_samples": 115,
+    "conflict_samples": 58,
+    "nonconflict_samples": 57,
+    "action_ids": [
+      "0x1",
+      "0x2",
+      "0x10",
+      "0x20",
+      "0x10000"
+    ],
+    "direction": "Pairs are directional; 57 story-left pairs returned false and 58 action-left pairs returned true.",
+    "limits": "No reported losses or rejected reads. These are pair decisions, not final ability outcomes, player ownership proof, unlocked ability inventory or clean capture shutdown."
+  },
+  "reason_observer": {
+    "binding": "0x23c0c50",
+    "phase": "before native binding execution",
+    "source": "story_mode_reasons_manager.lua",
+    "function": "evaluate_story_mode_reasons",
+    "prototype": 1,
+    "defined_line": 26,
+    "code_words": 96,
+    "counts": [
+      "ref_counting_trigger",
+      "toggling_trigger",
+      "conversation_trigger",
+      "elevator_trigger",
+      "lumivista_tv_trigger",
+      "quest_script"
+    ],
+    "contract": "Copies six nonnegative integer arguments from the immediate reviewed Lua caller and checks their aggregate against the requested boolean. No VM API calls, pointers retained, counters changed or successful application claimed.",
+    "qualification": "Five native binding requests supplied readable manager arguments: masks 0, 1, 0, 1, 3. Reference-counted and toggling triggers were observed; the other four reasons were zero in these requests. This qualifies argument capture only, not final mode application or a safe override."
+  },
+  "current_context": {
+    "qualification": "Native observations matched gameplay-world and dictionary identity, current-player context, and all six decoded numeric fact values in two binding requests (reason masks 0 and 1). All 52 sampled action pairs matched current-player LogicData. These checks establish same-call agreement, not writer exclusion, final ability activation or safe mutation.",
+    "player": {
+      "tag": "Existing movement player tag",
+      "logic_hash": "0x9988f341",
+      "logic_stride": "0x810",
+      "status_hash": "0x72d38548",
+      "status_stride": 2,
+      "contract": "Resolve a unique live tagged entity; validate generation, component identity and tag membership. Retain copied scalars only."
+    },
+    "script": {
+      "vm_context_offset": "0x78",
+      "world_offset": "0x00",
+      "fact_dictionary_offset": "0x08"
+    },
+    "environment": {
+      "fact_dictionary_hash": "0xe7097951",
+      "hashes_offset": "0x585b0",
+      "count_offset": "0x585b8",
+      "values_offset": "0x585c0"
+    },
+    "dictionary": {
+      "capacity_offset": "0x48",
+      "bucket_pointer_offset": "0x78",
+      "bucket_stride": 40,
+      "key": "Two uint64 words: namespace zero, then string hash",
+      "numeric_type": 1,
+      "type_offset": "0x10",
+      "double_offset": "0x18",
+      "probing": "Triangular increments modulo power-of-two capacity",
+      "type_distinction": "FactDictionary numeric variant tag is 1; Lua stack numeric TValue tag is 3. These are different layouts."
+    },
+    "limits": "Repeated equality checks do not establish an atomic six-key snapshot, writer exclusion or pointer lifetime beyond the call. No override or public permission API follows from these diagnostics.",
+    "world_selectors": {
+      "gameplay": "0x5cf9790, singleton +0x08",
+      "global_facts": "0x5cf9798, singleton +0x08",
+      "limit": "The global-fact selector did not match the script context in two captured requests. Use the mapped gameplay selector for player attribution; do not substitute neighboring selectors."
+    }
+  },
+  "status_writer": {
+    "function": "0x227bca0",
+    "arguments": [
+      "pointer to two-byte status",
+      "uint8 mask",
+      "uint8 enabled (zero versus nonzero)"
+    ],
+    "operation": "Sets or clears only the masked bits in status+1; status+0 is not written by this helper.",
+    "callers": [
+      {
+        "site": "0x23c0cb4",
+        "kind": "call",
+        "return": "0x23c0cb9",
+        "mask": 1,
+        "producer": "set_story_mode_enabled"
+      },
+      {
+        "site": "0x23c0d54",
+        "kind": "call",
+        "return": "0x23c0d59",
+        "mask": 2,
+        "producer": "set_flashback_mode_enabled"
+      },
+      {
+        "site": "0x2742dfd",
+        "kind": "tail_jump",
+        "mask": 4,
+        "return": "Inherited from the caller of the forwarding function; not0x2742e02.",
+        "producer": "conversation::handle_active_state"
+      }
+    ],
+    "observation": "Optional bounded before/after scalar capture preserves the native write. Shared occurrence numbers describe observer entry order, not atomicity or completion across threads.",
+    "limits": "The direct-reference scan finds three transfers to this helper, not all writes to Status. Registered initialization and copy callbacks write the complete two-byte component without calling it; see status_component_lifecycle. A returned bit update is not a reason-owned permission grant or final action activation. No override is installed.",
+    "tail_return_attribution": {
+      "observed_return": "0x27499f5",
+      "call_site": "0x27499f0",
+      "worker": "0x2741e50",
+      "tail_jump": "0x2742dfd",
+      "meaning": "The inherited return identifies the caller of the worker that tail-transfers to the status writer. It is not an additional direct writer call."
+    },
+    "captured_behavior": {
+      "mask1": "Manager requests with no active reasons and with only ref_counting_trigger active were followed by matching mask1 clear/set operations on the attributed player, on the same thread and millisecond. Subsequent stable action-left/story-right pairs reported conflicts while player flags contained bit1.",
+      "mask4": "Copied updates from the inherited worker return cleared bit4 while leaving byte0 and the other flags unchanged. Sampling reached its per-mask budget before the later mask1 enable request.",
+      "limits": "Entry ordering and matching observations do not establish an atomic reason snapshot, worker exclusion, final ability activation, or complete writer coverage. No mask2 sample or independent non-area reason was captured. All sampled writes retain native results; no permission override is exposed."
+    }
+  },
+  "admission_consumer": {
+    "comparator": "0x22d1b70",
+    "ordered_calls": [
+      "0x22d1c8d -> pair0x22d1930; true exits comparator false",
+      "0x22d1cac -> pair0x22d1930 with operands reversed; true exits comparator true"
+    ],
+    "remaining_branches": "Before either pair call, state and definition +0x08/+0x18 masks and relation checks can decide the result. After both pair results are false, equal IDs, state bit0x20, both-active priorities, and left state bit0x04 still determine the result.",
+    "recursive_use": "At 0x22d1f78 the admission worker uses comparator true to enter interference/recursive processing, not to return an unconditional final denial. It can copy the interfering ID into the requested entry when the output flag is set.",
+    "state_transition_use": "At 0x22d08cd the caller passes the same entry for both sides and changes state bits, active-list bookkeeping and generation fields according to the comparator result.",
+    "override_constraint": "Do not force the comparator result or suppress every pair involving the story ID. Any candidate bridge must prove the requested-action path and preserve output-flag semantics, self-pairs, state transitions, recursion and unrelated locks. Pairwise conflict evidence is not a final permission result."
+  },
+  "action_result_lifecycle": {
+    "wrapper": "0x22d0980: LogicData, one-hot action ID, uint16 output pointer; forwards with zero visited mask",
+    "evaluator": "0x22d1d20: cached recursive state evaluation, not a pure boolean permission query",
+    "entry_fields": {
+      "state": "0x1c",
+      "previous_state": "0x1d",
+      "result_word": "0x1e",
+      "result_valid": "0x20"
+    },
+    "cache": "Nonzero entry+0x20 returns cached entry+0x1e. The evaluator can allocate, modify action states and active-index bookkeeping, recurse into interfering entries, and cache the result at 0x22d2239. Calling it an extra time is not read-only inspection.",
+    "reset": "Input pre-handle worker 0x22d22e0 copies each current state to entry+0x1d, clears result validity at 0x22d2326, and clears LogicData+0x7f8. This identifies a cache reset, not a proven scheduler barrier against fact writers.",
+    "result_bit1": "Output bit0x01 is set when the accumulated output intersects 0x06. Dash consumes it by clearing its active flag and scalar, resetting associated state, and emitting event hash0x5c6ef53a. Dodge consumes it in a cleanup path. It must not be labeled permission granted or forced to enable an action.",
+    "start_gate": "Function0x22d01e0 returns (entry.state >> 2) & 1. Separately registered dodge/dash on_start workers call it for IDs2/0x10000; false skips their start bodies. Dash true sets the same active flag cleared in its result handler, initializes its scalar and emits event hash0xa9a176af. The melee downstream worker reads the same state bit for ID1.",
+    "limits": "These are build-specific static control-flow facts. Engine event names, full scheduling order, actual activation, costs, cooldowns and independent restriction preservation are not established by the encoded-reference checks. Do not force the state getter or rewrite cached results: either would bypass upstream bookkeeping.",
+    "candidate_interference_edge": {
+      "iteration": "0x22d1f30",
+      "comparator_call": "0x22d1f78",
+      "return": "0x22d1f7d",
+      "roles": "R15 is the entry being evaluated; R13 is the current active interferer. The loop has already checked active-state bits and unequal action IDs before the comparator call.",
+      "candidate": "A future reason-qualified exception can omit only the story interferer at this loop edge, retaining every other comparator and native state/cache/start path. It must not force a generic comparator or on_start result.",
+      "status": "Reviewed implementation direction only; no exception installed or activation verified."
+    }
+  },
+  "fact_write_path": {
+    "binding": "nl_global_fact at0x1a3d8c0; verified registration at0x1a43536/0x1a43544",
+    "lookup": "VM+0x78 -> context+0x08 FactDictionary; key is namespace zero and hashed first argument",
+    "write_branch": "A supplied second argument reaches0x1a4a6a0. Numeric Lua type3 enters0x1a4a94f, locates or inserts a bucket, and writes dictionary type1 plus double payload.",
+    "existing_numeric_bucket": "0x1a4a9b0 sets type;0x1a4a9be stores double atbucket+0x18;0x1a4a9c4 sets byte+0x13 to0xff. The index derived from bucket+0x14 selects a bit in dictionary+0x118;0x1a4a9d5 stores the updated word;0x1a4a9dd merges option flags.",
+    "dispatch_limit": "The existing numeric write branch updates value, metadata and dirty bits, then returns. A separate gatherer snapshots listener values into LuaFactEvents, and luaFixedUpdate consumes those copied arguments. Current dictionary values are not necessarily the last applied story-manager decision. See fact_listener_pipeline for the verified call chain. No atomic six-key read or exclusion of all writers is established.",
+    "catalog_policy": "Use this map only with its executable fingerprint. Callback addresses from older generated catalogs require current registration verification; similarly named or nearby functions are not substitutes."
+  },
+  "fact_listener_pipeline": {
+    "registration": {
+      "add": "nl_add_global_fact_listener at0x1a3f390 delegates to0x1a498e0; remove callback is0x1a3f4f0.",
+      "records": "Registration appends 0x38-byte per-fact listener records through0x1a256d0, including key, cached variant, entity and callback ID; it marks the fact dirty and enables LuaEnableFactListeners.",
+      "environments": {
+        "FactDictionary": "0xe7097951",
+        "LuaFactEvents": "0xc32c8f70"
+      },
+      "components": {
+        "LuaEnableFactListeners": "0x0a38e19b",
+        "LuaFactListeners": "0x7697585a"
+      }
+    },
+    "gatherer": {
+      "name": "coregame::lua_fact::detail::updateLuaFactListeners",
+      "path": "0x1a268b0 ->0x1a25b80",
+      "access": "The registered signature declares access mode3 for LuaFactEvents and FactDictionary, mode2 for LuaEnableFactListeners, mode3 for LuaFactListeners. This metadata alone is not proof of runtime exclusion.",
+      "dirty_read": "0x1a25db8 reads a word from FactDictionary+0x118;0x1a25dc0 tests the indexed dirty bit. A matching bucket must also carry the changed flag.",
+      "snapshot": "Changed cached variants create callback event records. Each event carries entity, callback ID, argument start and count. Its complete argument list is copied from cached listener values, including unchanged arguments belonging to that callback, into 0x18-byte variant records.",
+      "cleanup": "The gatherer compacts listener entries, clears processed variant flags at0x1a262b3 and clears the 4096-byte dictionary dirty bitset at0x1a262cf. It queues arguments rather than executing Lua callbacks."
+    },
+    "consumer": {
+      "name": "coregame::lua_script::luaFixedUpdate",
+      "registration": "Name0x48ed950 at0x19d8f2a; dispatcher0x19e26b0 at0x19d8f97.",
+      "path": "0x19e26b0 ->0x19db3f0 ->0x1a30ff0 ->0x1a29680",
+      "world_context": "The worker installs VM world context through0x1a30740 before update, then clears it through0x1a308e0 afterward. These helpers are not established as locks.",
+      "callback": "The inline fact-event loop checks callback/entity validity, pushes queued variants through0x1a253e0 at0x1a2c01c, invokes Lua through0x2c9ab60 at0x1a2c03d, handles errors and clears events through0x1a303d0 at0x1a2c0d4.",
+      "alternate": "Function0x1a2e4e0 explicitly gathers and consumes events;0x1a295f0 wraps it. Its caller/scheduling is unresolved. The registered fixed-update path above does not require assuming this alternate wrapper executes."
+    },
+    "registration_relations": {
+      "shared_phase": "sg_fixedRateUpdateLuaScript: descriptor0x5aed748, label0x4949dd0.",
+      "gatherer_edge": "Helper0x18c8060 appends kind1 with shared-tag ID as first node and gatherer ID as second.",
+      "consumer_edge": "Helper0x18c8120 appends kind2 with fixed-update ID as first node and shared-tag ID as second. A further kind1 relation names Parent Hierarchy Pre Physics.",
+      "interpretation_limit": "0x1d65db0 appends relation records and flags node metadata. Graph compilation/execution semantics and the complete relation to action pre-handle, request evaluation and start are not established here; node labels alone do not prove execution order or a safe mutation boundary."
+    },
+    "permission_implication": "A permission adapter must distinguish pending facts, queued callback arguments, the applied player Status and derived LogicData state. Matching two reads or a prior diagnostic sample cannot merge those stages into one authoritative snapshot."
+  },
+  "conversation_status_path": {
+    "name": "heron::conversation::handle_active_state::system",
+    "registration": "Name0x4ce58b0 at0x273fd6f; dispatcher0x27496b0 at0x273fdd9.",
+    "writer_path": "Dispatcher call0x27499f0 reaches worker0x2741e50, whose tail jump0x2742dfd reaches the shared Status writer0x227bca0 with mask4. A writer return address0x27499f5 belongs to the dispatcher call, not a direct call to the byte writer.",
+    "access": "The signature declares writable LogicData, ConversationData, RadioUpdatesData and player Status; additional input/configuration and conversation query data are read.",
+    "relations": "Registration names Input Logic Handle General Active State and ConversationGraphUpdate. Full scheduling semantics are not inferred from the labels.",
+    "limits": "Identifies the previously observed mask4 path as conversation state handling. It is separate from the story-manager mask1 binding. This is not exhaustive coverage of Status stores or proof that every conversation restriction is represented by mask4."
+  },
+  "applied_story_provenance_constraints": {
+    "model": "Track only a validated manager decision successfully applied to the same live player, not a fresh dictionary snapshot. Pending fact writes must retain native propagation timing.",
+    "requirements": [
+      "Invalidate before a relevant write and publish only after exact writer and binding completion; reject nested, failed, unrecognized or reordered writes.",
+      "Cover all relevant Status mutations or establish an authoritative native generation; bit equality cannot detect an unobserved clear/set cycle.",
+      "Establish player/world lifetime identity, relocation and reuse; component pointer equality is insufficient.",
+      "Preserve Lua nonlocal error behavior and hook cleanup.",
+      "Prove the requested action arbitration path preserves other interferers, recursive state/cache bookkeeping, normal unlocks, start, costs, cooldowns and cleanup."
+    ],
+    "availability": "Implemented as a build-specific adapter. Exact native arbitration fixtures and host/guest checks are separate from still-pending gameplay confirmation.",
+    "binding_control_flow": "In the reviewed binding0x23c0c50, the writer call0x23c0cb4 is followed only by register restore, zero return value, stack restore and return0x23c0cc5. There is no native post-write Lua call on this path. VM-context setup0x23c0cc6 and missing-player error0x23c0cd0 are alternate paths before writer completion. This narrows the unwind requirement: a scope opened before original binding entry still needs cleanup on pre-write error, while a Lua reentry after the writer is not present in this binding. It does not establish hook-induced behavior, cross-thread ordering or complete Status write coverage."
+  },
+  "status_component_lifecycle": {
+    "component": "heron::player_status::component::Status",
+    "descriptor": {
+      "name_rva": "0x4a13108",
+      "hash": "0x72d38548",
+      "size": 2,
+      "alignment": 1,
+      "record_size": "0x58",
+      "initialize_callback_offset": "0x30",
+      "copy_callback_offset": "0x38",
+      "registration": "0x1d74150 looks up the hash in a sorted key array. An existing matching key branches at0x1d741b6 directly to the epilogue0x1d741e6, keeping the existing descriptor. Only absent keys reach descriptor insertion0x1d743a0 at0x1d741e1.",
+      "selection_limit": "The descriptor retained in a particular runtime registry depends on registration order. The static inventory does not establish which compiled callback instance is selected live."
+    },
+    "initialize": "Each inventoried initializer writes uint16 value1 at base + uint32(index)*2. On this little-endian build, byte0 becomes1 and flags byte1 becomes0, bypassing the shared flag writer.",
+    "copy": "Each inventoried copier loads the uint16 source component and writes it at destination base + uint32(index)*2. Both mode and flags transfer unchanged, bypassing the shared flag writer.",
+    "registrations": [
+      {
+        "function": "0x1e25540",
+        "initialize": "0x1e24d80",
+        "copy": "0x1e24d90"
+      },
+      {
+        "function": "0x1e26270",
+        "initialize": "0x1e24d80",
+        "copy": "0x1e24d90"
+      },
+      {
+        "function": "0x1e759e0",
+        "initialize": "0x1e6ede0",
+        "copy": "0x1e6edf0"
+      },
+      {
+        "function": "0x1fb9300",
+        "initialize": "0x1fb6b90",
+        "copy": "0x1fb6ba0"
+      },
+      {
+        "function": "0x202f500",
+        "initialize": "0x202e6c0",
+        "copy": "0x202e6d0"
+      },
+      {
+        "function": "0x2047930",
+        "initialize": "0x203e0c0",
+        "copy": "0x203e0d0"
+      },
+      {
+        "function": "0x20d38a0",
+        "initialize": "0x20d1f80",
+        "copy": "0x20d1f90"
+      },
+      {
+        "function": "0x21e8c00",
+        "initialize": "0x21e7f70",
+        "copy": "0x21e7f80"
+      },
+      {
+        "function": "0x2287a90",
+        "initialize": "0x227f940",
+        "copy": "0x227f950"
+      },
+      {
+        "function": "0x2444a80",
+        "initialize": "0x243e6e0",
+        "copy": "0x243e6f0"
+      },
+      {
+        "function": "0x28150e0",
+        "initialize": "0x280d840",
+        "copy": "0x280d850"
+      },
+      {
+        "function": "0x28f1000",
+        "initialize": "0x28eca30",
+        "copy": "0x28eca40"
+      },
+      {
+        "function": "0x28fa860",
+        "initialize": "0x28f8820",
+        "copy": "0x28f8830"
+      },
+      {
+        "function": "0x291cfe0",
+        "initialize": "0x2914010",
+        "copy": "0x2914020"
+      }
+    ],
+    "inventory_evidence": "A bounded scan found 67 literal Status hash sites in 66 executable function records. Descriptor construction at 14 sites identifies 13 unique initializer/copy pairs. All 13 initializer bodies match the same 9-byte sequence; all 13 copier bodies match the same 12-byte sequence. Surviving writable system signatures separately identify player-mode update and conversation handling; script bindings have their own writable definition.",
+    "provenance_implication": "A mirror based only on the shared flag writer cannot account for component initialization or copying. It must invalidate on the relevant native component lifecycle or use a proved identity/lifetime generation that covers these events. Comparing only current flag bits cannot establish their origin.",
+    "limits": "Registered Status callback behavior and a generic ECS invocation path are traced statically. No particular initialization, copy or teardown is gameplay-confirmed. Full component mutation coverage and entity reuse within a surviving world remain unproved.",
+    "generic_invocation": {
+      "function": "0x1d7e5b0",
+      "arguments": "ECX selects a batch group; RDX points to a count/pointer component span; R8 packs first row in low32 and exclusive end in high32; R9 points to the batch scope. The high bound loaded from stack is the saved high half of R8, not a fifth argument.",
+      "descriptor_resolution": "Each 8-byte component entry supplies a low32 type hash. The worker resolves it in the registry at (*scope)+0x10, then indexes the 0x58-byte descriptor array. Loads at0x1d7e66f and0x1d7e679 select copy+0x38 and initialize+0x30 respectively. This uses the actual registered descriptor, without choosing one compiled Status implementation in advance.",
+      "destination": "The selected archetype and component offset resolve a destination component-array base. The destination row is the group base from context+0x60 plus the current row.",
+      "copy": "Non-null source: call RSI at0x1d7e72b with RCX source, RDX destination array base, R8D destination row.",
+      "initialize": "Null source: call R15 at0x1d7e732 with RCX destination array base and EDX destination row.",
+      "ranges": "Dispatcher0x1d7e1d0 invokes the worker at0x1d7e247,0x1d7e2b6,0x1d7e300 for first/intermediate/final group slices.",
+      "scheduling": "Batch dispatcher0x1d7cbf0 has inline and partitioned job paths. Partition jobs use vtable0x49e8858 ->0x1d77f80 -> callback0x1d764a0 ->0x1d7e1d0. The submitting thread also processes a range; call0x1d7cec6 reaches the job-completion wait0x32c0830 before local partition storage is freed.",
+      "outer_batch": "Flush worker0x1d764d0 constructs the context and submits two component batches through0x1d80fb0 at0x1d76dc4/0x1d76e05. The outer submission can itself be queued through vtable0x49e87e0 ->0x1d77e50 or invoked inline. Thus return from0x1d80fb0 alone is not a completion boundary. The flush calls completion wait0x32c0830 at0x1d7747b using a copy of the same parent handle supplied to both submissions. The later wait at0x1d774c7 uses a different parent handle.",
+      "context_origin": "World wrappers0x1d6f9f0,0x1d8ad70 and0x1d74710 supply command flush0x1d74e80 with RDX world, R8 registry, argument5 world+0x584d8 generation allocator, argument6 world+0x58520 location storage and argument7 world+8 archetype storage. In0x1d74e80, the seventh argument is recovered at0x1d751e7 and stored at flush-source+0x20 at0x1d75709. Worker0x1d764d0 copies that to batch-context+8 at0x1d76d1a. Therefore (*scope)+8 in the generic invoker is world+8, not the full world. The batch-context+0x10 registry similarly comes from flush-source+8, initialized from the original R8 registry at0x1d756e6. Batch-context+0 points to stack-local flush options, not to the world.",
+      "limits": "This establishes one concrete generic initialization/copy path and its job dispatch, not exhaustive bulk migration, deletion, restoration or in-place overwrite coverage. No live Status invocation, cross-system exclusion or complete world epoch is established."
+    },
+    "world_cleanup": {
+      "function": "0x1d89b80",
+      "entity_locations": "Reads world+0x58530 at0x1d89be5, frees the non-null allocation at0x1d89bf8, then clears pointer+0x58530 and size/capacity+0x58538/+0x58540.",
+      "generation_storage": "Calls0x1d721f0 with world+0x584d8 at0x1d89c1b. That destructor frees and clears its member+0x10, hence world+0x584e8, the table used for entity upper32 generation comparisons by the existing component resolver. Destruction is not itself a monotonic generation or proof of entity reuse ordering.",
+      "archetype_storage": "Tail-calls0x1d706f0 with world+8 at0x1d89c79.",
+      "limits": "A concrete teardown invalidation candidate, not proof that every reload destroys this object or that a pointer identifies a durable campaign. Entity deletion/reuse within a surviving world requires separate coverage."
+    },
+    "entity_handles": {
+      "allocator_rva": "0x1d72230",
+      "retire_rva": "0x1d723f0",
+      "layout": "Generation allocator is world+0x584d8; data pointer member+0x10 is world+0x584e8. Each8-byte slot stores low32 generation and high32 next free index. A runtime entity handle stores low32 slot index and high32 generation.",
+      "fresh_allocation": "Allocator writes slot value0xffffffff00000001 at0x1d723ae and emits a handle with generation1 and the allocated index at0x1d723b7. Member+0x38 tracks fresh index allocation.",
+      "reuse": "Allocator follows the free-list head in member+0x40. It reads slot generation at0x1d7229c and emits (generation<<32)|index at0x1d722ad. Its compare/exchange at0x1d722d0 claims the list prefix; failed attempts retract emitted count and retry.",
+      "retirement": "For each supplied handle,0x1d723f0 writes the handle high32 plus1 into that slot low32, and links the next freed index into high32. It publishes the batch with compare/exchange at0x1d72486. The arithmetic is uint32 and can wrap; there is no saturation or immutable identity here.",
+      "location_invalidation": "Worker0x1d762c0 calls0x1d72100 at0x1d76352 before retirement at0x1d76369. The location writer sets the archetype word to0xffff and row to0; the intervening padding word is not explicitly initialized, so do not compare a fabricated full64-bit sentinel.",
+      "limits": "Slot reuse now has a concrete increment producer and allocation consumer. This is temporary identity within the corresponding world lifetime, not campaign identity. Same-handle component updates and relocations do not require a generation increment. These static paths do not establish complete concurrency exclusion or a live player retirement."
+    },
+    "flush_sequence": {
+      "offset": "0x5f430",
+      "increment": "Nonempty command flush0x1d74e80 increments world+0x5f430 with lock xadd at0x1d74ed8 before dispatching structural work.",
+      "initialization": "Two world construction paths clear this field at0x1d89970 and0x1d89b20.",
+      "limits": "The counter records flush starts, not completed work or an odd/even write lock. Equal reads do not exclude an already-running flush. It resets when a world is constructed and cannot distinguish address reuse by itself."
+    },
+    "handle_relocation": {
+      "function": "0x1d864c0",
+      "behavior": "Copies count*8 bytes from source chunk handle array at+0x10 to destination chunk handle array at+0x10, then updates each copied index in the world location table with destination archetype/row. Equivalent inline work is present at0x1d77270..0x1d772fc.",
+      "limits": "This is handle/location relocation, not the component payload copy. It preserves the full handle, so generation checks alone do not detect the move. Component payload movement is a distinct flush operation."
+    },
+    "component_payload_relocation": {
+      "builders": [
+        "0x1d7ed00",
+        "0x1d7f560",
+        "0x1d7fba0"
+      ],
+      "descriptor": "Each builder resolves the registry-selected 0x58-byte descriptor. Its +0x10 element size and +0x40 callback select a custom 48-byte work record or a raw 40-byte work record.",
+      "dispatch": "0x1d810b0 queues workers 0x1d77870 and 0x1d77930 for custom callbacks, or 0x1d779f0 for raw component copies. The raw worker calls 0x3987fe4 at 0x1d77a73 with a byte count computed from the selected element size and source range.",
+      "status": "Representative Status registration 0x1e26270 stores size 2 and a null +0x40 callback at 0x1e262d8. If selected and present in this batch, that descriptor takes the raw route, bypassing both the mask writer and the registered +0x38 per-element copy.",
+      "limits": "The selected descriptor and presence of live player Status in a particular batch remain unobserved. This route is distinct from the handle/location mover. It does not establish that every serialized or direct Status overwrite uses the same flush."
+    },
+    "diagnostic_observer": {
+      "source": "runtime/diagnostics/structural_lifecycle.cpp",
+      "entry_guards": {
+        "0x1d74e80": "488bc44c8948204c89401848895010",
+        "0x1d89b80": "48895c2408574883ec20"
+      },
+      "coverage": "Opt-in capture brackets observed command flush 0x1d74e80 and world teardown 0x1d89b80. A process-wide active count and begin/end sequence reject player snapshots overlapping an admitted interval; counters cover all worlds conservatively.",
+      "lifecycle": "Admission closes atomically at capture stop; already admitted calls drain through SEH finally, and installed hooks remain pinned in passthrough. Partial attachment never removes an enabled hook. Native arguments, results and exceptions are forwarded unchanged for the reviewed direct callers.",
+      "records": "Capability structural_lifecycle totals report flushes, teardowns, unwinds and pending intervals. Player context samples label structural_observed and structural_sequence only when the observed interval encloses their native reads. Entity values and sequences are process-local diagnostics, not persistent identity.",
+      "limits": "This is read-only diagnostic coverage, not scheduler exclusion, complete Status write coverage or permission to modify the player. Native calls already running at attachment are unobserved; work escaping the bracket or direct writers may be unobserved. Global activity can reject otherwise unrelated player samples. Live hook cost and callback coverage remain unverified."
+    },
+    "same_call_writer_capture": {
+      "binding": "0x23c0c50",
+      "writer": "0x227bca0",
+      "accepted_return": "0x23c0cb9",
+      "register_origin": "Binding sets RBX=RCX (Lua state) at0x23c0c5f. It preserves RBX across argument validation, boolean conversion and Status resolution until the writer call at0x23c0cb4; caller RBX is restored only at0x23c0cb9. Only the exact reviewed mask1 caller may interpret entry RBX as a VM.",
+      "entry_guard": {
+        "rva": "0x23c0c5f",
+        "bytes": "488bd9448bc2e8d6628d00ba01000000488bcbe8f9808d0085c0488b4378400f95c74885c07440440fb6442450488d4c2420488b10e817e90100807c2438007430488b442430440fb6c7488b4c2420b201488d0c41e8e7afebff488b5c245833c04883c4405fc3488bcbe832fa66ffebb6488d1509418002488bcbe8d1648d00cc"
+      },
+      "implementation": "story_writer_entry.asm copies entry RBX and the native return address into extra arguments to a C++ diagnostic bridge. Native status, mask and raw enable byte are passed unchanged. The thunk has x64 unwind metadata; diagnostic admission ends in finally around the original leaf writer, not around the Lua binding.",
+      "observations": "Copies manager arguments at writer entry, compares requested boolean and current world, then checks the returned byte operation and player/structural interval. No Lua context or pending manager request is retained across calls; no timestamp matching or TLS pairing is required.",
+      "limits": "A same-call returned write is not a durable permission lease or proof of final binding return. Other writers and lifecycle paths can supersede it. Source metadata checks the reviewed layout, not cryptographic script origin. Live evidence validates the two recorded manager operations only.",
+      "live_observations": {
+        "manager_writes": 2,
+        "reason_masks": [
+          0,
+          1
+        ],
+        "active_counts": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "qualification": "Both manager writes matched the player, world and quiet structural interval; the returned flag operation matched the requested boolean. The active sample attributes the write to ref_counting_trigger.",
+        "limits": "No concurrent non-area manager reason, mask2 write, final action activation or complete scheduler coverage was established."
+      }
+    },
+    "callback_invalidation": {
+      "implementation": "runtime/diagnostics/player_status_lifecycle.cpp",
+      "callback_pairs": [
+        {
+          "initialize": "0x1e24d80",
+          "copy": "0x1e24d90"
+        },
+        {
+          "initialize": "0x1e6ede0",
+          "copy": "0x1e6edf0"
+        },
+        {
+          "initialize": "0x1fb6b90",
+          "copy": "0x1fb6ba0"
+        },
+        {
+          "initialize": "0x202e6c0",
+          "copy": "0x202e6d0"
+        },
+        {
+          "initialize": "0x203e0c0",
+          "copy": "0x203e0d0"
+        },
+        {
+          "initialize": "0x20d1f80",
+          "copy": "0x20d1f90"
+        },
+        {
+          "initialize": "0x21e7f70",
+          "copy": "0x21e7f80"
+        },
+        {
+          "initialize": "0x227f940",
+          "copy": "0x227f950"
+        },
+        {
+          "initialize": "0x243e6e0",
+          "copy": "0x243e6f0"
+        },
+        {
+          "initialize": "0x280d840",
+          "copy": "0x280d850"
+        },
+        {
+          "initialize": "0x28eca30",
+          "copy": "0x28eca40"
+        },
+        {
+          "initialize": "0x28f8820",
+          "copy": "0x28f8830"
+        },
+        {
+          "initialize": "0x2914010",
+          "copy": "0x2914020"
+        }
+      ],
+      "guards": {
+        "initialize": "8bc266c704410100c3",
+        "copy": "0fb701458bc06642890442c3"
+      },
+      "semantics": "Global sequence and active-call counters bracket every reviewed initializer/copier. Coverage remains unavailable until every hook is enabled. Partial installation forwards unchanged. Exceptions unwind through finally. Ordinary raw component relocation is a separate path.",
+      "limits": "Conservative invalidation may discard observations after unrelated copies. Calls already executing at attachment, arbitrary external stores and scheduling exclusion are not covered. Game execution of these new callback hooks has not been validated."
+    },
+    "retained_reason_observation": {
+      "implementation": "runtime/diagnostics/applied_story_state.h",
+      "publication": "All mask1 writes retire previous records. Only a returned, attributed manager write with matching dictionary identity/counts and unchanged callback interval publishes copied reasons. Production tracking is separate from ten-minute diagnostic sampling and capture stop.",
+      "lookup": "Re-resolves unique player, full generational entity, world teardown epoch and mode4/flags1. Rejects reset/copy, structural overlap/unwind, unknown mask1 writes and tracking stop. Ordinary completed quiet flushes do not erase provenance; no component pointer is retained.",
+      "limits": "Authority is the last verified APPLIED manager decision. Current dictionary equality is an additional conservative early veto, not a global atomic snapshot or a requirement to synchronously apply pending facts. Arbitrary external Status stores remain outside hook coverage."
+    }
+  },
+  "scoped_action_exception": {
+    "implementation": "runtime/diagnostics/action_restriction_observer.cpp",
+    "service": "runtime/action_rules.cpp",
+    "guest_contract": "sdk/include/crml_action_rules.h",
+    "comparator": "0x22d1b70",
+    "required_return_address": "0x22d1f7d",
+    "requested_actions": [
+      "0x1",
+      "0x2",
+      "0x10",
+      "0x20",
+      "0x10000"
+    ],
+    "interferer": "0x04000000",
+    "predicate": "Exact evaluator caller and indexed entries of the freshly resolved player. Verified applied reason mask contains only ref_counting_trigger/toggling_trigger, mode4 flags1. Matching live owner lease, world teardown lifetime, Status callback and structural unwind epochs; final applied-writer epoch check.",
+    "operation": "Return false only for this interferer comparison. All other comparisons preserve native arguments/results. Does not modify Status, facts, entry cache or on_start state.",
+    "lifetime": "Owner-local 500ms requests bound to world lifetime and full player entity. Supported action masks combine across up to32 owners. Diagnostic capture expiration does not stop production provenance tracking.",
+    "instruction_fixture": {
+      "cases": 25,
+      "definitions": "synthetic",
+      "native_paths": [
+        "0x22d07e0 request",
+        "0x22d0980 result wrapper",
+        "0x22d1d20 evaluator",
+        "0x22d1b70 comparator",
+        "0x22d1930 pair",
+        "0x22d01e0 start getter"
+      ],
+      "preserved": "Other interferer blocks, self-request comparisons, cached results. Revocation covered after fixture explicitly resets result-valid as a fresh evaluation.",
+      "substitutions": "Allocator/free, memcpy, log2f, vector search/remove primitives; candidate branch substitution. No game process runs."
+    },
+    "limits": "Area exceptions exercised in gameplay. Airborne input processing is additionally covered by current-build instruction fixtures; full floating and running transitions remain unverified. Native cached decisions are not forcibly cancelled. Hook coverage excludes arbitrary foreign memory writes."
+  },
+  "airborne_input": {
+    "worker": "0x243b0f0",
+    "worker_end": "0x243b353",
+    "dispatcher_return": "0x244115b",
+    "native_action": "0x10",
+    "status_register": "r13",
+    "logic_at_worker_rsp": "0x20",
+    "status_gates": [
+      "0x243b27e",
+      "0x243b2d2"
+    ],
+    "original_gate_bytes": "41f645001c",
+    "operation": "Candidate design only: a qualified Jump lease would allow the normal ability queries at these two tests without changing real Status. Safe patch installation and complete unwind/ABI validation are not implemented.",
+    "instruction_fixture": "Eleven cases execute current native branch instructions with synthetic components; AVX moves and scalar operations are explicitly emulated. Request kind 2 restored under eligible area exception; ability denial and protected modes retained. This does not establish gameplay semantics of every request kind.",
+    "limits": "Current unique-player row and applied area-only provenance are required. No generic sprint or float enable switch is exposed.",
+    "implementation_status": "Proposed branch correction deferred. Native gates and instruction fixture are mapped, but no branch patch is installed by the runtime."
+  },
+  "sprint_observation": {
+    "native_action": "0x10000000",
+    "worker": "0x20d1220",
+    "status_test": "0x20d128d",
+    "semantics": "The active-state worker allows its eligibility path with masked Status bits set, unlike the airborne gates. No exception patch is applied to sprint."
+  }
+}

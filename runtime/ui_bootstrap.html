@@ -13,7 +13,7 @@
             value <= 4294967295 && Math.floor(value) === value;
     }
     if (!u64(nonce) || nonce === '0' || typeof window.XMLHttpRequest !== 'function') return;
-    var sequence = 0, acknowledged = 0, lastId = 0;
+    var sequence = 0, acknowledged = 0, outcome = 0, lastId = 0;
     var timer = null, pending = null, stopped = false;
     var lastKey = '', since = 0, epoch = 0, lastScreen = -1, continued = false;
     var leases = [], styleNode = null, rules = '', token = 0;
@@ -47,11 +47,13 @@
         renderRules();
     }
     function resolve(kind, name) {
-        var nodes = kind === 1 ? document.querySelectorAll('[id="' + name + '"]') :
-            document.getElementsByClassName(name);
-        var element = nodes.length === 1 ? nodes[0] : null;
-        return element && element.nodeType === 1 && element.style &&
-            document.documentElement.contains(element) ? element : null;
+        try {
+            var nodes = kind === 1 ? document.querySelectorAll('[id="' + name + '"]') :
+                document.getElementsByClassName(name);
+            var element = nodes.length === 1 ? nodes[0] : null;
+            return element && element.nodeType === 1 && element.style &&
+                document.documentElement.contains(element) ? element : null;
+        } catch (_) { return null; }
     }
     function reconcile(now) {
         for (var i = leases.length - 1; i >= 0; --i) {
@@ -72,26 +74,28 @@
             var item = batch[i];
             if (!item || (item.kind !== 1 && item.kind !== 2) ||
                 typeof item.name !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(item.name) ||
-                !u32(item.ttl_ms) || item.ttl_ms < 1 || item.ttl_ms > 1000) { clearLeases(); return; }
-            var element = resolve(item.kind, item.name);
+                !u32(item.ttl_ms) || item.ttl_ms < 1 || item.ttl_ms > 1000) continue;
+            var element = resolve(item.kind, item.name), conflict = false;
             for (j = 0; j < items.length; ++j) {
                 if ((items[j].kind === item.kind && items[j].name === item.name) ||
-                    (element && items[j].element === element)) { clearLeases(); return; }
+                    (element && items[j].element === element)) {
+                    items[j].conflict = true; conflict = true;
+                }
             }
-            items.push({kind: item.kind, name: item.name, element: element, ttl: item.ttl_ms - age});
+            items.push({kind: item.kind, name: item.name, element: element, ttl: item.ttl_ms - age, conflict: conflict});
         }
         var next = [];
         for (i = 0; i < leases.length; ++i) {
             var retained = false;
             for (j = 0; j < items.length; ++j) {
-                if (leases[i].kind === items[j].kind && leases[i].name === items[j].name &&
+                if (!items[j].conflict && leases[i].kind === items[j].kind && leases[i].name === items[j].name &&
                     leases[i].element === items[j].element && items[j].ttl > 0) { retained = true; break; }
             }
             if (!retained) restore(leases[i]);
         }
         for (i = 0; i < items.length; ++i) {
             var target = items[i];
-            if (!target.element || target.ttl <= 0) continue;
+            if (target.conflict || !target.element || target.ttl <= 0) continue;
             var existing = null;
             for (j = 0; j < leases.length; ++j) {
                 if (leases[j].kind === target.kind && leases[j].name === target.name &&
@@ -148,7 +152,8 @@
         try { command = JSON.parse(text); } catch (_) { return; }
         if (!command || !u32(command.id)) return;
         var fresh = command.id !== 0 && command.id > lastId;
-        if (fresh) { lastId = command.id; acknowledged = command.id; }
+        // Default to skipped until the reviewed trigger actually returns.
+        if (fresh) { lastId = command.id; acknowledged = command.id; outcome = 2; }
         if (!u64(command.generation) || command.generation === '0' || !u32(command.screen)) return;
         var current = snapshot();
         var age = Date.now() - sentAt;
@@ -158,7 +163,8 @@
         catch (_) { try { clearLeases(); } catch (_) {} }
         if (!fresh || !u32(command.action) || command.action !== 1 || current.actions !== 1) return;
         continued = true;
-        try { window.engine.trigger('splash_continue_pressed'); } catch (_) { continued = false; }
+        try { window.engine.trigger('splash_continue_pressed'); outcome = 1; }
+        catch (_) { continued = false; outcome = 3; }
     }
     function poll() {
         if (stopped) return;
@@ -180,8 +186,8 @@
             }
             request.onload = function () { finish(true); };
             request.onerror = request.ontimeout = request.onabort = function () { finish(false); };
-            request.open('GET', 'coui://base/crml/ui/v1/' + nonce + '/' + number + '/' +
-                current.screen + '/' + current.actions + '/' + acknowledged, true);
+            request.open('GET', 'coui://base/crml/ui/v2/' + nonce + '/' + number + '/' +
+                current.screen + '/' + current.actions + '/' + acknowledged + '/' + outcome, true);
             request.timeout = 1500;
             request.send();
         } catch (_) {

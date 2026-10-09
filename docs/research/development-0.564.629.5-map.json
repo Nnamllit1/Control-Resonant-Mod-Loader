@@ -1,0 +1,3984 @@
+{
+  "schema": 1,
+  "title": "Development adapters for CONTROL Resonant 0.564.629.5",
+  "executable_sha256": "9f56611d767c9227a8a1b250c01acf9478b50933c65f86a1e044fcc53df67cb1",
+  "status": "Static relocation review only. Development adapters target this exact executable; gameplay validation is pending. Base runtime profiles remain independently versioned.",
+  "review": {
+    "code_locations": 155,
+    "branch_targets": 1967,
+    "source": "0.564.478.0",
+    "method": "Compare decoded instruction bodies, relative targets and data references; inline table bytes checked separately. No callable ABI or lifetime guarantee follows from static equality."
+  },
+  "mappings": {
+    "0x17d8170": "0x17d8170",
+    "0x17d8680": "0x17d8680",
+    "0x17d8cf0": "0x17d8cf0",
+    "0x17e25e0": "0x17e25e0",
+    "0x17e27e0": "0x17e27e0",
+    "0x17e2842": "0x17e2842",
+    "0x17e2bb0": "0x17e2bb0",
+    "0x17e2f60": "0x17e2f60",
+    "0x182cab0": "0x182cab0",
+    "0x191f2bc": "0x191f2bc",
+    "0x191f8a0": "0x191f8a0",
+    "0x1923180": "0x1923180",
+    "0x1924f48": "0x1924f48",
+    "0x19272d0": "0x19272d0",
+    "0x1936810": "0x1936810",
+    "0x1a93b40": "0x1a93b40",
+    "0x1a94470": "0x1a94470",
+    "0x1d5eb50": "0x1d5eb50",
+    "0x1d5fd98": "0x1d5fd98",
+    "0x1d686c0": "0x1d686c0",
+    "0x1d688c0": "0x1d688c0",
+    "0x1d68c60": "0x1d68c60",
+    "0x1d69532": "0x1d69532",
+    "0x1d6a3d0": "0x1d6a3d0",
+    "0x1d74e80": "0x1d74e80",
+    "0x1d89b80": "0x1d89b80",
+    "0x1e24d80": "0x1e24d80",
+    "0x1e24d90": "0x1e24d90",
+    "0x1e4a630": "0x1e4a630",
+    "0x1e4ac84": "0x1e4ac84",
+    "0x1e60d50": "0x1e60d50",
+    "0x1e61470": "0x1e61470",
+    "0x1e62743": "0x1e62743",
+    "0x1e627f0": "0x1e627f0",
+    "0x1e629f9": "0x1e629f9",
+    "0x1e62cc0": "0x1e62cc0",
+    "0x1e63800": "0x1e63800",
+    "0x1e63f30": "0x1e63f30",
+    "0x1e68cb0": "0x1e68cb0",
+    "0x1e68d31": "0x1e68d31",
+    "0x1e68d5e": "0x1e68d5e",
+    "0x1e68ece": "0x1e68ece",
+    "0x1e68ed3": "0x1e68ed3",
+    "0x1e6ad20": "0x1e6ad20",
+    "0x1e6ede0": "0x1e6ede0",
+    "0x1e6edf0": "0x1e6edf0",
+    "0x1e70fc5": "0x1e70fc5",
+    "0x1e70fca": "0x1e70fca",
+    "0x1e71fd9": "0x1e71fd9",
+    "0x1e71fde": "0x1e71fde",
+    "0x1e77ce0": "0x1e77ce0",
+    "0x1e77dd8": "0x1e77dd8",
+    "0x1e77ddd": "0x1e77ddd",
+    "0x1e77e65": "0x1e77e65",
+    "0x1e77e6a": "0x1e77e6a",
+    "0x1e78280": "0x1e78280",
+    "0x1ef3e77": "0x1ef3e77",
+    "0x1ef3e8c": "0x1ef3e8c",
+    "0x1f34840": "0x1f34840",
+    "0x1f3a250": "0x1f3a250",
+    "0x1f3dc5a": "0x1f3dc5a",
+    "0x1f3dc5f": "0x1f3dc5f",
+    "0x1f3dcb2": "0x1f3dcb2",
+    "0x1f3dcb7": "0x1f3dcb7",
+    "0x1f48bd0": "0x1f48bd0",
+    "0x1f50fa0": "0x1f50fa0",
+    "0x1f510d0": "0x1f510d0",
+    "0x1f529c0": "0x1f529c0",
+    "0x1f52de0": "0x1f52de0",
+    "0x1f52e2d": "0x1f52e2d",
+    "0x1f52e32": "0x1f52e32",
+    "0x1f538f0": "0x1f538f0",
+    "0x1f53940": "0x1f53940",
+    "0x1f53945": "0x1f53945",
+    "0x1f53980": "0x1f53980",
+    "0x1f53985": "0x1f53985",
+    "0x1f541e1": "0x1f541e1",
+    "0x1f541e6": "0x1f541e6",
+    "0x1fb6b90": "0x1fb6b90",
+    "0x1fb6ba0": "0x1fb6ba0",
+    "0x1fbe970": "0x1fbe970",
+    "0x1fe9040": "0x1fe9040",
+    "0x1fea159": "0x1fea159",
+    "0x2000002": "0x2000002",
+    "0x202e6c0": "0x202e6c0",
+    "0x202e6d0": "0x202e6d0",
+    "0x20371d0": "0x20371d0",
+    "0x2037720": "0x2037720",
+    "0x20384a0": "0x20384a0",
+    "0x203e0c0": "0x203e0c0",
+    "0x203e0d0": "0x203e0d0",
+    "0x20425c0": "0x20425c0",
+    "0x2042c70": "0x2042c70",
+    "0x2042ed7": "0x2042ed7",
+    "0x20442c5": "0x20442c5",
+    "0x20444a0": "0x20444a0",
+    "0x20445a7": "0x20445a7",
+    "0x2044d65": "0x2044d65",
+    "0x204e0d0": "0x204e0d0",
+    "0x20d1f80": "0x20d1f90",
+    "0x20d1f90": "0x20d1fa0",
+    "0x215cd75": "0x215cdb5",
+    "0x21633a2": "0x21633e2",
+    "0x21633b0": "0x21633f0",
+    "0x21e7f70": "0x21e7ff0",
+    "0x21e7f80": "0x21e8000",
+    "0x227b500": "0x227b590",
+    "0x227b550": "0x227b5e0",
+    "0x227bca0": "0x227bd30",
+    "0x227f940": "0x227f9e0",
+    "0x227f950": "0x227f9f0",
+    "0x22d0400": "0x22d04a0",
+    "0x22d1930": "0x22d19d0",
+    "0x22d1afb": "0x22d1b9b",
+    "0x22d1b70": "0x22d1c10",
+    "0x22d1c92": "0x22d1d32",
+    "0x22d1cb1": "0x22d1d51",
+    "0x22d1f6f": "0x22d200f",
+    "0x22d1f7d": "0x22d201d",
+    "0x23c0c50": "0x23c0cf0",
+    "0x23c0c5f": "0x23c0cff",
+    "0x23c0cb9": "0x23c0d59",
+    "0x23c0d59": "0x23c0df9",
+    "0x243e6e0": "0x243e780",
+    "0x243e6f0": "0x243e790",
+    "0x2549e00": "0x2549ea0",
+    "0x254ebb2": "0x254ec52",
+    "0x2742dfd": "0x2742ead",
+    "0x280d840": "0x280d8f0",
+    "0x280d850": "0x280d900",
+    "0x28eca30": "0x28ecae0",
+    "0x28eca40": "0x28ecaf0",
+    "0x28f8820": "0x28f88d0",
+    "0x28f8830": "0x28f88e0",
+    "0x2914010": "0x29140c0",
+    "0x2914020": "0x29140d0",
+    "0x29c69a0": "0x29c6a50",
+    "0x29c82e0": "0x29c8390",
+    "0x29d56c0": "0x29d5770",
+    "0x29d5b60": "0x29d5c10",
+    "0x29d7f90": "0x29d8040",
+    "0x2d273c0": "0x2d27470",
+    "0x2d273df": "0x2d2748f",
+    "0x2d274c0": "0x2d27570",
+    "0x2d27680": "0x2d27730",
+    "0x2d2f170": "0x2d2f220",
+    "0x2d2fd30": "0x2d2fde0",
+    "0x2d30c50": "0x2d30d00",
+    "0x2d4afb0": "0x2d4b060",
+    "0x2dc4490": "0x2dc4560",
+    "0x2dcd340": "0x2dcd410",
+    "0x2dce280": "0x2dce350",
+    "0x2dcf700": "0x2dcf7d0",
+    "0x31ddc70": "0x31de030",
+    "0x31de130": "0x31de4f0",
+    "0x5ce1930": "0x5c00950",
+    "0x5df0560": "0x5d0f580",
+    "0x4dc78d0": "0x4d1db30",
+    "0x5d55548": "0x5c74578",
+    "0x5d55598": "0x5c745c8",
+    "0x5d52aa8": "0x5c71ad8",
+    "0x5d52de0": "0x5c71e10",
+    "0x63e2000": "0x6301000",
+    "0x227bcb7": "0x227bd47"
+  },
+  "checks": [
+    {
+      "kind": "u32",
+      "rva": "0x17d8170",
+      "target": "0x245c8948",
+      "label": "Development code 0x17d8170 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8174",
+      "target": "0x6c894808",
+      "label": "Development code 0x17d8170 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8178",
+      "target": "0x89481024",
+      "label": "Development code 0x17d8170 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d817c",
+      "target": "0x48182474",
+      "label": "Development code 0x17d8170 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8680",
+      "target": "0x48c48b48",
+      "label": "Development code 0x17d8680 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8684",
+      "target": "0x48105889",
+      "label": "Development code 0x17d8680 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8688",
+      "target": "0x48186889",
+      "label": "Development code 0x17d8680 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d868c",
+      "target": "0x57207089",
+      "label": "Development code 0x17d8680 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8cf0",
+      "target": "0x245c8948",
+      "label": "Development code 0x17d8cf0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8cf4",
+      "target": "0x83485710",
+      "label": "Development code 0x17d8cf0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8cf8",
+      "target": "0x8b4830ec",
+      "label": "Development code 0x17d8cf0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17d8cfc",
+      "target": "0x188b4802",
+      "label": "Development code 0x17d8cf0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e25e0",
+      "target": "0x245c8948",
+      "label": "Development code 0x17e25e0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e25e4",
+      "target": "0x57565518",
+      "label": "Development code 0x17e25e0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e25e8",
+      "target": "0x55415441",
+      "label": "Development code 0x17e25e0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e25ec",
+      "target": "0x57415641",
+      "label": "Development code 0x17e25e0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e27e0",
+      "target": "0x245c8948",
+      "label": "Development code 0x17e27e0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e27e4",
+      "target": "0x6c894808",
+      "label": "Development code 0x17e27e0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e27e8",
+      "target": "0x89481024",
+      "label": "Development code 0x17e27e0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e27ec",
+      "target": "0x57182474",
+      "label": "Development code 0x17e27e0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2842",
+      "target": "0x2444b60f",
+      "label": "Development code 0x17e2842 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2846",
+      "target": "0x74c33a20",
+      "label": "Development code 0x17e2842 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e284a",
+      "target": "0xcf8b4821",
+      "label": "Development code 0x17e2842 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e284e",
+      "target": "0x1574c084",
+      "label": "Development code 0x17e2842 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bb0",
+      "target": "0x244c894c",
+      "label": "Development code 0x17e2bb0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bb4",
+      "target": "0x44894c20",
+      "label": "Development code 0x17e2bb0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bb8",
+      "target": "0x89481824",
+      "label": "Development code 0x17e2bb0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bbc",
+      "target": "0x55102454",
+      "label": "Development code 0x17e2bb0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2f60",
+      "target": "0x245c8948",
+      "label": "Development code 0x17e2f60 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2f64",
+      "target": "0x83485708",
+      "label": "Development code 0x17e2f60 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2f68",
+      "target": "0x8b4860ec",
+      "label": "Development code 0x17e2f60 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2f6c",
+      "target": "0xf98b4819",
+      "label": "Development code 0x17e2f60 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x182cab0",
+      "target": "0x245c8948",
+      "label": "Development code 0x182cab0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x182cab4",
+      "target": "0x6c894810",
+      "label": "Development code 0x182cab0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x182cab8",
+      "target": "0x89481824",
+      "label": "Development code 0x182cab0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x182cabc",
+      "target": "0x57202474",
+      "label": "Development code 0x182cab0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191f2bc",
+      "target": "0x245c8948",
+      "label": "Development code 0x191f2bc +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191f2c0",
+      "target": "0xf96ae840",
+      "label": "Development code 0x191f2bc +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191f2c4",
+      "target": "0x8b480140",
+      "label": "Development code 0x191f2bc +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191f2c8",
+      "target": "0x588b48ce",
+      "label": "Development code 0x191f2bc +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191f8a0",
+      "target": "0x244c8948",
+      "label": "Development code 0x191f8a0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191f8a4",
+      "target": "0x56535508",
+      "label": "Development code 0x191f8a0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191f8a8",
+      "target": "0x41544157",
+      "label": "Development code 0x191f8a0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x191f8ac",
+      "target": "0x41564155",
+      "label": "Development code 0x191f8a0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1923180",
+      "target": "0x245c8948",
+      "label": "Development code 0x1923180 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1923184",
+      "target": "0x74894810",
+      "label": "Development code 0x1923180 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1923188",
+      "target": "0x48571824",
+      "label": "Development code 0x1923180 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x192318c",
+      "target": "0x4820ec83",
+      "label": "Development code 0x1923180 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1924f48",
+      "target": "0x18588948",
+      "label": "Development code 0x1924f48 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1924f4c",
+      "target": "0x4c185a8b",
+      "label": "Development code 0x1924f48 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1924f50",
+      "target": "0x8948c33b",
+      "label": "Development code 0x1924f48 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1924f54",
+      "target": "0x8948e068",
+      "label": "Development code 0x1924f48 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19272d0",
+      "target": "0x48c48b48",
+      "label": "Development code 0x19272d0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19272d4",
+      "target": "0x55185889",
+      "label": "Development code 0x19272d0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19272d8",
+      "target": "0x54415756",
+      "label": "Development code 0x19272d0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x19272dc",
+      "target": "0x56415541",
+      "label": "Development code 0x19272d0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1936810",
+      "target": "0x245c8948",
+      "label": "Development code 0x1936810 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1936814",
+      "target": "0x83485708",
+      "label": "Development code 0x1936810 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1936818",
+      "target": "0x8d4820ec",
+      "label": "Development code 0x1936810 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x193681c",
+      "target": "0x83480759",
+      "label": "Development code 0x1936810 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a93b40",
+      "target": "0x245c8948",
+      "label": "Development code 0x1a93b40 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a93b44",
+      "target": "0x6c894808",
+      "label": "Development code 0x1a93b40 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a93b48",
+      "target": "0x89481024",
+      "label": "Development code 0x1a93b40 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a93b4c",
+      "target": "0x57182474",
+      "label": "Development code 0x1a93b40 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a94470",
+      "target": "0x245c8948",
+      "label": "Development code 0x1a94470 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a94474",
+      "target": "0x74894808",
+      "label": "Development code 0x1a94470 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a94478",
+      "target": "0x48571024",
+      "label": "Development code 0x1a94470 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a9447c",
+      "target": "0x4860ec83",
+      "label": "Development code 0x1a94470 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5eb50",
+      "target": "0x48c48b48",
+      "label": "Development code 0x1d5eb50 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5eb54",
+      "target": "0x55084889",
+      "label": "Development code 0x1d5eb50 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5eb58",
+      "target": "0x41575653",
+      "label": "Development code 0x1d5eb50 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5eb5c",
+      "target": "0x41554154",
+      "label": "Development code 0x1d5eb50 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5fd98",
+      "target": "0x85b8949",
+      "label": "Development code 0x1d5fd98 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5fd9c",
+      "target": "0x18738949",
+      "label": "Development code 0x1d5fd98 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5fda0",
+      "target": "0x2063894d",
+      "label": "Development code 0x1d5fd98 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d5fda4",
+      "target": "0x8618b4d",
+      "label": "Development code 0x1d5fd98 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d686c0",
+      "target": "0x245c8948",
+      "label": "Development code 0x1d686c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d686c4",
+      "target": "0x74894808",
+      "label": "Development code 0x1d686c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d686c8",
+      "target": "0x89481024",
+      "label": "Development code 0x1d686c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d686cc",
+      "target": "0x5518247c",
+      "label": "Development code 0x1d686c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d688c0",
+      "target": "0x38ec8348",
+      "label": "Development code 0x1d688c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d688c4",
+      "target": "0x8c18348",
+      "label": "Development code 0x1d688c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d688c8",
+      "target": "0x24548d48",
+      "label": "Development code 0x1d688c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d688cc",
+      "target": "0x38ee820",
+      "label": "Development code 0x1d688c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68c60",
+      "target": "0x245c8948",
+      "label": "Development code 0x1d68c60 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68c64",
+      "target": "0x6c894810",
+      "label": "Development code 0x1d68c60 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68c68",
+      "target": "0x57561824",
+      "label": "Development code 0x1d68c60 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d68c6c",
+      "target": "0x83485641",
+      "label": "Development code 0x1d68c60 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d69532",
+      "target": "0x105b8949",
+      "label": "Development code 0x1d69532 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d69536",
+      "target": "0x187b8949",
+      "label": "Development code 0x1d69532 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6953a",
+      "target": "0x2063894d",
+      "label": "Development code 0x1d69532 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6953e",
+      "target": "0x4de43345",
+      "label": "Development code 0x1d69532 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6a3d0",
+      "target": "0x245c8948",
+      "label": "Development code 0x1d6a3d0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6a3d4",
+      "target": "0x74894810",
+      "label": "Development code 0x1d6a3d0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6a3d8",
+      "target": "0x89481824",
+      "label": "Development code 0x1d6a3d0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d6a3dc",
+      "target": "0x4820247c",
+      "label": "Development code 0x1d6a3d0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d74e80",
+      "target": "0x4cc48b48",
+      "label": "Development code 0x1d74e80 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d74e84",
+      "target": "0x4c204889",
+      "label": "Development code 0x1d74e80 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d74e88",
+      "target": "0x48184089",
+      "label": "Development code 0x1d74e80 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d74e8c",
+      "target": "0x55105089",
+      "label": "Development code 0x1d74e80 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d89b80",
+      "target": "0x245c8948",
+      "label": "Development code 0x1d89b80 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d89b84",
+      "target": "0x83485708",
+      "label": "Development code 0x1d89b80 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d89b88",
+      "target": "0x8b4820ec",
+      "label": "Development code 0x1d89b80 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1d89b8c",
+      "target": "0x918d48d9",
+      "label": "Development code 0x1d89b80 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e24d80",
+      "target": "0xc766c28b",
+      "label": "Development code 0x1e24d80 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e24d84",
+      "target": "0x14104",
+      "label": "Development code 0x1e24d80 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e24d88",
+      "target": "0xccccccc3",
+      "label": "Development code 0x1e24d80 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e24d8c",
+      "target": "0xcccccccc",
+      "label": "Development code 0x1e24d80 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e24d90",
+      "target": "0x4501b70f",
+      "label": "Development code 0x1e24d90 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e24d94",
+      "target": "0x4266c08b",
+      "label": "Development code 0x1e24d90 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e24d98",
+      "target": "0xc3420489",
+      "label": "Development code 0x1e24d90 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e24d9c",
+      "target": "0xcccccccc",
+      "label": "Development code 0x1e24d90 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e4a630",
+      "target": "0x245c8948",
+      "label": "Development code 0x1e4a630 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e4a634",
+      "target": "0x74894810",
+      "label": "Development code 0x1e4a630 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e4a638",
+      "target": "0x57551824",
+      "label": "Development code 0x1e4a630 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e4a63c",
+      "target": "0x56415441",
+      "label": "Development code 0x1e4a630 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e4ac84",
+      "target": "0x41c60a40",
+      "label": "Development code 0x1e4ac84 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e4ac88",
+      "target": "0x48114688",
+      "label": "Development code 0x1e4ac84 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e4ac8c",
+      "target": "0x407b83",
+      "label": "Development code 0x1e4ac84 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e4ac90",
+      "target": "0x84450574",
+      "label": "Development code 0x1e4ac84 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e60d50",
+      "target": "0x245c8948",
+      "label": "Development code 0x1e60d50 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e60d54",
+      "target": "0x74894808",
+      "label": "Development code 0x1e60d50 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e60d58",
+      "target": "0x89481024",
+      "label": "Development code 0x1e60d50 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e60d5c",
+      "target": "0x4c18247c",
+      "label": "Development code 0x1e60d50 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e61470",
+      "target": "0x244c894c",
+      "label": "Development code 0x1e61470 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e61474",
+      "target": "0x44894c20",
+      "label": "Development code 0x1e61470 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e61478",
+      "target": "0x53551824",
+      "label": "Development code 0x1e61470 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6147c",
+      "target": "0x55415756",
+      "label": "Development code 0x1e61470 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62743",
+      "target": "0x49c5ff48",
+      "label": "Development code 0x1e62743 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62747",
+      "target": "0xb572ee3b",
+      "label": "Development code 0x1e62743 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6274b",
+      "target": "0x24bc8b48",
+      "label": "Development code 0x1e62743 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6274f",
+      "target": "0xe0",
+      "label": "Development code 0x1e62743 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e627f0",
+      "target": "0x245c8948",
+      "label": "Development code 0x1e627f0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e627f4",
+      "target": "0x57565510",
+      "label": "Development code 0x1e627f0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e627f8",
+      "target": "0x55415441",
+      "label": "Development code 0x1e627f0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e627fc",
+      "target": "0x57415641",
+      "label": "Development code 0x1e627f0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e629f9",
+      "target": "0x4dc6ff49",
+      "label": "Development code 0x1e629f9 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e629fd",
+      "target": "0xcf72f43b",
+      "label": "Development code 0x1e629f9 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62a01",
+      "target": "0x24b48b48",
+      "label": "Development code 0x1e629f9 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62a05",
+      "target": "0xb0",
+      "label": "Development code 0x1e629f9 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62cc0",
+      "target": "0x81485340",
+      "label": "Development code 0x1e62cc0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62cc4",
+      "target": "0x80ec",
+      "label": "Development code 0x1e62cc0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62cc8",
+      "target": "0x118b4c00",
+      "label": "Development code 0x1e62cc0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e62ccc",
+      "target": "0xfd88b4d",
+      "label": "Development code 0x1e62cc0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63800",
+      "target": "0x245c8948",
+      "label": "Development code 0x1e63800 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63804",
+      "target": "0x6c894808",
+      "label": "Development code 0x1e63800 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63808",
+      "target": "0x89481024",
+      "label": "Development code 0x1e63800 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6380c",
+      "target": "0x48182474",
+      "label": "Development code 0x1e63800 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f30",
+      "target": "0x83485340",
+      "label": "Development code 0x1e63f30 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f34",
+      "target": "0x58b40ec",
+      "label": "Development code 0x1e63f30 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f38",
+      "target": "0x3e0db9c",
+      "label": "Development code 0x1e63f30 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e63f3c",
+      "target": "0x25d28b4c",
+      "label": "Development code 0x1e63f30 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68cb0",
+      "target": "0x55dc8b4c",
+      "label": "Development code 0x1e68cb0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68cb4",
+      "target": "0x81485641",
+      "label": "Development code 0x1e68cb0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68cb8",
+      "target": "0x1e8ec",
+      "label": "Development code 0x1e68cb0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68cbc",
+      "target": "0x2b60f00",
+      "label": "Development code 0x1e68cb0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d31",
+      "target": "0xd107ac5",
+      "label": "Development code 0x1e68d31 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d35",
+      "target": "0x3e0b83f",
+      "label": "Development code 0x1e68d31 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d39",
+      "target": "0x197de3c4",
+      "label": "Development code 0x1e68d31 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d3d",
+      "target": "0xe3c401c8",
+      "label": "Development code 0x1e68d31 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d5e",
+      "target": "0x15107ac5",
+      "label": "Development code 0x1e68d5e +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d62",
+      "target": "0x3e0b862",
+      "label": "Development code 0x1e68d5e +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d66",
+      "target": "0x7c10f8c5",
+      "label": "Development code 0x1e68d5e +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d6a",
+      "target": "0xe3c41001",
+      "label": "Development code 0x1e68d5e +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68ece",
+      "target": "0xee0de8",
+      "label": "Development code 0x1e68ece +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68ed2",
+      "target": "0x2444c600",
+      "label": "Development code 0x1e68ece +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68ed6",
+      "target": "0x8d4c0030",
+      "label": "Development code 0x1e68ece +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68eda",
+      "target": "0xe02484",
+      "label": "Development code 0x1e68ece +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68ed3",
+      "target": "0x302444c6",
+      "label": "Development code 0x1e68ed3 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68ed7",
+      "target": "0x848d4c00",
+      "label": "Development code 0x1e68ed3 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68edb",
+      "target": "0xe024",
+      "label": "Development code 0x1e68ed3 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68edf",
+      "target": "0x2484c600",
+      "label": "Development code 0x1e68ed3 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6ad20",
+      "target": "0x48c48b48",
+      "label": "Development code 0x1e6ad20 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6ad24",
+      "target": "0x48085889",
+      "label": "Development code 0x1e6ad20 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6ad28",
+      "target": "0x4c107089",
+      "label": "Development code 0x1e6ad20 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6ad2c",
+      "target": "0x57184089",
+      "label": "Development code 0x1e6ad20 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6ede0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x1e6ede0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6ede4",
+      "target": "0x14104",
+      "label": "Development code 0x1e6ede0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6ede8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x1e6ede0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6edec",
+      "target": "0xcccccccc",
+      "label": "Development code 0x1e6ede0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6edf0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x1e6edf0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6edf4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x1e6edf0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6edf8",
+      "target": "0xc3420489",
+      "label": "Development code 0x1e6edf0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e6edfc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x1e6edf0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e70fc5",
+      "target": "0xff9d56e8",
+      "label": "Development code 0x1e70fc5 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e70fc9",
+      "target": "0x948b4cff",
+      "label": "Development code 0x1e70fc5 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e70fcd",
+      "target": "0x11824",
+      "label": "Development code 0x1e70fc5 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e70fd1",
+      "target": "0xc5ff4800",
+      "label": "Development code 0x1e70fc5 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e70fca",
+      "target": "0x24948b4c",
+      "label": "Development code 0x1e70fca +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e70fce",
+      "target": "0x118",
+      "label": "Development code 0x1e70fca +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e70fd2",
+      "target": "0x49c5ff48",
+      "label": "Development code 0x1e70fca +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e70fd6",
+      "target": "0x9772ee3b",
+      "label": "Development code 0x1e70fca +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e71fd9",
+      "target": "0xff6cd2e8",
+      "label": "Development code 0x1e71fd9 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e71fdd",
+      "target": "0xc7ff49ff",
+      "label": "Development code 0x1e71fd9 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e71fe1",
+      "target": "0x72fc3b4d",
+      "label": "Development code 0x1e71fd9 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e71fe5",
+      "target": "0xbcb60fba",
+      "label": "Development code 0x1e71fd9 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e71fde",
+      "target": "0x4dc7ff49",
+      "label": "Development code 0x1e71fde +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e71fe2",
+      "target": "0xba72fc3b",
+      "label": "Development code 0x1e71fde +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e71fe6",
+      "target": "0x24bcb60f",
+      "label": "Development code 0x1e71fde +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e71fea",
+      "target": "0x110",
+      "label": "Development code 0x1e71fde +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77ce0",
+      "target": "0x48c48b48",
+      "label": "Development code 0x1e77ce0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77ce4",
+      "target": "0x48085889",
+      "label": "Development code 0x1e77ce0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77ce8",
+      "target": "0x48107089",
+      "label": "Development code 0x1e77ce0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77cec",
+      "target": "0x4c187889",
+      "label": "Development code 0x1e77ce0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77dd8",
+      "target": "0x4a3e8",
+      "label": "Development code 0x1e77dd8 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77ddc",
+      "target": "0x10f8c500",
+      "label": "Development code 0x1e77dd8 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77de0",
+      "target": "0x6c88440f",
+      "label": "Development code 0x1e77dd8 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77de4",
+      "target": "0x8d4c3824",
+      "label": "Development code 0x1e77dd8 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77ddd",
+      "target": "0xf10f8c5",
+      "label": "Development code 0x1e77ddd +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77de1",
+      "target": "0x246c8844",
+      "label": "Development code 0x1e77ddd +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77de5",
+      "target": "0x4c8d4c38",
+      "label": "Development code 0x1e77ddd +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77de9",
+      "target": "0x7ac55024",
+      "label": "Development code 0x1e77ddd +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77e65",
+      "target": "0x416e8",
+      "label": "Development code 0x1e77e65 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77e69",
+      "target": "0x10f8c500",
+      "label": "Development code 0x1e77e65 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77e6d",
+      "target": "0x57f0c50f",
+      "label": "Development code 0x1e77e65 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77e71",
+      "target": "0xc808fa2d",
+      "label": "Development code 0x1e77e65 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77e6a",
+      "target": "0xf10f8c5",
+      "label": "Development code 0x1e77e6a +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77e6e",
+      "target": "0x2d57f0c5",
+      "label": "Development code 0x1e77e6a +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77e72",
+      "target": "0x1c808fa",
+      "label": "Development code 0x1e77e6a +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e77e76",
+      "target": "0x1078c1c4",
+      "label": "Development code 0x1e77e6a +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e78280",
+      "target": "0x48c48b48",
+      "label": "Development code 0x1e78280 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e78284",
+      "target": "0x48085889",
+      "label": "Development code 0x1e78280 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e78288",
+      "target": "0x48107089",
+      "label": "Development code 0x1e78280 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e7828c",
+      "target": "0x41187889",
+      "label": "Development code 0x1e78280 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ef3e77",
+      "target": "0x48d38b48",
+      "label": "Development code 0x1ef3e77 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ef3e7b",
+      "target": "0x8348cf8b",
+      "label": "Development code 0x1ef3e77 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ef3e7f",
+      "target": "0xc084fee2",
+      "label": "Development code 0x1ef3e77 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ef3e83",
+      "target": "0xd3440f48",
+      "label": "Development code 0x1ef3e77 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ef3e8c",
+      "target": "0x245c8b48",
+      "label": "Development code 0x1ef3e8c +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ef3e90",
+      "target": "0x74c08450",
+      "label": "Development code 0x1ef3e8c +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ef3e94",
+      "target": "0xdba0d",
+      "label": "Development code 0x1ef3e8c +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1ef3e98",
+      "target": "0x8b480000",
+      "label": "Development code 0x1ef3e8c +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f34840",
+      "target": "0x48c48b48",
+      "label": "Development code 0x1f34840 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f34844",
+      "target": "0x57105889",
+      "label": "Development code 0x1f34840 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f34848",
+      "target": "0xa0ec8148",
+      "label": "Development code 0x1f34840 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3484c",
+      "target": "0xc5000000",
+      "label": "Development code 0x1f34840 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3a250",
+      "target": "0x58408b49",
+      "label": "Development code 0x1f3a250 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3a254",
+      "target": "0x18488b4c",
+      "label": "Development code 0x1f3a250 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3a258",
+      "target": "0x10408b4c",
+      "label": "Development code 0x1f3a250 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3a25c",
+      "target": "0x8508b48",
+      "label": "Development code 0x1f3a250 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dc5a",
+      "target": "0x13471e8",
+      "label": "Development code 0x1f3dc5a +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dc5e",
+      "target": "0x57158b00",
+      "label": "Development code 0x1f3dc5a +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dc62",
+      "target": "0xeb02a701",
+      "label": "Development code 0x1f3dc5a +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dc66",
+      "target": "0x8d8b4c6d",
+      "label": "Development code 0x1f3dc5a +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dc5f",
+      "target": "0x157158b",
+      "label": "Development code 0x1f3dc5f +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dc63",
+      "target": "0x6deb02a7",
+      "label": "Development code 0x1f3dc5f +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dc67",
+      "target": "0xc88d8b4c",
+      "label": "Development code 0x1f3dc5f +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dc6b",
+      "target": "0x4d000001",
+      "label": "Development code 0x1f3dc5f +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dcb2",
+      "target": "0x132e9e8",
+      "label": "Development code 0x1f3dcb2 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dcb6",
+      "target": "0xcf8b4800",
+      "label": "Development code 0x1f3dcb2 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dcba",
+      "target": "0x874c084",
+      "label": "Development code 0x1f3dcb2 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dcbe",
+      "target": "0xf4158b",
+      "label": "Development code 0x1f3dcb2 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dcb7",
+      "target": "0x84cf8b48",
+      "label": "Development code 0x1f3dcb7 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dcbb",
+      "target": "0x8b0874c0",
+      "label": "Development code 0x1f3dcb7 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dcbf",
+      "target": "0xa700f415",
+      "label": "Development code 0x1f3dcb7 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f3dcc3",
+      "target": "0x8b11eb02",
+      "label": "Development code 0x1f3dcb7 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f48bd0",
+      "target": "0x55dc8b4c",
+      "label": "Development code 0x1f48bd0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f48bd4",
+      "target": "0x55415653",
+      "label": "Development code 0x1f48bd0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f48bd8",
+      "target": "0x48ab8d49",
+      "label": "Development code 0x1f48bd0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f48bdc",
+      "target": "0x48ffffff",
+      "label": "Development code 0x1f48bd0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f50fa0",
+      "target": "0x245c8948",
+      "label": "Development code 0x1f50fa0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f50fa4",
+      "target": "0x6c894808",
+      "label": "Development code 0x1f50fa0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f50fa8",
+      "target": "0x89481024",
+      "label": "Development code 0x1f50fa0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f50fac",
+      "target": "0x57182474",
+      "label": "Development code 0x1f50fa0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f510d0",
+      "target": "0x83485340",
+      "label": "Development code 0x1f510d0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f510d4",
+      "target": "0x428b20ec",
+      "label": "Development code 0x1f510d0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f510d8",
+      "target": "0xda8b4850",
+      "label": "Development code 0x1f510d0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f510dc",
+      "target": "0x4cc03345",
+      "label": "Development code 0x1f510d0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f529c0",
+      "target": "0x48dc8b4c",
+      "label": "Development code 0x1f529c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f529c4",
+      "target": "0x118ec81",
+      "label": "Development code 0x1f529c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f529c8",
+      "target": "0xfac50000",
+      "label": "Development code 0x1f529c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f529cc",
+      "target": "0xc5684210",
+      "label": "Development code 0x1f529c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52de0",
+      "target": "0x48c48b48",
+      "label": "Development code 0x1f52de0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52de4",
+      "target": "0x48085889",
+      "label": "Development code 0x1f52de0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52de8",
+      "target": "0x57107089",
+      "label": "Development code 0x1f52de0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52dec",
+      "target": "0xc0ec8148",
+      "label": "Development code 0x1f52de0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52e2d",
+      "target": "0xfffb8ee8",
+      "label": "Development code 0x1f52e2d +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52e31",
+      "target": "0x10f8c5ff",
+      "label": "Development code 0x1f52e2d +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52e35",
+      "target": "0x10f8c50b",
+      "label": "Development code 0x1f52e2d +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52e39",
+      "target": "0xc5202464",
+      "label": "Development code 0x1f52e2d +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52e32",
+      "target": "0xb10f8c5",
+      "label": "Development code 0x1f52e32 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52e36",
+      "target": "0x6410f8c5",
+      "label": "Development code 0x1f52e32 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52e3a",
+      "target": "0x7ac52024",
+      "label": "Development code 0x1f52e32 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f52e3e",
+      "target": "0x591c0d6f",
+      "label": "Development code 0x1f52e32 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f538f0",
+      "target": "0x49dc8b4c",
+      "label": "Development code 0x1f538f0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f538f4",
+      "target": "0x49185b89",
+      "label": "Development code 0x1f538f0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f538f8",
+      "target": "0x57207389",
+      "label": "Development code 0x1f538f0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f538fc",
+      "target": "0x57415641",
+      "label": "Development code 0x1f538f0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53940",
+      "target": "0xfff49be8",
+      "label": "Development code 0x1f53940 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53944",
+      "target": "0x10fac5ff",
+      "label": "Development code 0x1f53940 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53948",
+      "target": "0xd8248c",
+      "label": "Development code 0x1f53940 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f5394c",
+      "target": "0x41c40000",
+      "label": "Development code 0x1f53940 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53945",
+      "target": "0x8c10fac5",
+      "label": "Development code 0x1f53945 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53949",
+      "target": "0xd824",
+      "label": "Development code 0x1f53945 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f5394d",
+      "target": "0x3841c400",
+      "label": "Development code 0x1f53945 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53951",
+      "target": "0xf0c5c057",
+      "label": "Development code 0x1f53945 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53980",
+      "target": "0xfe0ebbe8",
+      "label": "Development code 0x1f53980 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53984",
+      "target": "0x59cac5ff",
+      "label": "Development code 0x1f53980 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53988",
+      "target": "0xc52c2454",
+      "label": "Development code 0x1f53980 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f5398c",
+      "target": "0x245c58ea",
+      "label": "Development code 0x1f53980 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53985",
+      "target": "0x5459cac5",
+      "label": "Development code 0x1f53985 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53989",
+      "target": "0xeac52c24",
+      "label": "Development code 0x1f53985 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f5398d",
+      "target": "0x24245c58",
+      "label": "Development code 0x1f53985 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f53991",
+      "target": "0x5459c2c5",
+      "label": "Development code 0x1f53985 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f541e1",
+      "target": "0xfff70ae8",
+      "label": "Development code 0x1f541e1 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f541e5",
+      "target": "0x28f8c5ff",
+      "label": "Development code 0x1f541e1 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f541e9",
+      "target": "0x8024bc",
+      "label": "Development code 0x1f541e1 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f541ed",
+      "target": "0xf8c50000",
+      "label": "Development code 0x1f541e1 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f541e6",
+      "target": "0xbc28f8c5",
+      "label": "Development code 0x1f541e6 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f541ea",
+      "target": "0x8024",
+      "label": "Development code 0x1f541e6 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f541ee",
+      "target": "0x28f8c500",
+      "label": "Development code 0x1f541e6 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1f541f2",
+      "target": "0x9024b4",
+      "label": "Development code 0x1f541e6 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fb6b90",
+      "target": "0xc766c28b",
+      "label": "Development code 0x1fb6b90 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fb6b94",
+      "target": "0x14104",
+      "label": "Development code 0x1fb6b90 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fb6b98",
+      "target": "0xccccccc3",
+      "label": "Development code 0x1fb6b90 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fb6b9c",
+      "target": "0xcccccccc",
+      "label": "Development code 0x1fb6b90 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fb6ba0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x1fb6ba0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fb6ba4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x1fb6ba0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fb6ba8",
+      "target": "0xc3420489",
+      "label": "Development code 0x1fb6ba0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fb6bac",
+      "target": "0xcccccccc",
+      "label": "Development code 0x1fb6ba0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fbe970",
+      "target": "0x245c8948",
+      "label": "Development code 0x1fbe970 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fbe974",
+      "target": "0x6c894808",
+      "label": "Development code 0x1fbe970 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fbe978",
+      "target": "0x89481024",
+      "label": "Development code 0x1fbe970 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fbe97c",
+      "target": "0x57182474",
+      "label": "Development code 0x1fbe970 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fe9040",
+      "target": "0x4cc48b48",
+      "label": "Development code 0x1fe9040 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fe9044",
+      "target": "0x4c204889",
+      "label": "Development code 0x1fe9040 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fe9048",
+      "target": "0x55184089",
+      "label": "Development code 0x1fe9040 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fe904c",
+      "target": "0x41575653",
+      "label": "Development code 0x1fe9040 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fea159",
+      "target": "0x49c5ff48",
+      "label": "Development code 0x1fea159 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fea15d",
+      "target": "0xcf72ee3b",
+      "label": "Development code 0x1fea159 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fea161",
+      "target": "0x24bc8b48",
+      "label": "Development code 0x1fea159 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1fea165",
+      "target": "0xc0",
+      "label": "Development code 0x1fea159 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2000002",
+      "target": "0xc024",
+      "label": "Development code 0x2000002 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2000006",
+      "target": "0x10fbc500",
+      "label": "Development code 0x2000002 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x200000a",
+      "target": "0x902484",
+      "label": "Development code 0x2000002 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x200000e",
+      "target": "0xfbc50000",
+      "label": "Development code 0x2000002 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x202e6c0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x202e6c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x202e6c4",
+      "target": "0x14104",
+      "label": "Development code 0x202e6c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x202e6c8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x202e6c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x202e6cc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x202e6c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x202e6d0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x202e6d0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x202e6d4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x202e6d0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x202e6d8",
+      "target": "0xc3420489",
+      "label": "Development code 0x202e6d0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x202e6dc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x202e6d0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20371d0",
+      "target": "0x244c8948",
+      "label": "Development code 0x20371d0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20371d4",
+      "target": "0x56535508",
+      "label": "Development code 0x20371d0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20371d8",
+      "target": "0x41544157",
+      "label": "Development code 0x20371d0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20371dc",
+      "target": "0x41564155",
+      "label": "Development code 0x20371d0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2037720",
+      "target": "0x48c48b48",
+      "label": "Development code 0x2037720 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2037724",
+      "target": "0x48105089",
+      "label": "Development code 0x2037720 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2037728",
+      "target": "0x53084889",
+      "label": "Development code 0x2037720 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203772c",
+      "target": "0x54415756",
+      "label": "Development code 0x2037720 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20384a0",
+      "target": "0x53dc8b4c",
+      "label": "Development code 0x20384a0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20384a4",
+      "target": "0x41575655",
+      "label": "Development code 0x20384a0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20384a8",
+      "target": "0x41554154",
+      "label": "Development code 0x20384a0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20384ac",
+      "target": "0x48574156",
+      "label": "Development code 0x20384a0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203e0c0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x203e0c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203e0c4",
+      "target": "0x14104",
+      "label": "Development code 0x203e0c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203e0c8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x203e0c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203e0cc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x203e0c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203e0d0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x203e0d0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203e0d4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x203e0d0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203e0d8",
+      "target": "0xc3420489",
+      "label": "Development code 0x203e0d0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x203e0dc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x203e0d0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20425c0",
+      "target": "0x245c8948",
+      "label": "Development code 0x20425c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20425c4",
+      "target": "0x6c894810",
+      "label": "Development code 0x20425c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20425c8",
+      "target": "0x89481824",
+      "label": "Development code 0x20425c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20425cc",
+      "target": "0x57202474",
+      "label": "Development code 0x20425c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c70",
+      "target": "0xe8ec8148",
+      "label": "Development code 0x2042c70 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c74",
+      "target": "0x48000000",
+      "label": "Development code 0x2042c70 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c78",
+      "target": "0xf45018b",
+      "label": "Development code 0x2042c70 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042c7c",
+      "target": "0xc898b7",
+      "label": "Development code 0x2042c70 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042ed7",
+      "target": "0x24848b48",
+      "label": "Development code 0x2042ed7 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042edb",
+      "target": "0x108",
+      "label": "Development code 0x2042ed7 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042edf",
+      "target": "0x4cc5ff49",
+      "label": "Development code 0x2042ed7 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2042ee3",
+      "target": "0x28246c3b",
+      "label": "Development code 0x2042ed7 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20442c5",
+      "target": "0x4dc7ff49",
+      "label": "Development code 0x20442c5 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20442c9",
+      "target": "0xd372fd3b",
+      "label": "Development code 0x20442c5 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20442cd",
+      "target": "0x24848b4c",
+      "label": "Development code 0x20442c5 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20442d1",
+      "target": "0x90",
+      "label": "Development code 0x20442c5 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444a0",
+      "target": "0x81485740",
+      "label": "Development code 0x20444a0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444a4",
+      "target": "0x100ec",
+      "label": "Development code 0x20444a0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444a8",
+      "target": "0x18b4c00",
+      "label": "Development code 0x20444a0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20444ac",
+      "target": "0xb70fff33",
+      "label": "Development code 0x20444a0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20445a7",
+      "target": "0x48c7ff48",
+      "label": "Development code 0x20445a7 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20445ab",
+      "target": "0xb172fe3b",
+      "label": "Development code 0x20445a7 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20445af",
+      "target": "0x24bc8b4c",
+      "label": "Development code 0x20445a7 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20445b3",
+      "target": "0xe0",
+      "label": "Development code 0x20445a7 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2044d65",
+      "target": "0x49c6ff48",
+      "label": "Development code 0x2044d65 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2044d69",
+      "target": "0xd372f73b",
+      "label": "Development code 0x2044d65 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2044d6d",
+      "target": "0x245c8d4c",
+      "label": "Development code 0x2044d65 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2044d71",
+      "target": "0x5b8b4960",
+      "label": "Development code 0x2044d65 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204e0d0",
+      "target": "0x245c8948",
+      "label": "Development code 0x204e0d0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204e0d4",
+      "target": "0x74894808",
+      "label": "Development code 0x204e0d0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204e0d8",
+      "target": "0x48571024",
+      "label": "Development code 0x204e0d0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x204e0dc",
+      "target": "0x4820ec83",
+      "label": "Development code 0x204e0d0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20d1f90",
+      "target": "0xc766c28b",
+      "label": "Development code 0x20d1f80 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20d1f94",
+      "target": "0x14104",
+      "label": "Development code 0x20d1f80 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20d1f98",
+      "target": "0xccccccc3",
+      "label": "Development code 0x20d1f80 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20d1f9c",
+      "target": "0xcccccccc",
+      "label": "Development code 0x20d1f80 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20d1fa0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x20d1f90 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20d1fa4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x20d1f90 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20d1fa8",
+      "target": "0xc3420489",
+      "label": "Development code 0x20d1f90 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x20d1fac",
+      "target": "0xcccccccc",
+      "label": "Development code 0x20d1f90 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x215cdb5",
+      "target": "0x10147c6",
+      "label": "Development code 0x215cd75 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x215cdb9",
+      "target": "0x310fcc5",
+      "label": "Development code 0x215cd75 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x215cdbd",
+      "target": "0x117cc1c4",
+      "label": "Development code 0x215cd75 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x215cdc1",
+      "target": "0x10f8c506",
+      "label": "Development code 0x215cd75 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21633e2",
+      "target": "0x28c48348",
+      "label": "Development code 0x21633a2 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21633e6",
+      "target": "0xccccccc3",
+      "label": "Development code 0x21633a2 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21633ea",
+      "target": "0xcccccccc",
+      "label": "Development code 0x21633a2 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21633ee",
+      "target": "0xebe9cccc",
+      "label": "Development code 0x21633a2 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21633f0",
+      "target": "0x1181ebe9",
+      "label": "Development code 0x21633b0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21633f4",
+      "target": "0xcccccc00",
+      "label": "Development code 0x21633b0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21633f8",
+      "target": "0xcccccccc",
+      "label": "Development code 0x21633b0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21633fc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x21633b0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21e7ff0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x21e7f70 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21e7ff4",
+      "target": "0x14104",
+      "label": "Development code 0x21e7f70 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21e7ff8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x21e7f70 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21e7ffc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x21e7f70 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21e8000",
+      "target": "0x4501b70f",
+      "label": "Development code 0x21e7f80 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21e8004",
+      "target": "0x4266c08b",
+      "label": "Development code 0x21e7f80 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21e8008",
+      "target": "0xc3420489",
+      "label": "Development code 0x21e7f80 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x21e800c",
+      "target": "0xcccccccc",
+      "label": "Development code 0x21e7f80 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b590",
+      "target": "0x8828b48",
+      "label": "Development code 0x227b500 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b594",
+      "target": "0x4c000001",
+      "label": "Development code 0x227b500 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b598",
+      "target": "0x8b4cc98b",
+      "label": "Development code 0x227b500 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b59c",
+      "target": "0x428b4800",
+      "label": "Development code 0x227b500 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b5e0",
+      "target": "0x245c8948",
+      "label": "Development code 0x227b550 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b5e4",
+      "target": "0x7c894808",
+      "label": "Development code 0x227b550 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b5e8",
+      "target": "0x48551024",
+      "label": "Development code 0x227b550 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b5ec",
+      "target": "0xb0246c8d",
+      "label": "Development code 0x227b550 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227bd30",
+      "target": "0x141b60f",
+      "label": "Development code 0x227bca0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227bd34",
+      "target": "0x74c08445",
+      "label": "Development code 0x227bca0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227bd38",
+      "target": "0x88c20a06",
+      "label": "Development code 0x227bca0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227bd3c",
+      "target": "0xf6c30141",
+      "label": "Development code 0x227bca0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227f9e0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x227f940 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227f9e4",
+      "target": "0x14104",
+      "label": "Development code 0x227f940 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227f9e8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x227f940 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227f9ec",
+      "target": "0xcccccccc",
+      "label": "Development code 0x227f940 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227f9f0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x227f950 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227f9f4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x227f950 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227f9f8",
+      "target": "0xc3420489",
+      "label": "Development code 0x227f950 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227f9fc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x227f950 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d04a0",
+      "target": "0xd0818b48",
+      "label": "Development code 0x22d0400 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d04a4",
+      "target": "0x44000007",
+      "label": "Development code 0x22d0400 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d04a8",
+      "target": "0x7d8818b",
+      "label": "Development code 0x22d0400 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d04ac",
+      "target": "0x8d4e0000",
+      "label": "Development code 0x22d0400 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d19d0",
+      "target": "0x245c8948",
+      "label": "Development code 0x22d1930 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d19d4",
+      "target": "0x6c894808",
+      "label": "Development code 0x22d1930 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d19d8",
+      "target": "0x89481024",
+      "label": "Development code 0x22d1930 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d19dc",
+      "target": "0x57182474",
+      "label": "Development code 0x22d1930 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1b9b",
+      "target": "0x245c8b48",
+      "label": "Development code 0x22d1afb +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1b9f",
+      "target": "0x6c8b4850",
+      "label": "Development code 0x22d1afb +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1ba3",
+      "target": "0x8b485824",
+      "label": "Development code 0x22d1afb +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1ba7",
+      "target": "0x48602474",
+      "label": "Development code 0x22d1afb +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1c10",
+      "target": "0x41575340",
+      "label": "Development code 0x22d1b70 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1c14",
+      "target": "0x48574156",
+      "label": "Development code 0x22d1b70 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1c18",
+      "target": "0x4d48ec83",
+      "label": "Development code 0x22d1b70 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1c1c",
+      "target": "0xc766f98b",
+      "label": "Development code 0x22d1b70 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1d32",
+      "target": "0x5975c084",
+      "label": "Development code 0x22d1c92 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1d36",
+      "target": "0x247c894c",
+      "label": "Development code 0x22d1c92 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1d3a",
+      "target": "0xcf8b4c28",
+      "label": "Development code 0x22d1c92 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1d3e",
+      "target": "0x48c58b4c",
+      "label": "Development code 0x22d1c92 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1d51",
+      "target": "0x3675c084",
+      "label": "Development code 0x22d1cb1 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1d55",
+      "target": "0x74e53b4d",
+      "label": "Development code 0x22d1cb1 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1d59",
+      "target": "0x1c43f61e",
+      "label": "Development code 0x22d1cb1 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d1d5d",
+      "target": "0xf61e7404",
+      "label": "Development code 0x22d1cb1 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d200f",
+      "target": "0x49c58b4d",
+      "label": "Development code 0x22d1f6f +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d2013",
+      "target": "0x8b49d78b",
+      "label": "Development code 0x22d1f6f +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d2017",
+      "target": "0xfbf3e8cc",
+      "label": "Development code 0x22d1f6f +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d201b",
+      "target": "0xc084ffff",
+      "label": "Development code 0x22d1f6f +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d201d",
+      "target": "0x840fc084",
+      "label": "Development code 0x22d1f7d +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d2021",
+      "target": "0x8c",
+      "label": "Development code 0x22d1f7d +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d2025",
+      "target": "0x8758549",
+      "label": "Development code 0x22d1f7d +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x22d2029",
+      "target": "0xb495a75",
+      "label": "Development code 0x22d1f7d +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0cf0",
+      "target": "0x245c8948",
+      "label": "Development code 0x23c0c50 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0cf4",
+      "target": "0x83485710",
+      "label": "Development code 0x23c0c50 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0cf8",
+      "target": "0x1ba40ec",
+      "label": "Development code 0x23c0c50 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0cfc",
+      "target": "0x48000000",
+      "label": "Development code 0x23c0c50 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0cff",
+      "target": "0x44d98b48",
+      "label": "Development code 0x23c0c5f +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0d03",
+      "target": "0xe6e8c28b",
+      "label": "Development code 0x23c0c5f +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0d07",
+      "target": "0xba008d62",
+      "label": "Development code 0x23c0c5f +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0d0b",
+      "target": "0x1",
+      "label": "Development code 0x23c0c5f +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0d59",
+      "target": "0x245c8b48",
+      "label": "Development code 0x23c0cb9 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0d5d",
+      "target": "0x48c03358",
+      "label": "Development code 0x23c0cb9 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0d61",
+      "target": "0x5f40c483",
+      "label": "Development code 0x23c0cb9 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0d65",
+      "target": "0xcb8b48c3",
+      "label": "Development code 0x23c0cb9 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0df9",
+      "target": "0x245c8b48",
+      "label": "Development code 0x23c0d59 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0dfd",
+      "target": "0x48c03358",
+      "label": "Development code 0x23c0d59 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0e01",
+      "target": "0x5f40c483",
+      "label": "Development code 0x23c0d59 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23c0e05",
+      "target": "0xcb8b48c3",
+      "label": "Development code 0x23c0d59 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243e780",
+      "target": "0xc766c28b",
+      "label": "Development code 0x243e6e0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243e784",
+      "target": "0x14104",
+      "label": "Development code 0x243e6e0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243e788",
+      "target": "0xccccccc3",
+      "label": "Development code 0x243e6e0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243e78c",
+      "target": "0xcccccccc",
+      "label": "Development code 0x243e6e0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243e790",
+      "target": "0x4501b70f",
+      "label": "Development code 0x243e6f0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243e794",
+      "target": "0x4266c08b",
+      "label": "Development code 0x243e6f0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243e798",
+      "target": "0xc3420489",
+      "label": "Development code 0x243e6f0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x243e79c",
+      "target": "0xcccccccc",
+      "label": "Development code 0x243e6f0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2549ea0",
+      "target": "0x48c48b48",
+      "label": "Development code 0x2549e00 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2549ea4",
+      "target": "0x48085889",
+      "label": "Development code 0x2549e00 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2549ea8",
+      "target": "0x48187089",
+      "label": "Development code 0x2549e00 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2549eac",
+      "target": "0x55207889",
+      "label": "Development code 0x2549e00 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x254ec52",
+      "target": "0x245c8b48",
+      "label": "Development code 0x254ebb2 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x254ec56",
+      "target": "0x6c8b4860",
+      "label": "Development code 0x254ebb2 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x254ec5a",
+      "target": "0x8b486824",
+      "label": "Development code 0x254ebb2 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x254ec5e",
+      "target": "0x48702474",
+      "label": "Development code 0x254ebb2 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2742ead",
+      "target": "0xb38e7ee9",
+      "label": "Development code 0x2742dfd +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2742eb1",
+      "target": "0xccccccff",
+      "label": "Development code 0x2742dfd +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2742eb5",
+      "target": "0xcccccccc",
+      "label": "Development code 0x2742dfd +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2742eb9",
+      "target": "0xcccccccc",
+      "label": "Development code 0x2742dfd +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x280d8f0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x280d840 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x280d8f4",
+      "target": "0x14104",
+      "label": "Development code 0x280d840 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x280d8f8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x280d840 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x280d8fc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x280d840 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x280d900",
+      "target": "0x4501b70f",
+      "label": "Development code 0x280d850 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x280d904",
+      "target": "0x4266c08b",
+      "label": "Development code 0x280d850 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x280d908",
+      "target": "0xc3420489",
+      "label": "Development code 0x280d850 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x280d90c",
+      "target": "0xcccccccc",
+      "label": "Development code 0x280d850 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28ecae0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x28eca30 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28ecae4",
+      "target": "0x14104",
+      "label": "Development code 0x28eca30 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28ecae8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x28eca30 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28ecaec",
+      "target": "0xcccccccc",
+      "label": "Development code 0x28eca30 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28ecaf0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x28eca40 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28ecaf4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x28eca40 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28ecaf8",
+      "target": "0xc3420489",
+      "label": "Development code 0x28eca40 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28ecafc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x28eca40 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28f88d0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x28f8820 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28f88d4",
+      "target": "0x14104",
+      "label": "Development code 0x28f8820 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28f88d8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x28f8820 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28f88dc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x28f8820 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28f88e0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x28f8830 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28f88e4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x28f8830 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28f88e8",
+      "target": "0xc3420489",
+      "label": "Development code 0x28f8830 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x28f88ec",
+      "target": "0xcccccccc",
+      "label": "Development code 0x28f8830 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29140c0",
+      "target": "0xc766c28b",
+      "label": "Development code 0x2914010 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29140c4",
+      "target": "0x14104",
+      "label": "Development code 0x2914010 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29140c8",
+      "target": "0xccccccc3",
+      "label": "Development code 0x2914010 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29140cc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x2914010 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29140d0",
+      "target": "0x4501b70f",
+      "label": "Development code 0x2914020 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29140d4",
+      "target": "0x4266c08b",
+      "label": "Development code 0x2914020 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29140d8",
+      "target": "0xc3420489",
+      "label": "Development code 0x2914020 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29140dc",
+      "target": "0xcccccccc",
+      "label": "Development code 0x2914020 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c6a50",
+      "target": "0x245c8948",
+      "label": "Development code 0x29c69a0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c6a54",
+      "target": "0x74894808",
+      "label": "Development code 0x29c69a0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c6a58",
+      "target": "0x89481824",
+      "label": "Development code 0x29c69a0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c6a5c",
+      "target": "0x4120247c",
+      "label": "Development code 0x29c69a0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c8390",
+      "target": "0x245c8948",
+      "label": "Development code 0x29c82e0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c8394",
+      "target": "0x83485710",
+      "label": "Development code 0x29c82e0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c8398",
+      "target": "0x8b4830ec",
+      "label": "Development code 0x29c82e0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c839c",
+      "target": "0xdab70f01",
+      "label": "Development code 0x29c82e0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5770",
+      "target": "0x83485340",
+      "label": "Development code 0x29d56c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5774",
+      "target": "0xd8b40ec",
+      "label": "Development code 0x29d56c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5778",
+      "target": "0x3622ca4",
+      "label": "Development code 0x29d56c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d577c",
+      "target": "0x48b4865",
+      "label": "Development code 0x29d56c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5c10",
+      "target": "0x245c8948",
+      "label": "Development code 0x29d5b60 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5c14",
+      "target": "0x74894818",
+      "label": "Development code 0x29d5b60 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5c18",
+      "target": "0x57552024",
+      "label": "Development code 0x29d5b60 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5c1c",
+      "target": "0x8d485641",
+      "label": "Development code 0x29d5b60 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d8040",
+      "target": "0x245c8948",
+      "label": "Development code 0x29d7f90 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d8044",
+      "target": "0x83485708",
+      "label": "Development code 0x29d7f90 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d8048",
+      "target": "0x8b4820ec",
+      "label": "Development code 0x29d7f90 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d804c",
+      "target": "0xda8b4802",
+      "label": "Development code 0x29d7f90 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27470",
+      "target": "0x245c8948",
+      "label": "Development code 0x2d273c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27474",
+      "target": "0x83485710",
+      "label": "Development code 0x2d273c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27478",
+      "target": "0x8b4830ec",
+      "label": "Development code 0x2d273c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2747c",
+      "target": "0xd98b48fa",
+      "label": "Development code 0x2d273c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2748f",
+      "target": "0x24748948",
+      "label": "Development code 0x2d273df +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27493",
+      "target": "0x401f0f40",
+      "label": "Development code 0x2d273df +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27497",
+      "target": "0x841f0f00",
+      "label": "Development code 0x2d273df +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2749b",
+      "target": "0x0",
+      "label": "Development code 0x2d273df +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27570",
+      "target": "0x245c8948",
+      "label": "Development code 0x2d274c0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27574",
+      "target": "0x6c894810",
+      "label": "Development code 0x2d274c0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27578",
+      "target": "0x57562024",
+      "label": "Development code 0x2d274c0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2757c",
+      "target": "0x83485641",
+      "label": "Development code 0x2d274c0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27730",
+      "target": "0x48c48b48",
+      "label": "Development code 0x2d27680 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27734",
+      "target": "0x53105089",
+      "label": "Development code 0x2d27680 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d27738",
+      "target": "0x54415756",
+      "label": "Development code 0x2d27680 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2773c",
+      "target": "0x56415541",
+      "label": "Development code 0x2d27680 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2f220",
+      "target": "0x2444894c",
+      "label": "Development code 0x2d2f170 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2f224",
+      "target": "0x54894818",
+      "label": "Development code 0x2d2f170 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2f228",
+      "target": "0x89481024",
+      "label": "Development code 0x2d2f170 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2f22c",
+      "target": "0x5508244c",
+      "label": "Development code 0x2d2f170 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2fde0",
+      "target": "0x24548948",
+      "label": "Development code 0x2d2fd30 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2fde4",
+      "target": "0x4c894810",
+      "label": "Development code 0x2d2fd30 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2fde8",
+      "target": "0x53550824",
+      "label": "Development code 0x2d2fd30 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d2fdec",
+      "target": "0x54415756",
+      "label": "Development code 0x2d2fd30 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d00",
+      "target": "0x83485340",
+      "label": "Development code 0x2d30c50 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d04",
+      "target": "0x8b4820ec",
+      "label": "Development code 0x2d30c50 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d08",
+      "target": "0xd18b48d9",
+      "label": "Development code 0x2d30c50 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d30d0c",
+      "target": "0x40898b48",
+      "label": "Development code 0x2d30c50 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d4b060",
+      "target": "0x245c8948",
+      "label": "Development code 0x2d4afb0 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d4b064",
+      "target": "0x6c894810",
+      "label": "Development code 0x2d4afb0 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d4b068",
+      "target": "0x89481824",
+      "label": "Development code 0x2d4afb0 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2d4b06c",
+      "target": "0x57202474",
+      "label": "Development code 0x2d4afb0 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dc4560",
+      "target": "0x245c8948",
+      "label": "Development code 0x2dc4490 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dc4564",
+      "target": "0x74894808",
+      "label": "Development code 0x2dc4490 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dc4568",
+      "target": "0x41571824",
+      "label": "Development code 0x2dc4490 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dc456c",
+      "target": "0x48574156",
+      "label": "Development code 0x2dc4490 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcd410",
+      "target": "0x245c8948",
+      "label": "Development code 0x2dcd340 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcd414",
+      "target": "0x44894c20",
+      "label": "Development code 0x2dcd340 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcd418",
+      "target": "0x89481824",
+      "label": "Development code 0x2dcd340 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcd41c",
+      "target": "0x48102454",
+      "label": "Development code 0x2dcd340 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dce350",
+      "target": "0x56555340",
+      "label": "Development code 0x2dce280 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dce354",
+      "target": "0x41544157",
+      "label": "Development code 0x2dce280 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dce358",
+      "target": "0x41564155",
+      "label": "Development code 0x2dce280 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dce35c",
+      "target": "0xec834857",
+      "label": "Development code 0x2dce280 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7d0",
+      "target": "0x245c8948",
+      "label": "Development code 0x2dcf700 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7d4",
+      "target": "0x83485710",
+      "label": "Development code 0x2dcf700 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7d8",
+      "target": "0x8b4820ec",
+      "label": "Development code 0x2dcf700 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2dcf7dc",
+      "target": "0x1d081",
+      "label": "Development code 0x2dcf700 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x31de030",
+      "target": "0x28ec8348",
+      "label": "Development code 0x31ddc70 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x31de034",
+      "target": "0x8bc18b4c",
+      "label": "Development code 0x31ddc70 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x31de038",
+      "target": "0xc1c28b11",
+      "label": "Development code 0x31ddc70 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x31de03c",
+      "target": "0xe28118e8",
+      "label": "Development code 0x31ddc70 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x31de4f0",
+      "target": "0x83485340",
+      "label": "Development code 0x31de130 +0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x31de4f4",
+      "target": "0xf8c530ec",
+      "label": "Development code 0x31de130 +4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x31de4f8",
+      "target": "0x8b4c0210",
+      "label": "Development code 0x31de130 +8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x31de4fc",
+      "target": "0x3345084a",
+      "label": "Development code 0x31de130 +12"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x192745c",
+      "target": "0xed2d3844",
+      "label": "Development data reference 0x5c00950"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x192745f",
+      "target": "0x42d94ed",
+      "label": "Development data reference 0x5c00950"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5799",
+      "target": "0xe0058d48",
+      "label": "Development data reference 0x5d0f580"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d579c",
+      "target": "0x3339de0",
+      "label": "Development data reference 0x5d0f580"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d6279",
+      "target": "0xb0058d48",
+      "label": "Development data reference 0x4d1db30"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d627c",
+      "target": "0x23478b0",
+      "label": "Development data reference 0x4d1db30"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d31",
+      "target": "0xd107ac5",
+      "label": "Development data reference 0x5c74578"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d34",
+      "target": "0xe0b83f0d",
+      "label": "Development data reference 0x5c74578"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d5e",
+      "target": "0x15107ac5",
+      "label": "Development data reference 0x5c745c8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e68d61",
+      "target": "0xe0b86215",
+      "label": "Development data reference 0x5c745c8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e60d71",
+      "target": "0xd61058b",
+      "label": "Development data reference 0x5c71ad8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e60d74",
+      "target": "0x4903e10d",
+      "label": "Development data reference 0x5c71ad8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e614f4",
+      "target": "0x916158b",
+      "label": "Development data reference 0x5c71e10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1e614f7",
+      "target": "0x8103e109",
+      "label": "Development data reference 0x5c71e10"
+    }
+  ]
+}

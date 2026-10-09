@@ -4,6 +4,7 @@
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
   "status": "Static original-binary trace of stack command production, consumption and state queries. This map does not establish live ordering between independent command producers.",
   "documentation": "../engine-paths.md#ui-models-and-events",
+  "related_maps": [{"path":"input-context-map.json","scope":"October executable navigation and action-view predicates; does not port this map's complete queue trace."},{"path":"input-context-hotfix-map.json","scope":"Separately fingerprinted 0.564.478.0 observation adapters; does not port this map's complete queue trace."}],
   "checks": [
     { "kind": "u32", "rva": "0x17bfdbb", "target": "0x4", "label": "Push callback constructs command type 4" },
     { "kind": "call_rel32", "rva": "0x17bfef6", "target": "0x17c6a80", "label": "Push callback grows the command array when full" },

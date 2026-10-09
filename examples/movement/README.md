@@ -1,17 +1,20 @@
 # Guest-controlled character movement
 
-The complete mod policy lives here: F6 toggle, WASD/Space/Ctrl axes, camera-relative conversion, diagonal normalization and 5/15-unit speed selection. `movement.wat` is the source used by the normal build. `movement.c` is an equivalent C alternative; editing C alone does not change the WAT-built package.
+The complete mod policy lives here: F6 toggle, WASD/Space/Ctrl axes, camera-relative conversion, diagonal normalization and 5/15-unit speed selection. `movement.c` is the normal build input. `movement.wat` remains a low-level reference fixture.
 
-Rebuild just the guest from the repository root:
+The C example requires runtime `0.1.0-alpha.4.4.dev.0` or later. Failed renewals
+read an owner-local `motion_read` snapshot and log the reason before cleanup.
+After focus loss, stale input, Escape or a rejected movement request, release
+F6 before pressing it again to resume. The C guest uses `input_read` to distinguish
+a usable release from input masked by the host.
+The WAT fixture retains the original movement imports and behavior without these
+recovery checks or diagnostics.
+
+From the SDK or repository root, build the guest without rebuilding the runtime:
 
 ```powershell
-.\dist\crml\crml_wat.exe examples/movement/movement.wat dist/examples/movement/movement.wasm
-```
-
-Or compile the C source using Clang with wasm32 and `wasm-ld` support:
-
-```powershell
-clang --target=wasm32 -O2 -nostdlib -Isdk/include examples/movement/movement.c -Wl,--no-entry -Wl,--export-memory -Wl,--initial-memory=131072 -Wl,--max-memory=16777216 -o dist/examples/movement/movement.wasm
+python tools/mod.py build examples/movement --output mods/movement
+python tools/mod.py check mods/movement
 ```
 
 The host exposes fixed button input, two floats describing horizontal camera right, and a world-velocity request. It checks ownership, player identity, request bounds and expiry before applying the controller override. Zero velocity holds position; disabling the request releases control. The example switches off when a request fails, and the runtime releases ownership even if guest shutdown cannot run.

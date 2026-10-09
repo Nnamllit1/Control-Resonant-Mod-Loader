@@ -1,0 +1,426 @@
+{
+  "schema": 1,
+  "executable_sha256": "4f6596b08bb5bc7fe4150cf5b9f71d7bae87eea02d66627c03a5e05ffe84ea62",
+  "scope": "Native sonar and full-map producer chains, document bindings, and copied projection adapters. Full-map native projection matched 336/336 captured samples. Sonar copied math and heartbeat are statically traced and offline-tested; live sonar alignment remains unvalidated.",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e66fb7",
+      "target": "0x4a2a1c0",
+      "label": "heron::ui_sonar::update_north_angle::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e74cea",
+      "target": "0x4a2a4e0",
+      "label": "heron::ui_sonar::update_player_angle::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e670fc",
+      "target": "0x4a2a7a0",
+      "label": "heron::ui_sonar::update_sonar_state::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e67456",
+      "target": "0x4a2b850",
+      "label": "heron::ui_sonar::update_custom_markers::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e74ab0",
+      "target": "0x4a2cb40",
+      "label": "heron::ui_sonar::update_facts::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f35d94",
+      "target": "0x4a56d30",
+      "label": "heron::ui_map::update_map_position::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f35f53",
+      "target": "0x4a56e90",
+      "label": "heron::ui_map::update_map_visibility::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f3c426",
+      "target": "0x4a59690",
+      "label": "heron::ui_map_menu::handle_input::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f3cbf9",
+      "target": "0x4a5aad0",
+      "label": "heron::ui_map_menu::update_menu_state::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f522c0",
+      "target": "0x4a61010",
+      "label": "heron::ui_map_detail::update_player_marker::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f5b730",
+      "target": "0x4a61dd0",
+      "label": "heron::ui_map_detail::sync_map_data::system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f52400",
+      "target": "0x1f59740",
+      "label": "Full-map marker dispatcher registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f5995b",
+      "target": "0x1f53fa0",
+      "label": "Full-map player marker worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f541e1",
+      "target": "0x1f538f0",
+      "label": "Player marker append"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f53940",
+      "target": "0x1f52de0",
+      "label": "World to normalized district projection"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f52e2d",
+      "target": "0x1f529c0",
+      "label": "District rotation and translation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f53980",
+      "target": "0x1f34840",
+      "label": "Map rectangle placement"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f5b883",
+      "target": "0x1f59090",
+      "label": "Map synchronization dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f590c4",
+      "target": "0x1f56650",
+      "label": "Map synchronization worker"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e67552",
+      "target": "0x1e71d90",
+      "label": "Sonar custom marker dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e71f52",
+      "target": "0x1e73800",
+      "label": "Sonar component packing"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e71fd9",
+      "target": "0x1e68cb0",
+      "label": "Sonar custom marker worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e68ece",
+      "target": "0x1e77ce0",
+      "label": "Sonar projection wrapper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e77dd8",
+      "target": "0x1e78280",
+      "label": "Sonar first frame projection"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e77e65",
+      "target": "0x1e78280",
+      "label": "Sonar second frame projection"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3af86f8",
+      "target": "0x3f000000",
+      "label": "Projection scalar 0.5 IEEE754"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f3dc38",
+      "target": "0x1f51160",
+      "label": "Native marker action hit test"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f3dc5a",
+      "target": "0x1f510d0",
+      "label": "Native marker action remove"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1f3dcb2",
+      "target": "0x1f50fa0",
+      "label": "Native marker action add"
+    }
+  ],
+  "systems": [
+    {
+      "name": "heron::ui_sonar::update_north_angle::system",
+      "name_rva": "0x4a2a1c0",
+      "evidence": "Named ECS registration; callable ABI and projection semantics not established."
+    },
+    {
+      "name": "heron::ui_sonar::update_player_angle::system",
+      "name_rva": "0x4a2a4e0",
+      "evidence": "Named ECS registration; callable ABI and projection semantics not established."
+    },
+    {
+      "name": "heron::ui_sonar::update_sonar_state::system",
+      "name_rva": "0x4a2a7a0",
+      "evidence": "Named ECS registration; callable ABI and projection semantics not established."
+    },
+    {
+      "name": "heron::ui_sonar::update_custom_markers::system",
+      "name_rva": "0x4a2b850",
+      "evidence": "Named registration and dispatcher/worker chain traced; see projection records. Static evidence only; no callable mod interface."
+    },
+    {
+      "name": "heron::ui_sonar::update_facts::system",
+      "name_rva": "0x4a2cb40",
+      "evidence": "Named ECS registration; callable ABI and projection semantics not established."
+    },
+    {
+      "name": "heron::ui_map::update_map_position::system",
+      "name_rva": "0x4a56d30",
+      "evidence": "Named ECS registration; callable ABI and projection semantics not established."
+    },
+    {
+      "name": "heron::ui_map::update_map_visibility::system",
+      "name_rva": "0x4a56e90",
+      "evidence": "Named ECS registration; callable ABI and projection semantics not established."
+    },
+    {
+      "name": "heron::ui_map_menu::handle_input::system",
+      "name_rva": "0x4a59690",
+      "evidence": "Named ECS registration; callable ABI and projection semantics not established."
+    },
+    {
+      "name": "heron::ui_map_menu::update_menu_state::system",
+      "name_rva": "0x4a5aad0",
+      "evidence": "Named ECS registration; callable ABI and projection semantics not established."
+    },
+    {
+      "name": "heron::ui_map_detail::update_player_marker::system",
+      "name_rva": "0x4a61010",
+      "evidence": "Named registration and dispatcher/worker chain traced; see projection records. Static evidence only; no callable mod interface."
+    },
+    {
+      "name": "heron::ui_map_detail::sync_map_data::system",
+      "name_rva": "0x4a61dd0",
+      "evidence": "Named registration and dispatcher/worker chain traced; see projection records. Static evidence only; no callable mod interface."
+    }
+  ],
+  "native_document": {
+    "sha256": "2a56b5e655746d09f80b592b9e19d787eaccf72778a3df90b7773a564ecad527",
+    "sonar": {
+      "surface": ".sonar",
+      "orientation_models": [
+        "hud_sonar_rotation",
+        "hud_sonar_player_rotation"
+      ],
+      "point_transform_pattern": "hud_sonar_poi_<index>_transform",
+      "limit": "Individual point transforms are not proof of a reusable world projection."
+    },
+    "full_map": {
+      "surface": ".map-view",
+      "models": [
+        "ui_map_transforms_scale",
+        "ui_map_transforms_position",
+        "ui_map_transforms_zoom_range",
+        "ui_map_bg_bounds",
+        "ui_map_markers",
+        "ui_map_player_camera_transform"
+      ],
+      "limit": "Scale/translation operate on map coordinates. World/district/floor conversion remains a separate native contract."
+    }
+  },
+  "ownership": "Any custom layer must preserve native markers, map controls and input ownership; discard stale context and remove owner resources on unload.",
+  "compatibility": "Existing normalized schematic drawing ABI remains separate; no world-coordinate or destination semantics are assigned retroactively.",
+  "full_map_projection": {
+    "projector_rva": "0x1f52de0",
+    "transform_rva": "0x1f529c0",
+    "marker_append_rva": "0x1f538f0",
+    "rectangle_rva": "0x1f34840",
+    "inputs": {
+      "world_position": "XYZ; Y multiplied by 0.5 before rotation",
+      "transform_output": "quaternion XYZW at +0, translation XYZ at +0x10",
+      "district_fields": {
+        "minimum_xyz": "0x74",
+        "maximum_xyz": "0x80",
+        "offset_xy": "0x8c",
+        "scale_xy": "0x94"
+      }
+    },
+    "equations": [
+      "P = rotate(Q, [world.x, world.y * 0.5, world.z])",
+      "A = rotate(Q, minimum) + translation",
+      "B = rotate(Q, maximum) + translation",
+      "N = ((P.xy + translation.xy + offset) * scale - A.xy) / (B.xy - A.xy)",
+      "UV = [N.x, 1 - N.y]"
+    ],
+    "placement": "Native marker append clamps UV into [0,1] then applies rectangle.xy + UV * rectangle.zw. Routes require segment clipping rather than independent endpoint clamping.",
+    "degenerate_bounds": "Native zero reciprocal collapses an axis; internal adapter rejects degenerate extents as unavailable.",
+    "comparison": "336/336 copied projections matched native output in one gameplay capture, with no dropped samples or unwinds. Production snapshots pair only the player-marker path with its native rectangle output. This does not establish persistent district identity or live rendering placement.",
+    "rectangle_snapshot": {
+      "helper_rva": "0x1f34840",
+      "caller_rva": "0x1f53980",
+      "output": "Four floats at RCX: rectangle x, y, width, height; RDX is the same district identity passed to the preceding projection.",
+      "pairing": "The marker append has straight-line register and stack work between projection return at 0x1f53945 and rectangle call at 0x1f53980. The adapter pairs the two on the same thread using caller return-address stack slot, district identity, and a short elapsed-time bound; it copies the projection fields and rectangle after native callthrough. Production selects only the player-marker append call at 0x1f541e1: the append frame pushes three registers and reserves 0x90 bytes, so a guarded read 0xb0 bytes above the projector return slot must equal the outer return address 0x1f541e6. Diagnostic comparisons continue to cover other marker append callers.",
+      "admission": "Production snapshots may continue after the optional ten-minute diagnostic window. A 50 ms throttle bounds callback work; stop closes admission while installed hooks remain pinned.",
+      "validity": "Unstable or unmatched projection, non-finite rectangle, non-positive rectangle dimensions, caller mismatch, or district mismatch rejects a snapshot. No engine pointer enters the callback or queued report."
+    },
+    "limits": [
+      "Floor selection and district lifetime not established",
+      "Final pan/zoom/rectangle composition has not been validated in a live drawing session",
+      "Marker append allocates and is not a safe standalone draw API"
+    ]
+  },
+  "sonar_projection": {
+    "worker_rva": "0x1e68cb0",
+    "wrapper_rva": "0x1e77ce0",
+    "geometry_rva": "0x1e78280",
+    "distance_scale_rva": "0x1e77c40",
+    "component_hashes": {
+      "WorldTransformReadOnly": "0x6cfbb2a9",
+      "PreviousWorldTransformReadOnly": "0x31fe61b8",
+      "CameraTransform": "0xf15ddf07",
+      "MovementPlane": "0xc0853848"
+    },
+    "runtime_threshold_rvas": [
+      "0x5d55548",
+      "0x5d55598"
+    ],
+    "worker_frame": {
+      "source": "The custom-marker worker at 0x1e68cb0 passes copied 16-byte vectors to wrapper 0x1e77ce0 at 0x1e68ece. The component packer at 0x1e73800 supplies WorldTransformReadOnly, PreviousWorldTransformReadOnly, CameraTransform, and MovementPlane in that order.",
+      "vectors": {
+        "world_current": "WorldTransformReadOnly row, 0x20 stride, vector at +0x10",
+        "world_previous": "PreviousWorldTransformReadOnly row, 0x20 stride, vector at +0x10",
+        "camera_60": "CameraTransform row, 0xb0 stride, vector at +0x60",
+        "camera_80": "CameraTransform row, 0xb0 stride, vector at +0x80",
+        "movement_plane": "MovementPlane row, 0x10 stride, vector at +0x00",
+        "marker": "48-byte database record, vector at +0x10"
+      },
+      "scalars": "Near and far radii are loaded from process globals 0x5d55548 and 0x5d55598. The worker passes a 0 byte to the geometry flag for both calls, a separate 1 byte to the wrapper mode, and a file-backed FLT_MAX scalar from 0x3af8700. Runtime radius values and valid ranges have not been observed."
+    },
+    "geometry_calls": [
+      "First 0x1e78280 call at 0x1e77dd8: RDX=camera_60, R8=movement_plane, R9=world_current, fifth=marker, near/far from runtime globals, flag=0. Worker xmm7 loads component 0 (current) and stores at local +0x80; wrapper entry+0x40 selects that pointer.",
+      "Second 0x1e78280 call at 0x1e77e65: RDX=camera_80, R8=movement_plane, R9=world_previous, fifth=marker, same near/far and flag=0. Worker xmm8 loads component 1 (previous) and stores at local +0x70; wrapper entry+0x48 selects that pointer. Both calls project the same marker."
+    ],
+    "presentation_trace": {
+      "producer": "Custom-marker wrapper 0x1e77ce0 sends a 0x50-byte record through 0x1e78cc0 and container insert 0x1e70790. Its normal branch copies first geometry result float2 at +0x28 to wrapper output +0x00 (1e7807c..1e780c9) and second geometry result float2 to output +0x08 (1e780cc..1e780d4). Insertion prepends eight bytes, so the SonarData record holds these UVs at +0x08/+0x10.",
+      "consumer": "update_facts dispatcher 0x1e70db0 calls worker 0x1e6ad20. At 0x1e6b359..0x1e6b3a6, it blends previous UV + (current UV - previous UV) * FixedToVariableInterpolation, reading a seventh-argument float pointer at worker entry +0x38. It then multiplies by 160 * viewport_height / 1080 before formatting the POI transform.",
+      "alternate_branch": "At 0x1e77fb1..1e78037, global byte 0x5d553c0 may enable an alternate projection beyond global-XZ far radius, conditioned on marker flags. Within that far radius the normal branch uses the two geometry UVs. The route adapter clips to both current and previous plane-local near circles and global-XZ far circles."
+    },
+    "geometry": "Quaternion frame rotation: local = rotate(conjugate(plane), target-origin); local Y is cleared, then rotated back through plane; radial distance is XYZ length of that planarized vector. Relative height is the original local Y. Relative camera quaternion = conjugate(plane) * camera; yaw = atan2(2*(x*z+y*w), 1-2*(x*x+y*y)); orientation = plane * yaw quaternion; inverse orientation rotates normalized planar ray. UV = [0.5+scale*ray.x, 0.5-scale*ray.z].",
+    "distance_scale": [
+      "d <= near: 0.45 * d / near",
+      "near < d <= far: 0.4375 + 0.05 * (flag ? 0.6 : d / far)",
+      "d > far: min(0.55 + 0.05 * (flag ? 2.2 : d / far), flag ? 1.55 : 0.55)"
+    ],
+    "limits": [
+      "Runtime radius values and the semantic roles of CameraTransform +0x60/+0x80 and marker +0x10 have not been live-qualified",
+      "Eligibility filters by SonarData and district",
+      "Output queue ownership and lifetime not qualified",
+      "The copied observer captures authenticated player worker component frames even when the database contains no marker; optional same-call native geometry comparison latches a mismatch and suppresses production if copied math disagrees. No live sonar comparison or gameplay placement has yet been performed",
+      "Projection fidelity outside the clipped near-plane and global-XZ far intersection is not established",
+      "Full-map district projection cannot be substituted for sonar projection"
+    ]
+  },
+  "presentation_feedback": {
+    "full_map": "User reports map drawing kind of works; route resets too often. This establishes visible placement only, not all pan/zoom/lifetime cases.",
+    "layout_context": "Pixel rectangle resizing preserves projection context; changed world projection or native stream expiry replaces it.",
+    "route_policy": "Guest preserves its bounded overview across observation gaps only after a fresh sample confirms unchanged navigation v2 world/player continuity. Unobserved movement starts a separate section. Projection token changes hide drawing until reassociation, rather than deleting history. Actual continuity changes, observed teleports and uninterrupted jumps still clear it. Older bends are simplified to the 128-segment drawing budget while retaining the beginning and recent detail; excessive disconnected runs evict the oldest whole section. No persistent world or campaign identity is claimed."
+  },
+  "interactive_annotations": {
+    "contract": "Additive dev.5 drawing-capability API, separate from passive map frames. Guest owns IDs and edits; host copies metadata and queues bounded versioned actions.",
+    "placement": "Inverse copied affine district projection on the guest-supplied origin/up plane; no depth, floor or terrain pick. Singular planes reject placement.",
+    "ui": "Clickable annotations, hover preview and local editor in the existing native UI document. Data includes one ASCII symbol, name, description, RGBA and visibility distance.",
+    "limits": "24 annotations per owner, four owners, 16 queued actions, 600ms lease. Context/revision/page/replay guards; lifecycle cleanup.",
+    "evidence": "Offline projection round trips, native service boundary tests, actual Wasm author flow and browser mouse interaction tests. Gameplay confirmation pending."
+  },
+  "native_marker_metadata": {
+    "source": "Native custom-markers__marker rows bind ui_map_custom_marker_<slot>_position, number, hidden and hovered; globals defines CUSTOM_MARKER_COUNT=6.",
+    "implementation": "Optional dev.6 annotation metadata attaches to existing native marker DOM, matched by displayed number and local pixel position. X placement and deletion remain engine-owned. The guest owns metadata; no game save writes.",
+    "identity": "Ephemeral map context plus number and local position. Same-position slot replacement cannot be identified.",
+    "limits": "Six native slots unchanged. No verified native world position, range filtering or save/campaign identity; identical marker positions on identical layouts share appearance metadata.",
+    "verification": "Native marker hover and editor interaction are observed in gameplay. Styling and scoped map-input suspension have automated coverage; their combined gameplay behavior is not yet verified.",
+    "binding_access": "Resolve fixed slot from data-bind-style-left and read window.ui_map_custom_marker_<slot>_{position,number,hidden}.value, following the engine getCoherentModelBinding implementation. Bound rendering must not be assumed to update DOM textContent or inline styles.",
+    "interaction_layer": "Native marker paint/input stacking can cover child click targets. Bound document-level targets follow each stock marker bounding rectangle and ancestor clipping; only small marker targets intercept input. Other map input remains native.",
+    "presentation": "Stock map-card classes; entire editor scrolls locally within viewport bounds, including footer actions. Re-clamped after resize. Scoped native tooltip suppression is restored on teardown. Editor anchoring is immutable per opening; measured rendered positions never feed back into CSS left/top.",
+    "input_ownership": {
+      "build": "october_hotfix",
+      "input_dispatcher_rva": "0x1f48bd0",
+      "position_dispatcher_rva": "0x1f3a250",
+      "input_worker_rva": "0x1f3e4a0",
+      "evidence": "Named ECS registration stores dispatchers at record +0x140. Input dispatcher forwards the 16 native arguments to the input worker; position dispatcher unpacks four environment references and tail-calls 0x1f389b0. Both dispatcher ABIs use three input registers and have no incoming stack arguments. Adapters preserve original callthrough unless an authenticated editor lease is active. No Windows keyboard-message filtering. No engine pointers enter guest memory.",
+      "lease": "Owner, revision and map context scoped; 350 ms maximum without renewal; invalidated by owner hide/unload, page replacement, renderer disable, annotation or map expiry. Foreground process check prevents suspension in the background. Cohtml fields wait for acknowledgment and close before the lease expires when polling stalls.",
+      "qualification": "Code/byte signatures and protocol tests establish implementation bounds, not live input behavior.",
+      "gameplay_menu_input_dispatcher_rva": "0x1fbe970",
+      "gameplay_menu_input_worker_rva": "0x1fbc700",
+      "parent_menu_evidence": "The named ui_gameplay_menu::handle_input registration at 0x1fbaa08 stores dispatcher 0x1fbe970 at +0x140. That three-register dispatcher loads twelve environment references from the record at r8+0x58 and calls worker 0x1fbc700. Parent gameplay-menu input remains independent of map-menu input, including tab navigation. All three byte-checked adapters must install before editor focus can be acknowledged."
+    },
+    "native_capacity": {
+      "add_rva": "0x1f50fa0",
+      "caller_rva": "0x1f3dcb2",
+      "remove_rva": "0x1f510d0",
+      "remove_caller_rva": "0x1f3dc5a",
+      "hit_test_rva": "0x1f51160",
+      "database_records": "pointer at +0x48, count at +0x50, capacity at +0x54; 48-byte entries",
+      "limit_evidence": "Add helper initializes a six-byte stack occupancy table at rsp+0x78, marks existing IDs 1..6 and searches only those six entries. Changing the comparison alone would overrun this table. UI also binds six fixed marker slots.",
+      "status": "Stock six-slot allocator and save layout unchanged. Reviewed add and remove callers can route an authenticated hovered guest annotation through its owner action queue; 128 copied annotations and guest storage remain separate.",
+      "adapter": "Add return RVA 0x1f3dcb7 and remove return RVA 0x1f3dc5f; exact prologues and call bytes. The add route checks a fresh hovered guest action before copying two floats from the second argument (map pixels) for positional fallback. The remove route consumes only an authenticated hovered guest action; otherwise the native remove helper retains its slot and database arguments. Both routes require the game foreground and a current cursor inside the reported clipped client-space hit rectangle. No native database writes by the adapter.",
+      "remove_semantics": "The map action hit test scans native 48-byte records and yields a slot ID and found flag. When found, the action passes that ID in ECX and the engine database in RDX to 0x1f510d0. The helper shifts a matching record, decrements the count and sets the database dirty byte at +0x6a; a missing ID returns without changing the database. The action still executes its post-remove notification after a guest action consumes the helper call.",
+      "evidence_level": "Static caller/argument tracing and automated service/Wasm/browser coverage; overflow placement in gameplay not yet verified."
+    },
+    "sonar_metadata": {
+      "bindings": "poi__custom-marker / custom-marker__number bound to hud_sonar_poi_<index>_tracking_number, is_not_custom_marker; match full-map number and pixel position before decorating.",
+      "behavior": "Copied symbol/color only; native POI geometry/elevation/clipping retained. Missing/reused slot or expired owner lease restores original icon.",
+      "verification": "Source-template evidence and automated browser coverage; live gameplay pending."
+    },
+    "context_lifetime": "Geometry identity survives observation gaps when the copied projection is identical; availability and editing retain fresh-observation gates. Projection changes invalidate attachments.",
+    "persistence": "Route-sketch 0.6.0 retains storage schemas 1/2 using explicit typed API adapters. 128 combined records, affine geometry match, no save-slot identity, bounded restoration batches. Routes remain session-only.",
+    "overflow_presentation": {
+      "structure": "Stock custom-markers__marker wrapper with custom-marker and custom-marker__number children. Same native zoom range 0 hides; range 2 uses 0.625 scale. Names and descriptions use the hover card. Stock discovery selects bound rows only.",
+      "sonar": "Stock poi__custom-marker size and centered glyph; passive circular clipping layer.",
+      "cadence": "Native snapshot copy throttled to 16ms; renderer polls at 33ms while sonar geometry or extra markers are active, one request in flight. Retained world geometry reprojects at poll without renewing guest leases. Existing line nodes are updated in place.",
+      "evidence": "Native CSS/template inspection and automated projection/lifecycle/browser tests. Live smoothness and styling require gameplay confirmation."
+    }
+  },
+  "typed_annotation_contract": {
+    "introduced": "0.1.0-alpha.4.4.dev.10",
+    "interface": "map_annotations_publish_v3, map_annotations_next_v2, map_annotations_status; existing imports retained",
+    "identity": "World annotations use nonzero guest IDs and explicit world positions. Native attachments use separate slots 1..6 and explicit map-pixel positions. The same number can exist in both namespaces.",
+    "ownership": "Native editing and placement have independent retained claims. First eligible publication wins; later claims wait without interrupting an editor. Hide, expiry, opt-out and unload release claims. Status reports requested and granted services.",
+    "limits": "128 combined records per owner, at most six native attachments. Existing bounded leases, revisions, contexts, action queues and capability checks remain.",
+    "evidence": "Native admission/arbitration tests, 56 real Wasm boundary and lifecycle scenarios, browser typed editing tests, and independent source review. This contract version has not been separately gameplay-qualified.",
+    "limitations": [
+      "Native slot plus position is not durable identity; same-position replacement remains ambiguous.",
+      "Map projection context does not identify a campaign or save slot."
+    ]
+  }
+}

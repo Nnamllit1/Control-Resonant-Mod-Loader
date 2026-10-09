@@ -1,0 +1,1070 @@
+{
+  "schema": 1,
+  "executable_sha256": "4f6596b08bb5bc7fe4150cf5b9f71d7bae87eea02d66627c03a5e05ffe84ea62",
+  "scope": "Read-only player movement ground orientation and district identity leads on the reviewed October hotfix; not a campaign identity or persistent coordinate API.",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x4da005",
+      "target": "0x3b0a1e8",
+      "label": "MovementPlane component type name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x24e427f",
+      "target": "0x3b0a1e8",
+      "label": "Gravity system registers same component"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x24eb587",
+      "target": "0x4c23310",
+      "label": "Movement plane interpolation system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x24eb5f4",
+      "target": "0x2505fc0",
+      "label": "Interpolation direct dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x24eb602",
+      "target": "0x2508640",
+      "label": "Interpolation archetype job"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e66fb7",
+      "target": "0x4a2a1c0",
+      "label": "Sonar north-angle system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e6fb37",
+      "target": "0x1e70ad0",
+      "label": "Sonar direct dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e6fb45",
+      "target": "0x1e72a50",
+      "label": "Sonar archetype job"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x27c562a",
+      "target": "0x4d129f0",
+      "label": "Controller scheduler signature includes MovementPlane read access"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26aaa7d",
+      "target": "0x4cae7c7",
+      "label": "DistrictDatabase environment name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x26aaf33",
+      "target": "0x4cae927",
+      "label": "ActiveDistrict environment name"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x4da094",
+      "target": "0x1d74150",
+      "label": "Register MovementPlane component descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x25061a6",
+      "target": "0x250a750",
+      "label": "Interpolation dispatcher resolves component view"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x25062ee",
+      "target": "0x24f4330",
+      "label": "Interpolation dispatcher invokes concrete producer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x24f47e9",
+      "target": "0x1b9fbd0",
+      "label": "Interpolation writes normalized quaternion through copy function"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e70cf8",
+      "target": "0x1e67cb0",
+      "label": "Sonar dispatcher invokes concrete consumer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e67e9b",
+      "target": "0x1e28fe0",
+      "label": "Sonar resolves north direction using ActiveDistrict and DistrictDatabase"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e29010",
+      "target": "0x26a8cb0",
+      "label": "North helper resolves active district selection"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e2901a",
+      "target": "0x26a8db0",
+      "label": "North helper resolves district record by selected key"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x27c557a",
+      "target": "0x1bbf6e0",
+      "label": "Typed moveController enters existing hooked native callback"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x4da08d",
+      "target": "0xc0853848",
+      "label": "MovementPlane component hash"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x250a7ed",
+      "target": "0xc0853848",
+      "label": "Producer view resolves MovementPlane component"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x26aaf14",
+      "target": "0xfe3d049a",
+      "label": "ActiveDistrict environment key"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3b0a2d0",
+      "target": "0x0",
+      "label": "MovementPlane default quaternion lane 0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3b0a2d4",
+      "target": "0x0",
+      "label": "MovementPlane default quaternion lane 1"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3b0a2d8",
+      "target": "0x0",
+      "label": "MovementPlane default quaternion lane 2"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x3b0a2dc",
+      "target": "0x3f800000",
+      "label": "MovementPlane default quaternion lane 3"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x214fb53",
+      "target": "0x3238a30",
+      "label": "Saved transform parser processes transformLevelBundleId field"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21581c1",
+      "target": "0x3239a80",
+      "label": "Save container parser processes containerId string"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2136f3d",
+      "target": "0x4afe2b0",
+      "label": "Autosave system signature declares SharedBundleState and GameState reads"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2136fad",
+      "target": "0x215a9f0",
+      "label": "Autosave dispatcher registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x215abab",
+      "target": "0x21385f0",
+      "label": "Autosave dispatcher invokes callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2138cee",
+      "target": "0x2134ed0",
+      "label": "Autosave callback reaches save creation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x213524a",
+      "target": "0x2134960",
+      "label": "Save creation builds request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2134e6a",
+      "target": "0x2139aa0",
+      "label": "Save request captures data"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x213a5d4",
+      "target": "0x2163390",
+      "label": "Save capture reaches transform wrapper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x216339d",
+      "target": "0x227b500",
+      "label": "Transform wrapper invokes actual coordinate writer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x254ebad",
+      "target": "0x2549e00",
+      "label": "Loading dispatcher invokes requested-bundle writer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x215cd70",
+      "target": "0x21633b0",
+      "label": "Saved transform selection invokes restore wrapper"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x21633b0",
+      "target": "0x227b550",
+      "label": "Restore wrapper tailcalls the bundle-gated consumer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x227b657",
+      "target": "0x1836800",
+      "label": "Matching saved bundle reaches first transform writer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x227b6fd",
+      "target": "0x1836ad0",
+      "label": "Matching saved bundle reaches second transform writer"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b567",
+      "target": "0x210ba80",
+      "label": "Restore context gate reads byte at view+0x210"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b58d",
+      "target": "0x20518b48",
+      "label": "Restore consumer reads saved bundle at +0x20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x227b5ad",
+      "target": "0xfd03b48",
+      "label": "Restore consumer compares saved and current bundle IDs"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x214fe7b",
+      "target": "0x2158050",
+      "label": "Outer save serializer invokes two-string SavegameId serializer"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e9d5ba",
+      "target": "0x2135c50",
+      "label": "Save menu invokes cached save-ID selection"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2335800",
+      "target": "0x2135c50",
+      "label": "New Game Plus request invokes cached save-ID selection"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2137952",
+      "target": "0x4afdcf0",
+      "label": "Slot-name formatter uses slot placeholder literal"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2134b26",
+      "target": "0x2137920",
+      "label": "Save request derives container name from selected slot"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2134c73",
+      "target": "0x2137920",
+      "label": "Alternate save-kind branch reuses slot formatter"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2134ce1",
+      "target": "0x2137920",
+      "label": "Indexed save-kind branch reuses slot formatter"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x213a844",
+      "target": "0xf085ff41",
+      "label": "Save capture increments state order number"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x213a859",
+      "target": "0x44684389",
+      "label": "Save capture stores header order number at +0x68"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x213a860",
+      "target": "0x7e7b8844",
+      "label": "Save capture stores active slot at header+0x7e"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x213a8ad",
+      "target": "0x8183c6",
+      "label": "Save capture clears initial-new-game header flag"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x213a8ed",
+      "target": "0x7c438966",
+      "label": "Save capture copies playthrough word to header+0x7c"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x213a90b",
+      "target": "0x66c0ff66",
+      "label": "Flagged save request increments playthrough word"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x213a938",
+      "target": "0x8183c6",
+      "label": "Flagged save request sets initial-new-game header flag"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21983a9",
+      "target": "0x32a4ec0",
+      "label": "Header jumpPoint string serialization"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2198540",
+      "target": "0x521040",
+      "label": "Header initial-new-game byte serialization"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2198577",
+      "target": "0x701190",
+      "label": "Header New Game Plus playthrough word serialization"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x21373b7",
+      "target": "0x4b00620",
+      "label": "Save apply system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2137427",
+      "target": "0x215a870",
+      "label": "Save apply registered callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x215a9ce",
+      "target": "0x2138fe0",
+      "label": "Save apply callback concrete routine"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x215cd0e",
+      "target": "0x2163bb0",
+      "label": "Persistent-global chunk apply"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2163cb6",
+      "target": "0x2334210",
+      "label": "Persistent-global playthrough counter restore"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x213a020",
+      "target": "0x2163a30",
+      "label": "Persistent-global chunk capture"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2163b51",
+      "target": "0x23341d0",
+      "label": "Persistent-global playthrough counter capture"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4afbf30",
+      "target": "0x4afdcc0",
+      "label": "Persistent-global chunk selector string"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2334210",
+      "target": "0x28928b48",
+      "label": "Counter restore reads view+0x128 environment"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x233421a",
+      "target": "0xc2828966",
+      "label": "Counter restore writes environment+0xc2"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2334fa7",
+      "target": "0xc2b28966",
+      "label": "NG+ database initializer clears environment counter"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x233a1b4",
+      "target": "0xc2868966",
+      "label": "Environment clone copies counter, not saved-data restore"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x214f7a3",
+      "target": "0x560d8d4c",
+      "label": "Playthrough field serializer name LEA encoding"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x214f7a6",
+      "target": "0x29b3656",
+      "label": "Playthrough field serializer name displacement"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2139b54",
+      "target": "0x2159590",
+      "label": "Save capture constructs a fresh request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x213a04c",
+      "target": "0x2142170",
+      "label": "Serialize named persistent-global chunk"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x214223d",
+      "target": "0x18e4220",
+      "label": "Write RMDB chunk header"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21422ce",
+      "target": "0x21511b0",
+      "label": "Persistent-global typed serialization"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21422fa",
+      "target": "0x18e42b0",
+      "label": "Finalize chunk header checksum field"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2142317",
+      "target": "0x18e40c0",
+      "label": "Append named chunk descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18e41cb",
+      "target": "0x2ddc2a0",
+      "label": "Construct named buffer descriptor"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18e41dd",
+      "target": "0x18e8600",
+      "label": "Transfer chunk buffer ownership"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x213ab79",
+      "target": "0x18e4e20",
+      "label": "Enqueue captured save request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18e4e9d",
+      "target": "0x18e9740",
+      "label": "Move request into queued record"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18e87bc",
+      "target": "0x18e5c20",
+      "label": "Current write-request dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18e5cb9",
+      "target": "0x18ed320",
+      "label": "Direct asynchronous submission branch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18ed3e5",
+      "target": "0x2ddca30",
+      "label": "Convert named descriptors to storage operations"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ddcc5e",
+      "target": "0x2dde2b0",
+      "label": "Submit storage operation collection"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2dde6b5",
+      "target": "0x2de0890",
+      "label": "Construct operations queue job"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2dde702",
+      "target": "0x2dff300",
+      "label": "Enqueue operations job"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ddf394",
+      "target": "0x2de2f80",
+      "label": "Operations job execution body"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ddf40b",
+      "target": "0x18e90f0",
+      "label": "Publish operations job result"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x215ccf9",
+      "target": "0x21454d0",
+      "label": "Find and deserialize persistent-global chunk"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2145520",
+      "target": "0x3f2440",
+      "label": "Compare chunk name"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x214555a",
+      "target": "0x3325a80",
+      "label": "Construct reader from matched chunk bytes"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2145584",
+      "target": "0x2146f80",
+      "label": "Allocate typed persistent-global object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2145621",
+      "target": "0x214ea00",
+      "label": "Deserialize typed persistent-global object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x214565d",
+      "target": "0x215e1a0",
+      "label": "Consume matched chunk record"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x215cd2f",
+      "target": "0x215a000",
+      "label": "Destroy applied persistent-global object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x215cd37",
+      "target": "0x3251580",
+      "label": "Free applied persistent-global object"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x18e5902",
+      "target": "0x4898cb0",
+      "label": "Current write-request system signature"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x18e59f3",
+      "target": "0x18e8780",
+      "label": "Current write-request callback registration"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4e528d8",
+      "target": "0x2ddf330",
+      "label": "Operations queue execution method"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2dfc484",
+      "target": "0x2dfb970",
+      "label": "Create concrete storage backend"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2dfb9a5",
+      "target": "0x2de67a0",
+      "label": "Concrete backend constructor"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2de67ae",
+      "target": "0x4e53710",
+      "label": "Concrete backend vtable"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4e53758",
+      "target": "0x2de77c0",
+      "label": "Backend operation apply virtual method"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2de3290",
+      "target": "0x2de305c",
+      "label": "Input operation zero dispatch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2de3069",
+      "target": "0x2de3480",
+      "label": "Prepare write operation"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2de7a24",
+      "target": "0x2de7874",
+      "label": "Backend operation zero dispatch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2de7880",
+      "target": "0x2de8e20",
+      "label": "Queue concrete named write"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2de77ee",
+      "target": "0x2de8690",
+      "label": "Build existing file-size context"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2de8f05",
+      "target": "0x2dea950",
+      "label": "Compose write target name"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2de905e",
+      "target": "0x2dead50",
+      "label": "Append write to operation queue"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2de793b",
+      "target": "0x2de7ce0",
+      "label": "Apply each queued backend operation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2de7e42",
+      "target": "0x2deb740",
+      "label": "Apply named buffer write"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2de9b94",
+      "target": "0x2deb2a0",
+      "label": "Queue removal of explicitly named path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18e6563",
+      "target": "0x18e8dc0",
+      "label": "Removal queue launches listing continuation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18e8f4b",
+      "target": "0x18ea0c0",
+      "label": "Listing continuation filters names"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18e8fc7",
+      "target": "0x18ea0c0",
+      "label": "Companion listing continuation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18ea18a",
+      "target": "0x31df590",
+      "label": "Removal name prefix predicate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18ea309",
+      "target": "0x2ddcf50",
+      "label": "Filtered names become removal batch"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2ddd15b",
+      "target": "0x2dde2b0",
+      "label": "Removal operation job submission"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23358db",
+      "target": "0x2134960",
+      "label": "Initial NG request calls save builder"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x233597b",
+      "target": "0x2136590",
+      "label": "Initial NG request invokes loading handoff"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x18e506b",
+      "target": "0x5c883c6",
+      "label": "Removal queue kind zero store"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2ddd038",
+      "target": "0x36045c6",
+      "label": "Prepared input kind3 store"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23357e3",
+      "target": "0xaa45c766",
+      "label": "Initial request kind3 and flag1"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x50d18d1",
+      "target": "0x44434241",
+      "label": "ASCII a-d map to A-D"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x50d18e7",
+      "target": "0x5a595857",
+      "label": "ASCII w-z map to W-Z"
+    }
+  ],
+  "components": {
+    "MovementPlane": {
+      "hash": "0xc0853848",
+      "stride": 16,
+      "layout": "float x,y,z,w quaternion at offset 0",
+      "controller_view_offset": "0x50",
+      "controller_view_row": "0x90",
+      "controller_view_chunk": "0x88",
+      "default": "0,0,0,1",
+      "register": "0x4d9ff0",
+      "constructor": "0x4d1060"
+    }
+  },
+  "producers": {
+    "movement_plane_interpolation": {
+      "registration": "0x24eb587",
+      "direct_dispatch": "0x2505fc0",
+      "archetype_dispatch": "0x2508640",
+      "callback": "0x24f4330",
+      "view_builder": "0x250a750",
+      "component_slot": "0x10",
+      "row_slot": "0x68",
+      "normalized_quaternion_store_call": "0x24f47e9",
+      "store": "0x1b9fbd0"
+    },
+    "sonar_ground_consumer": {
+      "callback": "0x1e67cb0",
+      "quaternion_to_up_instructions": "0x1e67d20..0x1e67d77",
+      "formula": [
+        "2*(x*y-w*z)",
+        "1-2*(x*x+z*z)",
+        "2*(y*z+w*x)"
+      ],
+      "meaning": "MovementPlane rotation applied to local +Y. The native sonar compares it with world +Z to detect a differently oriented plane. This is not camera up or the collision contact normal."
+    }
+  },
+  "callback_safety": {
+    "controller_callback": "0x1bbf6e0",
+    "typed_caller": "0x27c5420",
+    "scheduler_signature": "0x4d129f0",
+    "declared_access": "coregame::component::MovementPlane,2,0 (read)",
+    "native_plane_address_instructions": "0x1bbf7f2..0x1bbf807",
+    "restriction": "Only inspect the original authenticated controller view on its callback thread. The component is already read by that callback. Never walk engine memory from the Wasm/worker reader. Match view slot, chunk, row and entity both before and after the copy."
+  },
+  "district_leads": {
+    "ActiveDistrict": {
+      "environment_hash": "0xfe3d049a",
+      "register": "0x26aaf0d",
+      "selector": "0x26a8cb0",
+      "layout": "selector returns last 16-byte stack entry +8; empty stack returns object+0x20; first uint32 is key"
+    },
+    "DistrictDatabase": {
+      "lookup": "0x26a8db0",
+      "records_pointer": "0x128",
+      "records_count": "0x130",
+      "record_stride": "0x230",
+      "record_key": "0x218",
+      "north_angle": "0x6c"
+    },
+    "evidence_limit": "The selected key resolves content used by sonar. Its writer, uniqueness namespace, persistence across restart, map coordinate origin and lifecycle are not yet established. Do not expose it as a stable zone, frame or campaign ID."
+  },
+  "limitations": [
+    "Static registration and producer/consumer tracing establishes layout and intended movement-plane semantics, not successful live observation during a gravity transition.",
+    "The existing player generation is transient observation continuity; world pointers and ECS handles are private runtime identities, not save/campaign lineage.",
+    "No native world create/destroy epoch producer, coordinate rebase/zone boundary, campaign creation/load/rollback identity, or persistent marker restoration key is established here.",
+    "The component lookup and repeated copy reject observed identity/data changes; they are not cross-thread synchronization or ABA protection.",
+    "The adapter only permits a reviewed current hotfix profile. Older supported profiles need independent verification before this service can read them."
+  ],
+  "save_coordinate_leads": {
+    "field": "transformLevelBundleId",
+    "field_name_rva": "0x4b02c90",
+    "native_serializers": [
+      "0x214f960",
+      "0x2193bc0"
+    ],
+    "field_offset": "0x20",
+    "field_width": 8,
+    "default": "0xffffffffffffffff in 0x2193bc0 initialization",
+    "transform_offset": "0x0 (32-byte rotation/translation representation)",
+    "finding": "The native saved transform structure serializes a separate level-bundle identifier alongside its transform. This is a stronger coordinate-namespace lead than the selected district key.",
+    "unresolved": "One source setter is now traced to a loading callback, but whether its requested bundle is the active coordinate frame, its uniqueness and persistence, transform rebasing/streaming behavior, and campaign lineage remain unproven. Do not expose it as a public persistent marker key.",
+    "producer": {
+      "autosave_signature": "0x4afe2b0",
+      "dispatcher": "0x215a9f0",
+      "callback": "0x21385f0",
+      "capture": "0x2139aa0",
+      "transform_wrapper": "0x2163390",
+      "writer": "0x227b500",
+      "transform_copy": "0x227b50d..0x227b533: copies 32 bytes from view+0x78 base with view+0x88 row, stride32, to saved transform+0.",
+      "identifier_copy": "0x227b500..0x227b542: dereferences pointer at view+0x108, reads optional uint64 at pointee+0x90 and validity byte+0x98, writes value or zero to saved transform+0x20.",
+      "context_mapping": "The capture assembles the entity view followed by the declared environment view. Its +0x108 source is consistent with the GameState smart-pointer entry in the autosave scheduler signature; a loading callback writes the optional field, but its coordinate-space meaning remains unproven.",
+      "phase_limit": "Autosave declares reads of SharedBundleState and GameState. The existing movement callback declares only PhysicsScene, FixedTime and GlobalIDToEntityMap environments; copying this source in that callback would add an unproven scheduler dependency."
+    }
+  },
+  "campaign_leads": {
+    "save_state_type": "heron::save::env::SavegameState",
+    "save_state_type_name_rva": "0x4afdd90",
+    "header_cache_type_name_rva": "0x4b028c0",
+    "react_to_game_flow_system_name_rva": "0x4b02590",
+    "container_id_field_name_rva": "0x4b02c68",
+    "container_id_serialization": "0x2158050",
+    "finding": "containerId and prefix are serialized strings. No creation-time immutable campaign identifier or load/rollback lineage has been traced; do not use these strings or save slots as a campaign identity.",
+    "selection": {
+      "callback": "0x2135c50",
+      "state_fields": "SavegameState strings at +0x40 and +0x68",
+      "source": "Cached header record strings at +0 and +0x28; selection compares record fields at +0x58/+0x68. Exact mode and ordering semantics are not established.",
+      "consumers": [
+        "save-menu request 0x1e9d510",
+        "New Game Plus request 0x2335740"
+      ],
+      "limit": "Current save selection can be cleared and replaced. Serialization is not evidence of immutable campaign lineage. A creation-time identity and its load/rollback/NG+ behavior remain untraced."
+    },
+    "save_id_creation": {
+      "request_builder": "0x2134960",
+      "slot_formatter": "0x2137920",
+      "slot_format": "slot-{}",
+      "input": "Active slot byte from request state +0x19; the helper formats the zero-extended byte.",
+      "scope": "Branches creating a save ID use a slot-derived container name and a separate save-kind prefix. The slot formatter has no campaign identity input.",
+      "limit": "A save slot can be reused; deriving mod campaign scope from this container name would merge unrelated playthroughs. This trace does not establish that every possible custom save prefix has the same lifetime."
+    },
+    "header_creation": {
+      "capture": "0x2139aa0",
+      "fields": {
+        "0x58": "Value returned by helper0x31dd0d0 during capture; not a proven creation-time campaign token.",
+        "0x68": "Incremented SavegameState order counter copied into each header.",
+        "0x7c": "newGamePlusPlaythrough: copied 16-bit source value; request flag+0x1b increments it unless already0xffff.",
+        "0x7e": "Active save slot byte.",
+        "0x81": "isInitialNewGameSave: initialized zero; request flag+0x1b sets it to one.",
+        "0x10": "jumpPoint string, including the initial-save request branch; a spawn target, not a lineage token.",
+        "0x60": "activeBundleID; initial-save branch copies the nested source integer at +0x40. A content/loading identifier, not established campaign lineage."
+      },
+      "limit": "The order counter changes per capture, slots can be reused, and NG+ progression is a bounded counter. The persistent-global apply path restores the counter independently of these header fields. Neither path establishes immutable campaign lineage or rollback semantics.",
+      "load_leads": {
+        "parser": "0x2199f90 parses the persisted initial-new-game byte and NG+ word. These are header metadata, separate from the persistent-global counter apply path.",
+        "initializer": "new_game_plus::initialize_database reaches0x2334f40; if world-state Database+0x98 is set, instruction0x2334fa7 clears NewGamePlus+0xc2. This is not yet a proven unique new-campaign boundary.",
+        "copy": "Instruction0x233a1b4 in0x233a0b0 copies an existing NewGamePlus environment counter into an allocated environment clone. It is not a saved-header load consumer.",
+        "next": "Establish authoritative campaign creation and save-extension lifecycle before defining campaign-scoped mod storage. Do not infer lineage from counter changes."
+      }
+    }
+  },
+  "loading_request_lead": {
+    "callback": "0x2549e00",
+    "authenticated_caller_return": "0x254ebb2",
+    "game_state_slot": "callback argument 0 points to a GameState pointer",
+    "optional_identifier": "GameState+0x90 uint64 and +0x98 validity flag",
+    "source": "The loading callback copies the final ID of a requested bundle vector into the optional GameState field during selected flow branches.",
+    "save_correlation": "The autosave writer at 0x227b500 reads the same optional GameState field through a smart-pointer slot at capture view+0x108, copies player transform to the saved structure and writes the ID or zero at +0x20.",
+    "observation": "A ten-pointer loading callback and two-pointer save writer are observed only at verified direct callers and exact October hotfix prologues. Each observed invocation forwards unchanged. Captures stop admitting calls after ten minutes; event storage and sampling are bounded.",
+    "limit": "The requested bundle is not proven to be the active coordinate frame, persistent zone, or immutable campaign identity. Capture is diagnostic only; no public persistent marker API follows.",
+    "runtime_evidence": {
+      "scope": "Bounded native observations on this executable fingerprint; no public identity contract.",
+      "saved_transform_copy": "Observed native save results match the captured transform and optional bundle field.",
+      "optional_identifier": "Successful save writes occur with the optional bundle identifier both present and absent. Absence must remain distinct from a valid identifier whose value is zero.",
+      "limitations": [
+        "The selected loading context is not established as a persistent zone or coordinate-frame identity.",
+        "The loading sample budget can finish before later save writes; lack of a corresponding loading record does not prove that no transition occurred.",
+        "Reload persistence, rollback, coordinate rebasing and campaign identity are not established by these observations."
+      ]
+    }
+  },
+  "saved_transform_restore": {
+    "selector": "0x215c8c0; call at 0x215cd70 to wrapper 0x21633b0, which tailcalls 0x227b550",
+    "arguments": "Saved 40-byte transform/bundle record, and borrowed restore view. The leaf forwards no new arguments and returns void.",
+    "gates": [
+      "Restore-view byte +0x210 must be zero; its wider semantic name is not established.",
+      "Saved bundle at saved+0x20 must be nonzero.",
+      "GameState optional bundle from *(view+0xd8), then +0x90/+0x98, must be present.",
+      "Saved and current bundle values must match."
+    ],
+    "accepted_path": "Copies the saved 32-byte transform to temporary arguments for writers 0x1836800 and 0x1836ad0, then sets a row-selected byte through view+0xb8 and view+0xa0. Rejected paths return without those writes.",
+    "significance": "The stored identifier participates in native admission of a saved transform. It is more than a serialization label. This establishes a specific restore compatibility check, not global coordinate identity.",
+    "diagnostic": "Optional bounded observer copies entry inputs at the authenticated direct caller through the tail wrapper, forwards unchanged, and records eligibility separately from native return. It does not read or modify destination state.",
+    "unresolved": [
+      "Actual application of the transform and player ownership require live evidence.",
+      "Equality does not establish unique campaign lineage, save rollback policy, or absence of coordinate rebasing.",
+      "Same-map instances and multiple playthroughs cannot be distinguished using this check alone."
+    ],
+    "observed_entry_gate": "A returned native invocation had matching nonzero saved/current bundle values but restore-view byte +0x210 rejected the operation. Bundle equality alone is therefore insufficient even at an observed restore entry. No transform application or campaign identity is established."
+  },
+  "persistent_global_playthrough": {
+    "chunk": "persi-global",
+    "selector": "0x4afbf30 -> string0x4afdcc0",
+    "field": "playthroughNum",
+    "field_name_rva": "0x4b02e00",
+    "serializer_field_reference": "0x214f7a3",
+    "field_offset": "0x1ec",
+    "width_bytes": 2,
+    "capture": {
+      "caller": "0x213a020 ->0x2163a30",
+      "counter_call": "0x2163b51 ->0x23341d0",
+      "source": "*(view+0xe0), then uint16 at environment+0xc2",
+      "increment": "If view+0x138 is set, increment the saved value unless already0xffff. The wider flag lifetime is unproven."
+    },
+    "apply": {
+      "registration": "0x2137427 ->0x215a870",
+      "callback_call": "0x215a9ce ->0x2138fe0",
+      "chunk_selection": "0x215ccdf..0x215ccf9 selects persi-global;0x215cd03 tests the returned chunk pointer",
+      "chunk_call": "0x215cd0e ->0x2163bb0",
+      "counter_call": "0x2163cb6 ->0x2334210",
+      "destination": "*(view+0x128), then uint16 at environment+0xc2",
+      "store": "0x233421a",
+      "completion": "0x215cd1a sets a per-chunk flag after the apply helper returns. This is not global load completion."
+    },
+    "relationship": "The persistent-global path precedes the separate player transform apply call at0x215cd70. Each chunk has its own presence check; ordering alone does not prove a transaction or successful player restoration.",
+    "evidence": "Static capture, serialization and apply path on the fingerprinted executable; no live load, rollback or NG+ execution observed for this counter.",
+    "limit": "A saturating 16-bit progression count can repeat across independent campaigns. It is neither an immutable lineage token nor an SDK campaign identity."
+  },
+  "save_chunk_lifecycle": {
+    "evidence": "Static current-profile instruction and ownership trace; no custom save data written or gameplay-qualified.",
+    "capture": {
+      "request_constructor": "0x2159590 clears descriptor count+0x48 and owned-buffer count+0x508",
+      "typed_writer": "0x2142170 serializes PersistentGlobalChunk via0x21511b0",
+      "header": "0x18e4220 emits RMDB plus uint32 values2,2,0. Finalizer0x18e42b0 replaces offset12 with helper0x513560 result over bytes at buffer+16 using length max(cursor-base, stream+0x130)-16. Checksum algorithm and coverage semantics are not established.",
+      "append": "0x18e40c0 adds a0x58-byte named descriptor; pointer and byte length are at descriptor+0x48/+0x50",
+      "ownership": "0x18e8600 moves a24-byte pointer/length/capacity tuple into request+0x500 buffer list and clears the source pointer. Engine allocator and ownership rules apply."
+    },
+    "queue": {
+      "enqueue": "0x18e4e20 moves via0x18e9740 into a0x5d8-byte record; request ticket at+0x5d0 comes from incrementing requests+0x1770 uint32",
+      "consumer_registration": "0x18e59f3 ->0x18e8780 ->0x18e5c20",
+      "submit": "Direct branch0x18ed320 passes named descriptors to0x2ddca30 and stores asynchronous result object at record+0x5b0/+0x5b8",
+      "operations_job": "0x2ddca30 ->0x2dde2b0; constructs job0x2de0890 and enqueues via0x2dff300. Execution method0x2ddf330 calls0x2de2f80 and publishes result through0x18e90f0.",
+      "backend_boundary": "Indirect call0x2de3222 uses backend vtable+0x48. The installed Steam backend constructor now resolves that slot to0x2de77c0; see concrete_backend. Other backends and durability semantics remain unverified.",
+      "limit": "Enqueue returns a ticket. Neither capture nor enqueue is a durable save acknowledgement. Full cancellation and error semantics remain unresolved."
+    },
+    "reader": {
+      "lookup": "0x21454d0 scans collection+0x60/+0x68 entries of0x40 bytes by name through0x3f2440",
+      "missing": "Exhaustion returns null output without parser invocation",
+      "matched": "Builds reader over entry+0x30 data and+0x38 size; allocates fixed0x230-byte typed object via0x2146f80 and parses via0x214ea00",
+      "consume": "0x214565d ->0x215e1a0 removes the matched entry after parser return",
+      "caller_ownership": "Apply0x215cd0e; destructor0x215cd2f; free0x215cd37",
+      "error_limit": "Cleanup funclets are present. Exact malformed-payload behavior is not established; it must not be equated with the missing-name null result."
+    },
+    "extension_limits": [
+      "Named byte buffers provide a possible extension point, not an established custom-chunk API.",
+      "Nonmatching names are skipped by this specific reader; whole-pipeline unknown-chunk retention or deletion is unproven.",
+      "Capture begins with fresh lists. This does not prove that the storage backend removes files absent from the request.",
+      "Campaign creation, rollback, NG+ migration, cloud/container replacement, mod removal and schema compatibility need independent evidence before campaign-scoped storage can be exposed."
+    ],
+    "concrete_backend": {
+      "scope": "Static installed Steam executable path. Other distribution backends and live disk/cloud behavior are not qualified.",
+      "construction": "0x2dfc484 ->0x2dfb970 ->0x2de67a0; constructor installs vtable0x4e53710 and setup assigns object to Services+0x750 at0x2dfc496.",
+      "virtual_dispatch": "Vtable+0x48 points to0x2de77c0, resolving the indirect operation-apply call at0x2de3222.",
+      "import": "IAT0x3acd250 resolves to steam_api64.dll!SteamInternal_ContextInit. Remote-storage method names are not inferred solely from virtual offsets.",
+      "write_route": "Descriptor conversion0x2ddca30 sets input tag0 at0x2ddcb32. Jump table0x2de3290 dispatches tag0 through0x2de3480, which emits prepared tag0 at0x2de366f. Backend table0x2de7a24 selects0x2de8e20.",
+      "preparation": "0x2de8690 builds a name/size context using the imported Steam context.0x2de8e20 composes a target via0x2dea950, checks size/quota values and appends a tag0 operation via0x2dead50. Final loop invokes0x2de7ce0 for each queued operation.",
+      "limits": [
+        "The ordinary inspected Steam write path operates on supplied names and has a separate removal operation. Higher-level container replacement, removal triggers and live persistence still need qualification.",
+        "No game save was modified. Full request lifecycle, new-game/container replacement, cloud recovery and malformed-extension compatibility remain unverified."
+      ],
+      "final_application": {
+        "write": "0x2de7ce0 selects final tag0 and calls0x2deb740 at0x2de7e42, forwarding name, byte length and buffer pointer to the storage interface at virtual offset0x10.",
+        "removal": "Prepared backend tag3 selects0x2de9a80, which composes a name and calls0x2deb2a0 at0x2de9b94. That helper removes the inventory entry and queues final tag2; final handler uses name-only storage interface offset0x30. The wider removal triggers remain unresolved.",
+        "retention_evidence": "No sweep of unmentioned names was found in the ordinary tag0 handler and final application sequence. This is evidence against an automatic wipe in this specific path, not an end-to-end retention guarantee.",
+        "external_boundary": "Interface calls at virtual offsets0x1c8,0xa0 and0x1d0 surround final application. Their exact contracts, cloud behavior and disk durability are not established from offsets alone."
+      }
+    },
+    "removal_scheduling": {
+      "queue": "0x18e4f00 enqueues kind0 in record+0x5c8; ordinary write enqueue0x18e4e20 uses kind1. Both return tickets, not completion.",
+      "listing": "Kind0 consumer0x18e5c20 calls0x18e8dc0 at0x18e6563; continuations call0x18ea0c0.",
+      "selection": "Successful listing entries have stride0x48. Predicate0x31df590 compares the start of each name against the supplied string view, after checking that the name is at least as long. Table0x50d1870 maps ASCII a-z to A-Z and preserves the other bytes. Empty prefix matches every name.",
+      "submit": "Selected names passed at0x18ea309 to0x2ddcf50 become input tag3 at0x2ddd038 and are submitted at0x2ddd15b. Backend mapping is recorded separately in concrete_backend.",
+      "limit": "No verified enqueue producer or lifecycle trigger for kind0. This is not evidence of deletion on ordinary writes, nor a retention guarantee during new-game, container replacement or cloud synchronization."
+    }
+  },
+  "initial_save_request": {
+    "producer": "0x2335740",
+    "gates": "Requires source+0xc1 nonzero, an empty request queue and a false result from0x18ed910.",
+    "descriptor": "Local descriptor starts at rbp-0x70;0x23357e3 writes0x0103 to request+0x1a, giving kind3 and initial/NG flag1. Slot comes from source+0xc0.",
+    "flow": "0x23358db calls0x2134960;0x233597b calls0x2136590 using source jump target;0x2335980 clears source+0xc1.",
+    "limit": "Identifies a flagged save producer and loading handoff. It does not establish all new-game entrypoints, immutable lineage, successful disk completion, or when reused slots are cleared."
+  }
+}

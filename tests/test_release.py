@@ -13,6 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('package_release', ROOT / 'tools/package_release.py')
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
+workflow_spec = importlib.util.spec_from_file_location('sdk_workflow', ROOT/'tests/test_sdk_workflow.py')
+workflow = importlib.util.module_from_spec(workflow_spec)
+workflow_spec.loader.exec_module(workflow)
 
 
 class ReleaseTests(unittest.TestCase):
@@ -23,24 +26,43 @@ class ReleaseTests(unittest.TestCase):
         self.dist = self.root / 'dist'
         self.out = self.root / 'release-output'
         self.version = 'v0.1.0-alpha.1'
-        for name in ('compile_lua.py', 'binlua.py', 'binlua_source.py', 'engine_research.py'):
+        self.write(self.root / 'VERSION', self.version[1:].encode())
+        self.version_marker = ('CRML_VERSION=' + self.version[1:] + '\0').encode()
+        for name in ('compile_lua.py', 'binlua.py', 'binlua_source.py', 'engine_research.py',
+                     'verify_engine_map.py', 'verify_dialogue_observation.py', 'analyze_capability_capture.py'):
             self.write(self.root / 'tools' / name, (ROOT / 'tools' / name).read_bytes())
-        for name in ('README-runtime.txt', 'README-noclip.txt', self.version + '.md'):
+        for name in ('README-runtime.txt', 'README-noclip.txt', 'README-sdk.txt', self.version + '.md'):
             self.write(self.root / 'release' / name, b'Public instructions')
         self.write(self.root / 'compatibility.json', json.dumps({'profiles': [{'sha256': 'a' * 64}]}).encode())
         self.write(self.root / 'THIRD_PARTY.md', b'Licenses')
+        self.write(self.root / 'tools/mod.py', (ROOT/'tools/mod.py').read_bytes())
+        self.write(self.root / 'docs/api.md', b'Version-matched API')
+        self.write(self.root / 'sdk/scenarios/movement-recovery.json', (ROOT/'sdk/scenarios/movement-recovery.json').read_bytes())
+        self.write(self.root / 'sdk/scenarios/composed-author-services.json', (ROOT/'sdk/scenarios/composed-author-services.json').read_bytes())
+        self.write(self.root / 'sdk/reference-files.txt', b'docs/api.md\n')
+        self.write(self.root / 'sdk/templates/basic/main.c', b'C template')
+        self.write(self.root / 'sdk/templates/basic/mod.ini', b'Template manifest')
+        self.write(self.root / 'sdk/templates/basic/README.md', b'Template guide')
         self.write(self.root / 'sdk/include/crml.h', b'SDK')
         self.write(self.root / 'sdk/include/crml_abi.h', b'ABI constants')
         self.write(self.root / 'sdk/include/crml_state.h', b'State ABI layouts')
         self.write(self.root / 'sdk/include/crml_ui.h', b'UI ABI layouts')
         self.write(self.root / 'sdk/include/crml_media.h', b'Media ABI layouts')
-        for example in ('hello', 'movement', 'visibility', 'physics-damping', 'input-actions', 'state-watch', 'startup-skip'):
+        self.write(self.root / 'sdk/include/crml_drawing.h', b'Drawing ABI layouts')
+        self.write(self.root / 'examples/route-sketch/marker-store.h', b'Guest persistence helper')
+        for example in ('hello', 'movement', 'visibility', 'physics-damping', 'input-actions', 'state-watch', 'startup-skip', 'settings',
+                        'photo-visibility', 'startup-preferences', 'tutorials', 'route-sketch', 'list-browser', 'area-actions'):
             self.write(self.root / 'examples' / example / 'mod.ini', b'Mod source')
+            self.write(self.root / 'examples' / example / (example+'.c'), b'C source')
+            for scenario in workflow.MAINTAINED_EXAMPLES[example]:
+                self.write(self.root/'examples'/example/(scenario+'.json'), b'{"schema":1,"frames":[]}')
         for name in ('xinput1_4.dll', 'crml/crml_runtime.dll', 'crml/wasmtime.dll', 'crml/crml_host.exe',
                      'crml/crml_wat.exe', 'crml/mods/hello/mod.ini', 'crml/mods/hello/hello.wasm',
                      'examples/movement/mod.ini', 'examples/movement/movement.wasm',
                      'licenses/wasmtime/LICENSE', 'licenses/minhook/LICENSE.txt'):
             self.write(self.dist / name, b'a' * 64)
+        for name in ('crml_runtime.dll', 'crml_host.exe'):
+            self.write(self.dist / 'crml' / name, b'a' * 64 + self.version_marker)
         self.features(False)
         dependency = mock.patch.object(release, 'WASMTIME_SHA256', release.digest(b'a' * 64))
         dependency.start()
@@ -91,6 +113,9 @@ class ReleaseTests(unittest.TestCase):
 
     def test_packages_and_integrity(self):
         self.write(self.dist / 'crml/private.log', b'Must not ship')
+        for name in ('docs/private.md', 'docs/session.log', 'docs/assets/backup.zip',
+                     'sdk/templates/basic/build.wasm', 'sdk/templates/basic/session.log'):
+            self.write(self.root/name, b'Must not ship')
         self.write(self.dist / 'crml/physics-trial.enabled', b'')
         self.package()
         release.verify(self.out, self.version)
@@ -101,6 +126,9 @@ class ReleaseTests(unittest.TestCase):
         for name in expected_archives:
             with zipfile.ZipFile(self.out / name) as archive:
                 names = archive.namelist()
+                self.assertFalse(any(name in names for name in (
+                    'docs/private.md', 'docs/session.log', 'docs/assets/backup.zip',
+                    'sdk/templates/basic/build.wasm', 'sdk/templates/basic/session.log')))
                 self.assertNotIn('crml/private.log', names)
                 self.assertNotIn('crml/physics-trial.enabled', names)
                 self.assertFalse(any(member.startswith('crml/mods/') and member != 'crml/mods/README.txt'
@@ -108,17 +136,31 @@ class ReleaseTests(unittest.TestCase):
                 self.assertNotIn('crml/movement-wasm.enabled', names)
                 self.assertEqual('xinput1_4.dll' in names, name == expected_archives[0])
         with zipfile.ZipFile(self.out / expected_archives[1]) as sdk:
+            self.assertEqual(sdk.read('VERSION').decode(), self.version[1:])
+            self.assertIn('tools/mod.py', sdk.namelist())
+            self.assertEqual(sdk.read('docs/api.md'), b'Version-matched API')
+            self.assertIn('sdk/templates/basic/main.c', sdk.namelist())
             self.assertIn('examples/hello/mod.ini', sdk.namelist())
             self.assertIn('examples/input-actions/mod.ini', sdk.namelist())
             self.assertIn('sdk/include/crml_abi.h', sdk.namelist())
             self.assertIn('sdk/include/crml_state.h', sdk.namelist())
+            self.assertEqual(sdk.read('sdk/include/crml_drawing.h'), b'Drawing ABI layouts')
+            self.assertIn('tools/verify_engine_map.py', sdk.namelist())
+            self.assertIn('tools/verify_dialogue_observation.py', sdk.namelist())
+            self.assertIn('tools/analyze_capability_capture.py', sdk.namelist())
             self.assertIn('examples/state-watch/mod.ini', sdk.namelist())
+            self.assertIn('examples/route-sketch/mod.ini', sdk.namelist())
             self.assertIn('examples/startup-skip/mod.ini', sdk.namelist())
+            self.assertIn('examples/photo-visibility/mod.ini', sdk.namelist())
+            self.assertIn('examples/startup-preferences/mod.ini', sdk.namelist())
+            self.assertIn('examples/tutorials/mod.ini', sdk.namelist())
+            self.assertIn('examples/tutorials/tutorials.c', sdk.namelist())
             self.assertIn('sdk/include/crml_ui.h', sdk.namelist())
             self.assertIn('sdk/include/crml_media.h', sdk.namelist())
             self.assertIn('tools/crml_host.exe', sdk.namelist())
             self.assertIn('tools/crml_wat.exe', sdk.namelist())
             self.assertIn('README-LUA.txt', sdk.namelist())
+            self.assertIn('examples/route-sketch/marker-store.h', sdk.namelist())
             for name in ('compile_lua.py', 'binlua.py', 'binlua_source.py', 'engine_research.py'):
                 self.assertEqual(sdk.read('tools/' + name), (ROOT / 'tools' / name).read_bytes())
             extracted = self.root / 'sdk-extracted'
@@ -134,6 +176,23 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'already exists'):
             self.package()
 
+    def test_drawing_ui_requires_and_packages_owned_payload(self):
+        self.write(self.dist/'crml/build-features.json',json.dumps({
+            'movement_wasm':True,'lua_probe':False,'drawing_ui':True}).encode())
+        with self.assertRaisesRegex(ValueError,'native-ui-drawing'):
+            self.package()
+        self.assertFalse(self.out.exists())
+        self.write(self.dist/'crml/native-ui-drawing.html',b'Trusted drawing renderer')
+        self.package()
+        self.assert_archive_members(f'crml-runtime-{self.version}-windows-x64.zip',
+                                    self.runtime_members() | {'crml/native-ui-drawing.html'})
+        release.verify(self.out,self.version)
+
+    def test_unenabled_drawing_payload_is_not_accidentally_shipped(self):
+        self.write(self.dist/'crml/native-ui-drawing.html',b'Unenabled drawing renderer')
+        self.package()
+        self.assert_archive_members(f'crml-runtime-{self.version}-windows-x64.zip',self.runtime_members())
+
     def test_ui_bridge_payload_required_and_mod_separate(self):
         self.write(self.dist / 'crml/build-features.json', json.dumps({
             'movement_wasm': True, 'lua_probe': False, 'ui_bridge': True}).encode())
@@ -148,6 +207,40 @@ class ReleaseTests(unittest.TestCase):
                                     self.runtime_members() | {'crml/ui-bootstrap.html'})
         release.verify(self.out, self.version)
 
+    def test_settings_ui_requires_and_packages_owned_panel(self):
+        self.write(self.dist/'crml/build-features.json',json.dumps({
+            'movement_wasm':True,'lua_probe':False,'settings_ui':True}).encode())
+        with self.assertRaisesRegex(ValueError,'native-ui-panel'):
+            self.package()
+        self.write(self.dist/'crml/native-ui-panel.html',b'Trusted settings panel')
+        self.write(self.dist/'crml/native-ui.enabled',b'')
+        self.package()
+        self.assert_archive_members(release.archive_names(self.version)[0],
+            self.runtime_members() | {'crml/native-ui-panel.html'})
+        release.verify(self.out,self.version)
+
+    def test_feedback_ui_requires_and_packages_owned_payload(self):
+        self.write(self.dist/'crml/build-features.json',json.dumps({
+            'movement_wasm':True,'lua_probe':False,'feedback_ui':True}).encode())
+        with self.assertRaisesRegex(ValueError,'native-ui-feedback'):
+            self.package()
+        self.write(self.dist/'crml/native-ui-feedback.html',b'Trusted feedback renderer')
+        self.package()
+        self.assert_archive_members(release.archive_names(self.version)[0],
+            self.runtime_members() | {'crml/native-ui-feedback.html'})
+        release.verify(self.out,self.version)
+
+    def test_tutorial_ui_requires_and_packages_owned_payload(self):
+        self.write(self.dist/'crml/build-features.json',json.dumps({
+            'movement_wasm':True,'lua_probe':False,'tutorial_ui':True}).encode())
+        with self.assertRaisesRegex(ValueError,'native-ui-tutorials'):
+            self.package()
+        self.write(self.dist/'crml/native-ui-tutorials.html',b'Trusted tutorial renderer')
+        self.package()
+        self.assert_archive_members(release.archive_names(self.version)[0],
+            self.runtime_members() | {'crml/native-ui-tutorials.html'})
+        release.verify(self.out,self.version)
+
     def test_all_supported_profiles_must_match_runtime_and_metadata(self):
         fingerprints = ['a' * 64, 'b' * 64]
         self.write(self.root / 'compatibility.json', json.dumps({
@@ -155,7 +248,7 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'fingerprint'):
             self.package()
         self.assertFalse(self.out.exists())
-        self.write(self.dist / 'crml/crml_runtime.dll', '\n'.join(fingerprints).encode())
+        self.write(self.dist / 'crml/crml_runtime.dll', '\n'.join(fingerprints).encode() + self.version_marker)
         self.package()
         manifest = release.verify(self.out, self.version)
         self.assertEqual(manifest['game_sha256s'], fingerprints)
@@ -188,7 +281,7 @@ class ReleaseTests(unittest.TestCase):
         fingerprints = ['a' * 64, 'b' * 64]
         self.write(self.root / 'compatibility.json', json.dumps({
             'profiles': [{'sha256': value} for value in fingerprints]}).encode())
-        self.write(self.dist / 'crml/crml_runtime.dll', '\n'.join(fingerprints).encode())
+        self.write(self.dist / 'crml/crml_runtime.dll', '\n'.join(fingerprints).encode() + self.version_marker)
         self.package()
         runtime = release.archive_names(self.version)[0]
         self.rewrite_archive(runtime, lambda members: members.update({
@@ -200,7 +293,7 @@ class ReleaseTests(unittest.TestCase):
         fingerprints = ['a'*64, 'b'*64]
         self.write(self.root/'compatibility.json', json.dumps({
             'profiles': [{'sha256': value} for value in fingerprints]}).encode())
-        self.write(self.dist/'crml/crml_runtime.dll', '\n'.join(fingerprints).encode())
+        self.write(self.dist/'crml/crml_runtime.dll', '\n'.join(fingerprints).encode()+self.version_marker)
         self.package()
         manifest_path = self.out/'release.json'
         manifest = json.loads(manifest_path.read_text())
@@ -231,6 +324,35 @@ class ReleaseTests(unittest.TestCase):
         self.rewrite_archive(name, lambda members: members.pop('release.json'))
         with self.assertRaisesRegex(ValueError, 'Modern archive is missing release profile metadata'):
             release.verify(self.out, self.version)
+
+    def test_extracted_sdk_refuses_missing_maintained_guest_inputs(self):
+        self.package()
+        name = release.archive_names(self.version)[1]
+        with zipfile.ZipFile(self.out/name) as archive:
+            members = {member: archive.read(member) for member in archive.namelist()}
+        self.assertEqual(len(workflow.required_examples(self.root)), 14)
+        cases = [
+            ('examples/photo-visibility/photo-visibility.c',
+             'examples/startup-preferences/startup-preferences.c'),
+            ('examples/startup-preferences/mod.ini',),
+            ('examples/photo-visibility/long-stall.json',),
+            ('examples/startup-preferences/unknown-no-replay.json',),
+            ('sdk/scenarios/movement-recovery.json',),
+            ('sdk/scenarios/composed-author-services.json',),
+        ]
+        for index, missing in enumerate(cases):
+            with self.subTest(missing=missing):
+                path = self.root/f'incomplete-sdk-{index}.zip'
+                with zipfile.ZipFile(path, 'w') as archive:
+                    for member, data in members.items():
+                        if member not in missing:
+                            archive.writestr(member, data)
+                result = subprocess.run([sys.executable, str(ROOT/'tests/test_sdk_workflow.py'),
+                                         '--archive', str(path)], capture_output=True, text=True, timeout=10)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn('SDK is missing maintained example inputs:', result.stderr)
+                for member in missing:
+                    self.assertIn(member, result.stderr)
 
     def test_optional_noclip_packages_and_legacy_verification(self):
         self.package(include_noclip=True)
@@ -302,7 +424,7 @@ class ReleaseTests(unittest.TestCase):
         release.verify(self.out, self.version)
 
     def test_private_binary_path_refused(self):
-        self.write(self.dist / 'crml/crml_host.exe', str(self.root).encode('utf-16le'))
+        self.write(self.dist / 'crml/crml_host.exe', str(self.root).encode('utf-16le') + self.version_marker)
         with self.assertRaisesRegex(ValueError, 'Private build path'):
             self.package()
         self.assertFalse(self.out.exists())
@@ -320,6 +442,19 @@ class ReleaseTests(unittest.TestCase):
         for version in ('../release', 'v1.2.3/other', 'v1.2.3\n', '--help'):
             with self.assertRaises(ValueError):
                 release.checked_version(version)
+
+    def test_source_and_compiled_versions_must_match_release(self):
+        self.write(self.root / 'VERSION', b'0.1.0-alpha.2')
+        with self.assertRaisesRegex(ValueError, 'differs from VERSION'):
+            self.package()
+        self.write(self.root / 'VERSION', self.version[1:].encode())
+        for name in ('crml_runtime.dll', 'crml_host.exe'):
+            path = self.dist / 'crml' / name
+            original = path.read_bytes()
+            self.write(path, original.replace(self.version_marker, b'CRML_VERSION=0.1.0-alpha.0\0'))
+            with self.assertRaisesRegex(ValueError, 'version differs from VERSION'):
+                self.package()
+            self.write(path, original)
 
     def test_upstream_paths_require_exact_dependency_hash(self):
         upstream = str(self.root).encode() + b'upstream build diagnostics'

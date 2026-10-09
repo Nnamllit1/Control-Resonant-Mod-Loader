@@ -7,6 +7,121 @@ description: Capture CONTROL Resonant update phases, body identities, and ECS as
 
 The engine observer records selected engine phases and player/resource identities so contributors can investigate update timing and object lifetime. Use it alongside the [engine atlas](engine-atlas.md) to interpret native update phases. The observer has no modification API.
 
+## Focused capability capture
+
+Development builds can observe the reviewed game's loading/save-coordinate
+callbacks, selected subtitle segments and action conflicts involving the
+story-mode input rule. With the game closed, create an empty
+`crml/engine-capabilities.enabled` file. Launch normally, load a save, move through
+an ordinary checkpoint and let a short conversation play. The capture runs with
+ordinary mods and stops after ten minutes. It is unavailable in the separate
+engine-observer or native physics-trial startup modes.
+
+Records appear in `crml/crml.log` with `Capability location:`,
+`Capability dialogue:`, `Capability restriction:`, `Capability story_reason:`,
+`Capability story_writer:`, `Capability structural_lifecycle:` and
+`Capability status_lifecycle:` prefixes. Engine callbacks only copy bounded observations;
+the worker writes the log. The dialogue capture records text length and a hash,
+not dialogue text. Queue losses and rejected reads are explicit. Remove the
+marker with the game closed to disable capture on subsequent launches.
+
+```powershell
+python tools/analyze_capability_capture.py "$gameDir\crml\crml.log" --output .local/capability-report.json
+```
+
+The analyzer refuses to overwrite an existing report. Missing observations,
+malformed records and input limits are reported explicitly. Samples establish
+only that the inspected native path ran: a requested bundle is not proven to be
+a persistent coordinate frame, and a selected subtitle is not proof of visible
+presentation, audibility or normal completion. Compare captures with the actions
+performed before designing a public API around them.
+
+For action restrictions, attempt one already-unlocked ability in an area where
+the game displays its story-mode warning, then try that same ability outside the
+area. The ordinary restriction should remain effective: the observer neither
+grants abilities nor suppresses the warning. It records copied action-pair state
+and the original native conflict result, with bounded storage and explicit loss
+counters. Admission checks pairs in both directions, so the fields are named
+`left_id` and `right_id`, not assumed request/blocker roles. A conflict sample is
+not a final ability outcome; an absent sample does not prove the action was
+allowed. See the [story restriction map](research/story-restrictions-map.json).
+
+Story-reason records copy the six counters passed by the reviewed script manager
+when it requests a native story-mode change. Their order is reference-counted
+trigger, toggling trigger, conversation, elevator, television and quest script.
+Concurrent reasons remain separate. These records describe a binding request,
+not a successfully applied mode or the cause of a particular action conflict.
+Unrecognized callers or argument layouts are reported without their contents.
+The capture retains at most 128 such requests and never modifies the counters.
+Context fields compare the script's world and fact dictionary with the current
+world, and compare six dictionary values with the copied manager arguments.
+Action samples also report whether their logic component belongs to the uniquely
+resolved player. Missing or ambiguous ownership is rejected. Matching reads are
+observations, not an atomic snapshot or proof that concurrent writers are excluded;
+they must not be used as permission to change engine state.
+
+Status-writer records capture the native status byte before and after its mask
+update, the requested mask and boolean, the caller and the thread. Player
+attribution compares the target with the current player's resolved status
+component during that call; it is not a retained entity handle. The records have a
+separate 128-sample budget, divided between masks 1, 2, 4 and other masks so one
+busy writer cannot consume another category's allowance. The original write
+still runs unchanged. Each category can use eight samples initially and gains
+one additional slot every 20 seconds, up to 32. Unused allowance carries forward.
+The `throttled` count reports calls skipped while later slots are reserved;
+`budget_exhausted` reports calls after a category has spent all 32 slots. Neither
+count means the engine operation was blocked. The analyzer
+checks whether returned, readable writes match the requested bit operation; that
+check does not establish successful ability use. Occurrence numbers shared with
+reason and conflict records help inspect callback entry order in the local log.
+They do not establish completion order or a synchronization barrier across
+threads. A tail-call forwarding site does not supply its own return address.
+
+On the reviewed manager's exact mask-1 write, the capture also copies the six
+manager reasons from the binding's Lua state. The record compares its boolean
+request, current world, player attribution and observed structural interval
+with that same native write. This capture occurs after the binding's argument
+checks and setup; it holds no Lua stack pointer or pending request across those
+error paths. Unrecognized callers and other masks never interpret that register
+as a Lua state.
+
+The analyzer counts `same_call_manager_writes` only for returned, matching bit
+updates with all attribution checks satisfied. Concurrent reasons stay separate
+in `same_call_reason_masks`. This connects a request to an observed write; it
+does not prove later state, complete writer coverage, binding completion or
+successful ability activation. These records are not permission leases.
+
+Status-lifecycle totals count calls to the reviewed component initialization and
+copy callbacks. All 13 callback pairs must pass their byte checks and attach
+successfully before coverage is reported as available. Partial installation
+remains in passthrough. Calls, overlapping writes and native exceptions retire
+retained observations independently of the log sampling budget.
+
+The observer can retain a copied manager decision across ordinary completed
+structural flushes. `applied_reasons_match` compares that record with a freshly
+resolved player, world teardown epoch, component lifecycle sequence and all six
+current reason counts. It requires story mode without flashback or conversation
+flags. A component reset/copy, unknown mask-1 writer, changed entity, changed
+reason or expired capture rejects the observation. This diagnostic does not
+grant permission: fact writers are not excluded between the reads, and the
+callback inventory does not cover arbitrary third-party memory writes.
+
+Structural-lifecycle totals count observed ECS command flushes, world teardowns,
+unwinds and calls still in flight. Player-context records set
+`structural_observed` only when the copy did not overlap an observed structural
+interval. The sequence covers all worlds conservatively: unrelated work can
+reject a player snapshot. The analyzer retains aggregate counts without copying
+process-local entity values or structural sequences into its report.
+
+These hooks do not establish exclusive access to engine state. Calls already
+running when capture starts, work outside the reviewed boundaries and direct
+component writes may be unobserved. A matching sequence is not permission to
+modify a component. At capture shutdown, admitted calls drain and the hooks
+remain in passthrough; their terminal totals distinguish stopped capture from
+unavailable coverage. The observer does not grant story-area abilities.
+
+## Separate engine-observer mode
+
 Observation mode suspends Wasm and engine-Lua mods and the existing noclip, visibility, input-filter, and fall-recovery features. It installs version-gated native hooks that forward the selected engine calls and copy diagnostic records. It does not intentionally change gameplay state or call property setters. Hooks introduce overhead, and capture durations include that overhead.
 
 ## Build and enable

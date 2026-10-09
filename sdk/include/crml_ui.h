@@ -21,6 +21,16 @@
 #define CRML_UI_ACTION_CONTINUE 1u
 #define CRML_UI_ACTION_MASK_CONTINUE 1u
 
+// Development API. Status is about command delivery, not an engine transition.
+#define CRML_UI_ACTION_QUEUED 1
+#define CRML_UI_ACTION_DELIVERED 2
+#define CRML_UI_ACTION_DISPATCHED 3
+#define CRML_UI_ACTION_SKIPPED 4
+#define CRML_UI_ACTION_DISPATCH_FAILED 5
+#define CRML_UI_ACTION_EXPIRED 6
+#define CRML_UI_ACTION_OUTCOME_UNKNOWN 7
+#define CRML_UI_ACTION_CANCELLED 8
+
 typedef struct crml_ui_state {
     uint32_t size;
     uint32_t version;

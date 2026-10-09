@@ -44,10 +44,13 @@ bool resolve_inner(const void* query,const Sample& p,Target& out) noexcept {
 void apply(void* query) {
     // Original processes game hide reasons first, including restoration after release.
     original(query);
-    if(!ready.load(std::memory_order_acquire) || !lease.active(GetTickCount64())) return;
+    if(!ready.load(std::memory_order_acquire)) return;
+    const auto token=lease.observation_token(GetTickCount64());
+    if(!token) return;
     const auto p=player_callback();
     Target target{};
-    if(!resolve(query,p,target) || *target.hidden) return;
+    if(!resolve(query,p,target)) return;
+    if(*target.hidden) {lease.observe(token,false);return;}
     // Same small command path as applyHide. No guest supplies addresses or handles.
     const auto renderer=*reinterpret_cast<uintptr_t*>(compatibility::address(image,0x5e69000));
     if(!renderer) return;
@@ -63,6 +66,7 @@ void apply(void* query) {
     auto* counter=reinterpret_cast<volatile LONG*>(storage+0x30);
     if(InterlockedExchangeAdd(counter,2)&1) reinterpret_cast<Wake>(compatibility::address(image,0x393109d))(const_cast<LONG*>(counter));
     sent.fetch_add(1,std::memory_order_relaxed);
+    lease.observe(token,true);
 }
 }
 bool resolve(const void* query,const Sample& p,Target& out) noexcept {
@@ -88,6 +92,10 @@ int poll(uint64_t owner,bool held,uint64_t now) noexcept {
     return lease.renew(owner,held,now);
 }
 void release(uint64_t owner) noexcept { lease.release(owner); }
+int read_state(uint64_t owner,uint64_t now,crml_visibility_state& out) noexcept {
+    out={};if(!ready.load(std::memory_order_acquire)) return -1;
+    return lease.read_state(owner,now,out);
+}
 
 uint64_t submissions() noexcept { return sent.load(); }
 }

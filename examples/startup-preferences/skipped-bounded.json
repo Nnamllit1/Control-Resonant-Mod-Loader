@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "capabilities": [
+    "ui.read",
+    "ui.activate"
+  ],
+  "initial": {
+    "ui": {
+      "screen": 1,
+      "actions": 1
+    },
+    "ui_outcome": "skipped"
+  },
+  "frames": [
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    }
+  ],
+  "expect": [
+    {
+      "op": "ui_action_submit",
+      "result": 1
+    },
+    {
+      "op": "ui_action_submit",
+      "result": 2
+    },
+    {
+      "op": "ui_action_submit",
+      "result": 3
+    }
+  ]
+}

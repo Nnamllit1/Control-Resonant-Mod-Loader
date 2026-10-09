@@ -8,6 +8,11 @@ Install the ready-to-use runtime, add compatible mods, and start the game normal
 
 ## Download and install
 
+**Development update:** the [runtime and SDK source checkpoint](release/v0.1.0-alpha.5.dev.0.md)
+adds mod settings, persistence, native tutorials, searchable lists, map tools and
+authoring workflows. These changes are available in source; **Alpha 4.5 remains
+the published player download**.
+
 No compiling or developer tools needed. Open [Releases](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/releases), expand **Assets**, and download **`crml-runtime-<version>-windows-x64.zip`**. Replace `<version>` with the release number required by your mod.
 
 Close the game, extract the ZIP, then copy **the extracted folder's contents** beside `CONTROLResonant.exe`. Find that folder through Steam: right-click the game, then **Manage > Browse local files**. Install your chosen mods using their instructions, then start through Steam as usual or double-click `CONTROLResonant.exe` with Steam running.

@@ -1,0 +1,463 @@
+{
+  "schema": 1,
+  "title": "Input and menu observation adapters for CONTROL Resonant 0.564.478.0",
+  "executable_sha256": "4f6596b08bb5bc7fe4150cf5b9f71d7bae87eea02d66627c03a5e05ffe84ea62",
+  "status": "Reviewed static adapter relocation and object-field comparison, with runtime callback delivery observed. Named menu coverage and text ownership remain unverified; observations do not grant input suppression.",
+  "documentation": "../engine-paths.md#native-input-contexts",
+  "related_maps": [
+    {
+      "path": "input-context-map.json",
+      "scope": "Prior October executable and original semantic trace; its RVAs remain specific to its own fingerprint."
+    },
+    {
+      "path": "ui-stack-queue-map.json",
+      "scope": "Original executable queue semantics; this adapter review does not port its complete producer/consumer map."
+    }
+  ],
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d56e9",
+      "target": "0x5df0560",
+      "label": "initialized singleton return"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d574a",
+      "target": "0x5df0560",
+      "label": "singleton return following lazy initialization"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7082",
+      "target": "0x570",
+      "label": "raw controls field offset in query"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7087",
+      "target": "0xc00",
+      "label": "raw controls query mask"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d708c",
+      "target": "0xc00",
+      "label": "raw controls query expected bits"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d5b9a",
+      "target": "0x29d7240",
+      "label": "context update invokes raw-to-derived reducer"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d724a",
+      "target": "0x578",
+      "label": "reducer clears derived context field"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7250",
+      "target": "0x570",
+      "label": "reducer reads raw flags"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d6118",
+      "target": "0x4dc7898",
+      "label": "construct derived bit-0 predicate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d614a",
+      "target": "0x29c5710",
+      "label": "construct action view with derived bit-0 predicate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d61c9",
+      "target": "0x4dc78d0",
+      "label": "construct derived bit-1 predicate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d6205",
+      "target": "0x29c5710",
+      "label": "construct action view with derived bit-1 predicate"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4dc78a8",
+      "target": "0x29d7390",
+      "label": "derived bit-0 predicate invoke slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4dc78e0",
+      "target": "0x29d7430",
+      "label": "derived bit-1 predicate invoke slot"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7397",
+      "target": "0x578",
+      "label": "bit-0 predicate reads derived context field"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7437",
+      "target": "0x578",
+      "label": "bit-1 predicate reads derived context field"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c8316",
+      "target": "0x90",
+      "label": "digital action reader locates optional predicate"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c69e9",
+      "target": "0x90",
+      "label": "analog action reader locates optional predicate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a93b65",
+      "target": "0x29d56c0",
+      "label": "Input environment population resolves controls singleton"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a93b9b",
+      "target": "0x29d6d10",
+      "label": "Input environment selects third controls action view"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d6d20",
+      "target": "0x148",
+      "label": "Third controls view offset"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d6d14",
+      "target": "0x5df04c0",
+      "label": "Disconnected controls view fallback"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a93ba6",
+      "target": "0x138",
+      "label": "Destination player action view offset in input environment"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a93baa",
+      "target": "0x1a94470",
+      "label": "Copy selected controls view into player input environment"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a944cc",
+      "target": "0x90",
+      "label": "Copy helper locates source predicate for cloning"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a944ed",
+      "target": "0x3f28b0",
+      "label": "Copy helper installs cloned predicate wrapper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d6815",
+      "target": "0x29d7f90",
+      "label": "Publish constructed context views into controls object"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7fc9",
+      "target": "0x138",
+      "label": "Source third view offset in context block assignment"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7fd0",
+      "target": "0x138",
+      "label": "Destination third view offset in context block assignment"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d7fd4",
+      "target": "0x29d7ef0",
+      "label": "Third context block view assignment"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4dc78d0",
+      "target": "0x29d73f0",
+      "label": "Bit-1 predicate clone slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4dc78d8",
+      "target": "0x29d7410",
+      "label": "Bit-1 predicate move slot"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d73f0",
+      "target": "0x4dc78d0",
+      "label": "Bit-1 predicate clone retains its type"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d7410",
+      "target": "0x4dc78d0",
+      "label": "Bit-1 predicate move retains its type"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17e2630",
+      "target": "0x483faa0",
+      "label": "menuModeSystem signature literal"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17e2721",
+      "target": "0x17e2f60",
+      "label": "menuModeSystem dispatcher registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2fed",
+      "target": "0x17e27e0",
+      "label": "dispatcher calls menu-mode worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2813",
+      "target": "0x29d56c0",
+      "label": "menu worker obtains controls singleton"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e281b",
+      "target": "0x29d6dd0",
+      "label": "menu worker reads raw bit5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e283d",
+      "target": "0x17e2bb0",
+      "label": "menu worker resolves active contexts"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2ca8",
+      "target": "0x65d86b58",
+      "label": "UINavigationContextSimple query hash"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2d2a",
+      "target": "0x17d7770",
+      "label": "menu helper obtains applied stack state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2dfd",
+      "target": "0x17d8680",
+      "label": "menu helper verifies stack activity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2859",
+      "target": "0x1b711f0",
+      "label": "present context+5c true selects type5 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2860",
+      "target": "0x1b71260",
+      "label": "present context+5c false selects type6 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2867",
+      "target": "0x1b71180",
+      "label": "absent context selects type3 request"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5b60",
+      "target": "0x245c8948",
+      "label": "input_context hook fingerprint bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5b64",
+      "target": "0x74894818",
+      "label": "input_context hook fingerprint bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5b68",
+      "target": "0x57552024",
+      "label": "input_context hook fingerprint bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5b6c",
+      "target": "0x8d485641",
+      "label": "input_context hook fingerprint bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5b70",
+      "target": "0xf3a024ac",
+      "label": "input_context hook fingerprint bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5b74",
+      "target": "0x8148ffff",
+      "label": "input_context hook fingerprint bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5b78",
+      "target": "0xd60ec",
+      "label": "input_context hook fingerprint bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d5b7c",
+      "target": "0xf18b4800",
+      "label": "input_context hook fingerprint bytes +0x1c"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bb0",
+      "target": "0x244c894c",
+      "label": "menu_context hook fingerprint bytes +0x0"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bb4",
+      "target": "0x44894c20",
+      "label": "menu_context hook fingerprint bytes +0x4"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bb8",
+      "target": "0x89481824",
+      "label": "menu_context hook fingerprint bytes +0x8"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bbc",
+      "target": "0x55102454",
+      "label": "menu_context hook fingerprint bytes +0xc"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bc0",
+      "target": "0x41575653",
+      "label": "menu_context hook fingerprint bytes +0x10"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bc4",
+      "target": "0x41554154",
+      "label": "menu_context hook fingerprint bytes +0x14"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bc8",
+      "target": "0x48574156",
+      "label": "menu_context hook fingerprint bytes +0x18"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bcc",
+      "target": "0xe1246c8d",
+      "label": "menu_context hook fingerprint bytes +0x1c"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bd0",
+      "target": "0xf8ec8148",
+      "label": "menu_context hook fingerprint bytes +0x20"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2bd3",
+      "target": "0xf8",
+      "label": "menu_context hook final fingerprint bytes"
+    }
+  ],
+  "controls_observer": {
+    "implementation": "runtime/diagnostics/input_context.cpp",
+    "hook_rva": "0x29d5b60",
+    "singleton_getter_rva": "0x29d56c0",
+    "static_storage_rva": "0x5df0560",
+    "initialization_guard_rva": "0x5df0ae0",
+    "disconnected_fallback_rva": "0x5df04c0",
+    "predicate_vtable_rva": "0x4dc78d0",
+    "predicate_clone_rva": "0x29d73f0",
+    "predicate_move_rva": "0x29d7410",
+    "predicate_invoke_rva": "0x29d7430",
+    "reducer_rva": "0x29d7240",
+    "selected_view_accessor_rva": "0x29d6d10",
+    "digital_reader_rva": "0x29c82e0",
+    "analog_reader_rva": "0x29c69a0",
+    "fields": {
+      "connection": "0x0",
+      "selected_view": "0x148",
+      "raw_flags": "0x570",
+      "previous_raw_flags": "0x574",
+      "derived_flags": "0x578",
+      "previous_derived_flags": "0x57a",
+      "view_backend": "0x0",
+      "view_generation": "0x8",
+      "backend_generation": "0x5028",
+      "view_predicate": "0x90",
+      "predicate_owner": "0x8",
+      "predicate_invoke_slot": "0x10",
+      "view_sources": [
+        "0x40",
+        "0x48",
+        "0x50"
+      ],
+      "fallback_source_enabled": "0x10"
+    },
+    "contract": "The update receives its controls object in RCX. Observe only after normal return. Connection, generation (including UINT64_MAX), derived-bit-1 predicate identity and source short-circuit order retain the previous layout. No engine predicate is invoked by the observer; raw enablement and source availability do not establish exclusive gameplay ownership.",
+    "evidence": "Compared 2036 instructions across the controls getter, update, reducer and view publication region with retained October disassembly. Fields and local branches are unchanged after relocation. The analog/digital reader guard paths retain generation, predicate and source checks; a separate relocated inline switch table is not an object-layout change."
+  },
+  "menu_observer": {
+    "implementation": "runtime/diagnostics/menu_context.cpp",
+    "registration_rva": "0x17e25e0",
+    "worker_rva": "0x17e27e0",
+    "hook_rva": "0x17e2bb0",
+    "dispatcher_rva": "0x17e2f60",
+    "reviewed_caller_return_rva": "0x17e2842",
+    "caller_call_rva": "0x17e283d",
+    "applied_state_reader_rva": "0x17d7770",
+    "stack_activity_rva": "0x17d8680",
+    "abi": "void(query temporary address in RCX, UIStateStacks address in RDX, uint8_t* matched_active_context in R8, uint8_t* last_match_flag_5c in R9). All arguments are borrowed and forwarded unchanged.",
+    "outputs": "The reviewed worker zeroes distinct stack bytes at rsp+0x20 and rsp+0x21 before the call. The helper sets the first to one on a qualifying active context and overwrites the second with that context byte +0x5c. Copy only after normal helper return, before returning to the worker. The last-match byte is not a Boolean or a named menu subtype.",
+    "raw_bit_correlation": "The worker latches controls raw bit5 before the helper. Separate controls and menu samples do not recreate that latched value or an atomic frame snapshot.",
+    "evidence": "All 633 instructions in registration/worker/helper/dispatcher and 1071 instructions in the applied stack read/activity region match the previous executable after image-reference relocation. Call ABI, caller return RVA and output lifetimes are unchanged."
+  },
+  "observation": {
+    "activation": "An empty crml/input-context.enabled marker enables both diagnostic observers in CRML_MOVEMENT_PROBE builds on the reviewed October update and October hotfix profiles. Original and unknown executable profiles remain refused.",
+    "lifetime": "Only completed copied values are exposed; observations expire after 100 ms. The menu observer rejects unreviewed callers, nonzero initial outputs, overlap and unwind. No engine pointer is retained in either published snapshot.",
+    "logging": "At most 64 semantic changes per observer, sampled no faster than every 250 ms. Status and observed fields trigger a record; callback-thread migration alone does not spend the budget. Thread ID is included when a record is emitted.",
+    "runtime_delivery": "Traces for this executable include connected generation-matching action views with predicate/source enabled and disabled, and completed navigation scans with matched values zero and one. Unavailable and stale observations also occur. These records establish callback delivery, not a mapping to specific menus or exclusive gameplay ownership.",
+    "limits": "No input suppression, guest API or gameplay permission is granted. Missing or negative menu context cannot prove gameplay. Text entry, named menu coverage and loading/reload semantics remain unverified. The PageContent text-input callback is not ported or enabled by this adapter map."
+  }
+}

@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "capabilities": [
+    "media.read",
+    "media.skip"
+  ],
+  "initial": {
+    "media": {
+      "identity": 1,
+      "active": true,
+      "ready": true,
+      "elapsed_ms": 2501,
+      "name": "textures/videos/uiresources/splash/boot.tex",
+      "source": "engine"
+    },
+    "media_consume": false
+  },
+  "frames": [
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200,
+      "state": {
+        "media": {
+          "identity": 1,
+          "active": true,
+          "ready": true,
+          "elapsed_ms": 2501,
+          "name": "",
+          "source": "engine"
+        }
+      }
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200,
+      "state": {
+        "media": {
+          "identity": 1,
+          "active": true,
+          "ready": true,
+          "elapsed_ms": 2501,
+          "name": "textures/videos/uiresources/splash/boot.tex",
+          "source": "none"
+        }
+      }
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200,
+      "state": {
+        "media": {
+          "identity": 1,
+          "active": true,
+          "ready": true,
+          "elapsed_ms": 2501,
+          "name": "textures/videos/uiresources/splash/boot.tex",
+          "source": "engine"
+        }
+      }
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200,
+      "state": {
+        "media": {
+          "identity": 1,
+          "active": false,
+          "ready": true,
+          "elapsed_ms": 2501,
+          "name": "textures/videos/uiresources/splash/boot.tex",
+          "source": "engine"
+        }
+      }
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200,
+      "state": {
+        "media": {
+          "identity": 1,
+          "active": true,
+          "ready": true,
+          "elapsed_ms": 2501,
+          "name": "textures/videos/uiresources/splash/boot.tex",
+          "source": "engine"
+        }
+      }
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    },
+    {
+      "dt_ms": 200
+    }
+  ],
+  "expect": [
+    {
+      "op": "media_skip",
+      "result": 0
+    }
+  ]
+}

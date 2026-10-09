@@ -1,0 +1,146 @@
+<!doctype html><meta charset="utf-8"><title>Drawing renderer fixture</title>
+<style>body{margin:0;background:#15191c;color:white}#underlying{position:absolute;inset:0;border:0;background:transparent}#result{position:absolute;bottom:0;pointer-events:none}</style>
+<button id="underlying">Native UI target remains interactive</button><pre id="result">RUNNING</pre>
+<script>
+var lastDrawingPoll='',serverSonarActive=false,server=[],serverAnnotations=[],serverSonar=[],edits=[],polls=0,hold=false,held=[],terminal=Number(new URLSearchParams(location.search).get('terminal')),forced=null;
+function surface(owner,revision,lifetime,dense){
+    var segments=[],labels=[];
+    for(var i=0;i<(dense?128:2);i++)segments.push([.1,(i%16)/20,.3,(i%16)/20,.2,0xffaa00ff]);
+    for(var j=0;j<(dense?32:1);j++)labels.push([.1,(j%8)/10,1.5,0xffffffff,j?'Marker '+j:'<img onerror=bad()>']);
+    return {owner:String(owner),revision:String(revision),rect:[.1,.1,.5,.5],segments:segments,labels:labels,expires:performance.now()+lifetime};
+}
+function FakeXHR(){}
+FakeXHR.prototype.open=function(method,url){this.url=url;};FakeXHR.prototype.abort=function(){this.aborted=true;};
+FakeXHR.prototype.send=function(){var self=this;polls++;var stamp=performance.now();
+    if(self.url.indexOf('/edit/')>=0||self.url.indexOf('/edit2/')>=0){edits.push(self.url);setTimeout(function(){self.status=202;self.responseText='{}';if(self.onload)self.onload();},10);return;}
+    lastDrawingPoll=self.url;
+    var packet=forced||{surfaces:server.filter(function(s){return s.expires>stamp;}).map(function(s){var copy=JSON.parse(JSON.stringify(s));copy.remaining_ms=Math.ceil(s.expires-stamp);delete copy.expires;return copy;})};
+    packet.editor_supported=true;packet.editing=self.url.indexOf('&editor=')>=0;
+    packet.annotations=serverAnnotations.map(function(a){var copy=JSON.parse(JSON.stringify(a));copy.remaining_ms=500;return copy;});
+    packet.native_metadata=serverAnnotations.filter(function(a){return a.native_markers;}).map(function(a){return {owner:a.owner,remaining_ms:500,items:a.items.filter(function(i){return i.native;}).map(function(i){return {id:i.id,px:a.rect[0]+i.x*a.rect[2],py:a.rect[1]+i.y*a.rect[3],symbol:i.symbol,rgba:i.rgba};})};});
+    packet.sonar_annotations=serverSonar;packet.sonar_active=serverSonarActive;
+    var body=JSON.stringify(packet),late=self.onload;
+    function reply(){self.status=terminal||200;self.responseText=body;if(self.onload)self.onload();}
+    if(hold)held.push({xhr:self,reply:reply,late:late,body:body});else setTimeout(reply,10);
+};window.XMLHttpRequest=FakeXHR;
+</script>
+__CRML_DRAWING__
+<script>
+window.addEventListener('load',function(){(async function(){
+function require(value,message){if(!value)throw Error(message);}
+function delay(ms){return new Promise(function(resolve){setTimeout(resolve,ms||40);});}
+async function until(fn,message){for(var i=0;i<80;i++){if(fn())return;await delay();}throw Error(message);}
+function root(){return document.querySelector('[data-crml-drawing]');}
+function owner(id){return document.querySelector('[data-crml-drawing-owner="'+id+'"]');}
+if(terminal){await delay(650);var ended=polls;await delay(650);require(polls===ended&&!root(),'terminal drawing page kept polling or rendering');document.getElementById('result').textContent='PASS: terminal '+terminal+' stops drawing';return;}
+if(new URLSearchParams(location.search).has('editor')){
+    var map=document.createElement('div');map.className='map-view';map.style.cssText='position:absolute;left:100px;top:80px;width:600px;height:500px;background:#303941';
+    var plane=document.createElement('div');plane.className='map-view__container__markers';plane.style.cssText='position:absolute;width:600px;height:500px;transform-origin:0 0;transform:scale(1.1)';map.appendChild(plane);document.body.appendChild(map);
+    serverAnnotations=[{owner:'1',revision:'7',context:'3',rect:[0,0,600,500],create:false,native_markers:true,items:[{id:'100',x:.3,y:.3,rgba:0xffe09aff,distance:0,editable:true,symbol:'A',name:'Test marker',description:'A short preview'}]}];
+    // Reproduce the live failure: a transparent stock paint/input plane above
+    // the marker container captures mouse hits, despite markers being visible.
+    window.addMapBlocker=function(){var blocker=document.createElement('div');blocker.id='map-blocker';blocker.style.cssText='position:absolute;left:100px;top:80px;width:600px;height:500px;z-index:100;background:transparent';document.body.appendChild(blocker);};
+    var stockTooltip=document.createElement('div');stockTooltip.className='map-context-menu';stockTooltip.setAttribute('data-bind-rmd-visible','native');stockTooltip.textContent='CUSTOM MARKER 2';document.body.appendChild(stockTooltip);
+    window.stockPlacements=0;window.ui_map_transforms_zoom_range={value:2};
+    window.makeNativeMarker=function(id,x,y){
+        var node=document.createElement('div');node.className='custom-markers__marker';node.style.cssText='position:absolute;width:4.6296296296vh;height:4.6296296296vh;transform:translate(-50%,-50%) scale(.625);pointer-events:none';
+        var prefix='ui_map_custom_marker_'+(Number(id)-1)+'_';
+        node.setAttribute('data-bind-style-left','{{'+prefix+'position.value.x}}');node.setAttribute('data-test-native-id',id);
+        window[prefix+'position']={value:{x:x,y:y}};window[prefix+'number']={value:Number(id)};window[prefix+'hidden']={value:false};
+        // Visible values live in bindings, not inline style or textContent.
+        var css=document.createElement('style');css.textContent='[data-test-native-id="'+id+'"]{left:'+x+'px;top:'+y+'px}';document.head.appendChild(css);
+        var icon=document.createElement('div');icon.className='custom-marker';icon.style.cssText='width:inherit;height:inherit;border-radius:50%;background:#e6ad65;color:black;text-align:center;line-height:32px';
+        var number=document.createElement('div');number.className='custom-marker__number';number.setAttribute('data-bind-value','{{'+prefix+'number.value}}');icon.appendChild(number);node.appendChild(icon);plane.appendChild(node);return node;
+    };
+    makeNativeMarker('2',350,160);
+    window.hud_sonar_poi_0_tracking_number={value:2};window.hud_sonar_poi_0_is_not_custom_marker={value:false};
+    var sonar=document.createElement('div');sonar.className='custom-marker poi__custom-marker';sonar.style.cssText='position:absolute;right:50px;top:40px;width:30px;height:30px;background-color:orange';
+    var sonarNumber=document.createElement('div');sonarNumber.className='custom-marker__number';sonarNumber.setAttribute('data-bind-value','{{hud_sonar_poi_0_tracking_number.value}}');sonarNumber.textContent='2';sonar.appendChild(sonarNumber);document.body.appendChild(sonar);
+    document.addEventListener('keydown',function(e){if(e.key==='x'){++stockPlacements;makeNativeMarker('3',480,300);}});
+    await until(function(){return document.querySelector('[data-crml-annotation-id]');},'map annotation missing');window.editorReady=true;return;
+}
+if(new URLSearchParams(location.search).has('visual')){
+    server=[surface(1,1,1000,true)];server[0].labels=[];
+    if(new URLSearchParams(location.search).get('visual')==='joins'){
+        server[0].segments=[
+            [.1,.2,.5,.2,.6,0xffaa00ff],
+            [.5,.2,.5,.6,.6,0xffaa00ff],
+            [.5,.6,.5001,.6001,.6,0xffaa00ff],
+            [.5001,.6001,.2,.35,.6,0xffaa00ff],
+            [.8,.8,.7,.6,.6,0xffaa00ff]
+        ];
+    }
+    setInterval(function(){server[0].expires=performance.now()+1000;},250);
+    await until(root,'visual frame missing');window.visualReady=true;return;
+}
+await delay(650);require(!root()&&polls<=3,'idle drawing page creates DOM or excessive requests');
+server=[surface(1,1,1000,false)];await until(root,'frame did not render');
+var first=owner(1),label=first.querySelector('[data-crml-drawing-label]');
+require(label.textContent==='<img onerror=bad()>'&&!label.querySelector('img'),'drawing labels became markup');
+require(first.querySelectorAll('[data-crml-drawing-segment]').length===2,'disconnected segments gained a connector');
+var box=first.getBoundingClientRect(),line=first.querySelector('[data-crml-drawing-segment]').getBoundingClientRect();
+require(Math.abs(box.width-innerWidth*.5)<1&&Math.abs(box.height-innerHeight*.5)<1,'normalized viewport rectangle');
+require(Math.abs(line.width-(innerWidth*.1+innerHeight*.002))<1&&Math.abs(line.height-innerHeight*.002)<1,'round caps extend equally beyond normalized endpoints');
+require(Math.abs(line.left-(box.left+box.width*.1-innerHeight*.001))<1,'round cap start offset');
+require(document.elementFromPoint(box.left+20,box.top+20).id==='underlying','passive drawing stole mouse target');
+var changes=0,observer=new MutationObserver(function(records){changes+=records.length;});
+observer.observe(root(),{childList:true,subtree:true,attributes:true,characterData:true});
+for(var renewal=0;renewal<4;renewal++){server[0].expires=performance.now()+1000;await delay(300);}observer.disconnect();
+require(changes===0&&owner(1)===first,'unchanged drawing snapshot rewrote DOM');
+server=[surface(1,2,1000,true)];await until(function(){return owner(1)!==first;},'replacement frame did not replace atomically');
+require(owner(1).querySelectorAll('[data-crml-drawing-segment]').length===128&&owner(1).querySelectorAll('[data-crml-drawing-label]').length===32,'dense frame truncated');
+server=[surface(1,3,1000,false),surface(2,4,1000,false),surface(3,5,1000,false),surface(4,6,1000,false)];
+await until(function(){return document.querySelectorAll('[data-crml-drawing-owner]').length===4;},'four owner frames missing');
+var survivor=owner(2);server=server.filter(function(s){return s.owner!=='1';});await until(function(){return !owner(1);},'owner removal did not hide');
+require(owner(2)===survivor,'removing another owner rebuilt surviving frame');
+server=[];await until(function(){return !root();},'explicit hide did not clear renderer');
+// Native-map coordinates inherit only the stock marker plane's transform.
+var map=document.createElement('div');map.className='map-view__container__markers';
+map.style.cssText='position:absolute;left:30px;top:40px;transform-origin:0 0;transform:scale(2);pointer-events:none';document.body.appendChild(map);
+var native=surface(1,20,1000,false);native.target=1;native.rect=[10,20,400,300];server=[native];
+await until(function(){return map.querySelector('[data-crml-map-drawing]');},'native layer missing');
+var nativeNode=map.querySelector('[data-crml-map-drawing]'),nativeBox=nativeNode.getBoundingClientRect();
+require(Math.abs(nativeBox.width-800)<1&&Math.abs(nativeBox.left-50)<1,'native map rectangle or inherited zoom wrong');
+require(!root()&&nativeNode.style.pointerEvents==='none','map layer escaped into schematic viewport or captured input');
+server[0].expires=performance.now()+1000;await delay(250);
+require(map.querySelector('[data-crml-map-drawing]')===nativeNode,'unchanged native layer rebuilt');
+map.remove();await until(function(){return !document.querySelector('[data-crml-map-drawing]');},'removed map retains drawing');
+server=[];
+// HUD routes belong to the actual sonar, below native POIs, with circular clipping.
+var sonarContainer=document.createElement('div');sonarContainer.className='sonar-container';
+sonarContainer.style.cssText='position:absolute;right:20px;top:20px;width:200px;height:200px';
+var sonar=document.createElement('div');sonar.className='sonar';sonar.style.cssText='position:relative;width:100%;height:100%';
+var player=document.createElement('div');player.className='sonar__center-player';sonar.appendChild(player);
+var poi=document.createElement('div');poi.className='poi-container';sonar.appendChild(poi);
+sonarContainer.appendChild(sonar);document.body.appendChild(sonarContainer);
+var hud=surface(1,30,1000,false);hud.target=2;hud.rect=[0,0,1,1];server=[hud];
+await until(function(){return sonar.querySelector('[data-crml-map-drawing="2"]');},'sonar route missing');
+var hudNode=sonar.querySelector('[data-crml-map-drawing="2"]');
+require(hudNode.nextSibling===player&&player.nextSibling===poi&&!root(),'sonar route displaced native POIs or used independent overlay');
+require(hudNode.style.borderRadius==='50%'&&hudNode.style.overflow==='hidden'&&hudNode.style.pointerEvents==='none','sonar clipping or input pass-through missing');
+require(Math.abs(hudNode.getBoundingClientRect().width-200)<1,'sonar normalized frame did not follow native size');
+sonarContainer.style.width='300px';server[0].expires=performance.now()+1000;
+await until(function(){return Math.abs(hudNode.getBoundingClientRect().width-300)<1;},'sonar resize reused wrong pixel geometry');
+require(sonar.querySelector('[data-crml-map-drawing="2"]')===hudNode,'sonar resize unnecessarily replaced its DOM');
+sonarContainer.style.visibility='hidden';
+require(getComputedStyle(sonar.querySelector('[data-crml-map-drawing="2"]')).visibility==='hidden','native HUD hiding did not hide route');
+sonarContainer.remove();server=[];
+await until(function(){return !document.querySelector('[data-crml-map-drawing="2"]');},'sonar teardown retains route');
+// Bad packets cannot partially update one owner or leave an old drawing visible.
+var invalid=surface(1,7,1000,true);invalid.remaining_ms=1000;invalid.segments.push(invalid.segments[0]);forced={surfaces:[invalid]};
+await delay(650);require(!root(),'out-of-bounds primitives accepted');forced=null;
+server=[surface(1,8,1000,false)];await until(root,'drawing failed to recover after rejected packet');
+// Independent lease pruning runs even when one request is indefinitely held.
+hold=true;await until(function(){return held.length>0;},'no delayed drawing request');
+var delayed=held.shift();await until(function(){return !root();},'stalled request kept drawing beyond lease');
+await delay(1050);delayed.reply();require(!root(),'old in-flight snapshot resurrected expired frame');
+hold=false;server=[surface(1,9,1000,false)];await until(root,'new lease did not render');
+// Transport failure clears immediately and does not leave expired pixels.
+hold=true;await until(function(){return held.length>0;},'no failing request');var failed=held.shift();failed.xhr.onerror();require(!root(),'transport failure retained drawing');
+hold=false;server=[surface(1,10,1000,false)];await until(root,'renderer did not recover transport');
+hold=true;await until(function(){return held.length>0;},'no teardown request');var late=held.shift();
+window.dispatchEvent(new Event('pagehide'));late.xhr.status=200;late.xhr.responseText=late.body;late.late();
+var end=polls;await delay(650);require(polls===end&&!root()&&late.xhr.aborted,'pagehide/late response resurrected drawing or kept polling');
+document.getElementById('result').textContent='PASS: drawing dense frames, copied text, normalized geometry, input passthrough, unchanged DOM, owner cleanup, leases, stale responses and teardown';
+})().catch(function(error){document.getElementById('result').textContent='FAIL: '+error.message;});});
+</script>

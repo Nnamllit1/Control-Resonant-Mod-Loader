@@ -1,0 +1,249 @@
+<!doctype html><meta charset="utf-8"><title>Settings UI fixture</title>
+<style>
+body{background:#181b20;color:#e8e8e8;font:2.3148148148vh AlteredGrotesk,sans-serif;margin:0;padding:0;width:100vw;height:100vh;overflow:hidden}.options{width:90vw;margin:3vh}
+.tab-buttons{display:flex;gap:30px}.options__content{position:relative;height:74.0740740741vh;padding:2vh}
+.options-checkbox,.options-slider,.options-button{display:flex;flex-direction:row;align-items:center;justify-content:flex-start;padding:.9259259259vh 1.8518518519vh;min-height:5.5555555556vh;width:77.7777777778vh;font-size:2.2222222222vh;font-style:normal;font-weight:400;line-height:2.7777777778vh}
+.options-checkbox__label,.options-slider__label{flex:1}.options-slider__bar{height:18px;background:#555}
+.options-slider__bar__fill{height:18px;background:#eee;transform-origin:left}.options-button{cursor:pointer}
+/* Include stock width/flex rules: typography-only fixtures miss clipping. */
+.options-slider__label,.options-button__label{font-size:2.2222222222vh;font-style:normal;font-weight:400;line-height:2.7777777778vh;width:41.6666666667vh;display:flex;flex-direction:row;justify-content:flex-start;align-items:center;flex:1}
+.decorated-ancestor{font-family:monospace;font-weight:900;font-style:italic;letter-spacing:8px;text-shadow:3px 3px red;text-transform:uppercase}
+</style>
+<div class="options fullscreen-layout--visible"><div class="tab-buttons">
+<div class="menu-button" data-bind-click="routes.menu_options.root.onTab(0)">Gameplay</div>
+<div class="tab-buttons__key--right"></div></div><div class="options__content"><div class="tabs__pages">Stock options</div></div></div>
+<pre id="result">RUNNING</pre>
+<script>
+var callbacks={}, stockCalls=0, optionsActive=true;
+window.engine={isAttached:false,on:function(n,f){(callbacks[n]||(callbacks[n]=[])).push(f);},off:function(n,f){callbacks[n]=(callbacks[n]||[]).filter(function(x){return x!==f;});}};
+window.stack={active:function(){return optionsActive;},state:function(){return 'gameplay';}};
+var route={};
+['onCancel','onPrevTab','onNextTab','onNavigateLeft','onNavigateRight','onSelectOption'].forEach(function(name){route[name]=function(){stockCalls++;};});
+route.onTab=function(){stockCalls++;};window.routes={menu_options:{root:route}};
+[['OnCancel','onCancel'],['OnPrev','onPrevTab'],['OnNext','onNextTab'],['OnNavigateLeft','onNavigateLeft'],['OnNavigateRight','onNavigateRight'],['OnSelect','onSelectOption']].forEach(function(pair){engine.on(pair[0],route[pair[1]]);});
+function setting(handle,key,kind,value,min,max,step){return {handle:handle,key:key,label:key,description:'Fixture '+key,kind:kind,initial:value,value:value,minimum:min,maximum:max,step:step,revision:'1'};}
+var serverGroups=[{owner:'1',id:'first-mod',name:'First <mod>',version:'1.0.0',author:'An author',items:[setting(1,'enabled',1,0,0,1,1),setting(2,'amount',3,2,0,10,0.25)]},
+{owner:'2',id:'second-mod',items:[setting(1,'integer',2,100000001,100000000,100000010,1)]}];
+var textItem=setting(3,'marker_name',4,'Start',0,0,0);textItem.max_bytes=8;serverGroups[0].items.push(textItem);
+serverGroups[0].list={revision:'9007199254740993',title:'History <list>',font_scale:1.25,rows:[
+    {id:'18446744073709551614',flags:3,label:'First <row>',detail:'Plain <detail>'},
+    {id:'18446744073709551613',flags:0,label:'Disabled',detail:''},
+    {id:'18446744073709551612',flags:1,label:'Last',detail:'Last detail'}]};
+var listWrites=0,listAccepted=[],listFull=false,listFields=[];
+var writes=0,conflicts=0,polls=0,terminal=Number(new URLSearchParams(location.search).get('terminal'));
+var held=[],holdRequests=false,lastWrite='',responsePadding=0,paddedReplies=0;
+// Self-authored maximum-row catalog for real browser layout/input regression.
+window.installLongListFixture=function(){
+    document.querySelector('.options__content').classList.add('decorated-ancestor');
+    serverGroups=['11','12'].map(function(owner){
+        var search=setting(1,'search',4,'',0,0,0);search.label='Search';search.max_bytes=255;
+        var items=[search];for(var i=2;i<=8;i++)items.push(setting(i,'toggle_'+i,1,0,0,1,1));
+        return {owner:owner,id:'layout-'+owner,name:'List '+owner,items:items,list:{revision:'100',title:'Search results',font_scale:1.5,rows:Array.from({length:32},function(_,index){
+            return {id:String(index+1),flags:1,label:'Result '+(index+1)+' with a readable primary label',detail:'Supporting detail for result '+(index+1)+' remains ordinary text.'};
+        })}};
+    });
+};
+function FakeXHR(){}
+FakeXHR.prototype.open=function(method,url){this.url=url;};
+FakeXHR.prototype.abort=function(){this.aborted=true;};
+FakeXHR.prototype.send=function(){var self=this;polls++;function reply(){if(self.aborted)return;var fields=self.url.split('/v1/')[1].split('/');var result=0;
+if(fields.length===6){var group=serverGroups.filter(function(x){return x.owner===fields[2];})[0];
+if(fields[3]==='list'){listWrites++;listFields=fields;var listed=group&&group.list;var selected=listed&&listed.rows.filter(function(x){return x.id===fields[5];})[0];
+if(!selected)result=-2;else if(listed.revision!==fields[4] || !(selected.flags&1))result=-4;else if(listFull)result=-6;else{listAccepted.push(fields.slice(2));result=1;}}
+else{writes++;var item=group&&group.items.filter(function(x){return x.handle===Number(fields[3]);})[0];
+lastWrite=fields[5];if(!item)result=-1;else if(item.revision!==fields[4]){result=-4;conflicts++;}else{item.value=item.kind===4?decodeURIComponent(fields[5].slice(1).replace(/../g,'%$&')):Number(fields[5]);item.revision=String(Number(item.revision)+1);result=1;}}}
+self.status=terminal||200;self.responseText=JSON.stringify({result:result,groups:serverGroups,padding:new Array(responsePadding+1).join(' ')});if(responsePadding)paddedReplies++;if(self.onload)self.onload();}if(holdRequests)held.push({xhr:self,reply:reply,late:self.onload});else setTimeout(reply,50);};
+window.XMLHttpRequest=FakeXHR;
+</script>
+__CRML_PANEL__
+<script>
+window.addEventListener('load',function(){(async function(){
+function require(value,message){if(!value)throw Error(message);}
+function delay(){return new Promise(function(resolve){setTimeout(resolve,80);});}
+async function until(fn,message){for(var i=0;i<30;i++){if(fn())return;await delay();}throw Error(message);}
+function row(key){return document.querySelector('[data-crml-setting="'+key+'"]');}
+function input(){return row('marker_name').querySelector('input');}
+function edit(value){input().focus();input().value=value;input().dispatchEvent(new Event('input',{bubbles:true}));}
+function key(name,options){var event=new KeyboardEvent('keydown',Object.assign({key:name,bubbles:true,cancelable:true},options||{}));input().dispatchEvent(event);return event;}
+function emitCancel(){(callbacks.OnCancel||[]).slice().forEach(function(f){f();});}
+function listRows(){return document.querySelectorAll('[data-crml-list-row]');}
+if(terminal){
+    await until(function(){return !window.__crmlNativeUi;},'terminal settings response did not stop page');
+    var terminalPolls=polls;await delay();await delay();await delay();await delay();
+    require(polls===terminalPolls,'stale settings page kept retrying');
+    require(!document.querySelector('[data-crml-native-ui]'),'stale settings page retained controls');
+    document.getElementById('result').textContent='PASS: terminal '+terminal+' stops settings';return;
+}
+await until(function(){return row('enabled');},'registered settings did not render');
+if(new URLSearchParams(location.search).has('manual')){window.manualReady=true;return;}
+var idlePolls=polls;await delay();await delay();await delay();await delay();
+require(polls===idlePolls,'hidden settings continue polling');
+document.querySelector('[data-crml-native-tab]').click();
+require(window.__crmlNativeUi.status().active,'Mods acquired existing Options context');
+require(document.querySelector('[data-crml-native-ui]').textContent.indexOf('First <mod>')>=0,'display name rendered as text');
+require(!document.querySelector('[data-crml-native-ui] mod'),'metadata must not become markup');
+var nav=document.querySelector('[data-crml-mod-navigation]'),buttons=nav.querySelectorAll('.options-button');
+require(nav.textContent.indexOf('MOD 1 OF 2')>=0 && !nav.querySelector('[data-crml-setting]'),'navigation must be separate from mod settings');
+require(buttons[0].getAttribute('aria-disabled')==='true' && buttons[1].getAttribute('aria-disabled')==='false','navigation bounds on first mod');
+buttons[0].click();require(row('enabled') && writes===0,'disabled navigation changed settings');
+require(callbacks.OnCancel.indexOf(route.onCancel)<0,'stock Cancel temporarily detached');
+await delay();
+var changed=0,observer=new MutationObserver(function(records){changed+=records.length;});
+observer.observe(document.querySelector('[data-crml-native-ui]'),{childList:true,subtree:true,attributes:true,characterData:true});
+await delay();await delay();await delay();await delay();observer.disconnect();
+require(changed===0,'unchanged settings replies keep rewriting controls');
+require(listRows().length===3 && listRows()[0].textContent.indexOf('First <row>')>=0 && !listRows()[0].querySelector('row'),'list plain text rendering');
+require(listRows()[0].getAttribute('aria-pressed')==='true' && listRows()[1].disabled,'list selected/disabled flags');
+require(document.querySelector('[data-crml-list]').style.fontSize==='2.125vh','bounded font scale applied');
+listRows()[1].dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));await delay();require(listWrites===0,'disabled list action sent');
+listRows()[0].click();listRows()[0].click();await until(function(){return listAccepted.length===1;},'list action not admitted');await delay();
+require(listWrites===1 && listFields[3]==='list' && listFields[4]==='9007199254740993' && listFields[5]==='18446744073709551614','list IDs rounded or repeated action sent');
+// Updating only the list must preserve an independently edited text field.
+edit('Draft');textInput=input();textInput.setSelectionRange(1,3);
+serverGroups[0].list.revision='9007199254740994';serverGroups[0].list.title='New title';
+await until(function(){return document.querySelector('[data-crml-list]').textContent.indexOf('New title')>=0;},'list revision not rendered');
+require(input()===textInput && document.activeElement===textInput && input().value==='Draft' && input().selectionStart===1 && input().selectionEnd===3,'list update clobbered text draft/focus/caret');key('Escape');input().blur();
+// Keep focus on stable row IDs through a page replacement; disabled rows are skipped.
+listRows()[0].focus();serverGroups[0].list.revision='9007199254740995';serverGroups[0].list.rows[0].detail='Updated';
+await until(function(){return listRows()[0].textContent.indexOf('Updated')>=0;},'updated detail missing');
+require(document.activeElement===listRows()[0],'stable list focus not restored');
+listRows()[0].dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true,cancelable:true}));
+require(document.activeElement===listRows()[2],'arrow did not skip disabled row');input().focus();input().blur();
+// A revision race is reported without replaying the old row action.
+holdRequests=true;await until(function(){return held.length>0;},'missing list race poll');listRows()[0].click();
+serverGroups[0].list.revision='9007199254740996';held.shift().reply();await until(function(){return held.length>0;},'missing queued list action');held.shift().reply();holdRequests=false;
+require(listWrites===2 && listAccepted.length===1 && __crmlNativeUi.status().error.indexOf('List changed')>=0,'list stale revision not reported');
+await delay();await delay();require(listWrites===2,'stale list action retried automatically');
+listFull=true;listRows()[0].click();await until(function(){return listWrites===3;},'list capacity rejection missing');await delay();
+require(__crmlNativeUi.status().error.indexOf('Try again')>=0 && listAccepted.length===1,'list capacity feedback missing');
+await delay();await delay();require(listWrites===3,'full list action retried automatically');
+listFull=false;listRows()[0].click();await until(function(){return listAccepted.length===2;},'explicit list retry did not work');await delay();
+// List-only owners remain selectable and cannot leak focus into the previous mod.
+serverGroups.push({owner:'9007199254740997',id:'list-only',name:'List only',items:[],list:{revision:'18446744073709551615',title:'Only list',font_scale:.75,rows:[{id:'18446744073709551615',flags:1,label:'Only row',detail:''}]}});
+await until(function(){return __crmlNativeUi.status().mods===3;},'list-only owner omitted');buttons[1].click();buttons[1].click();
+require(listRows().length===1 && !row('integer') && !row('marker_name'),'list-only owner mixed settings');
+listRows()[0].click();await until(function(){return listAccepted.length===3;},'list-only action missing');await delay();
+require(listFields[2]==='9007199254740997' && listFields[4]==='18446744073709551615' && listFields[5]==='18446744073709551615','list-only owner/revision/row precision lost');
+listRows()[0].focus();serverGroups.pop();await until(function(){return __crmlNativeUi.status().mods===2;},'removed list-only owner retained');
+require(document.activeElement.tagName!=='BUTTON' && row('marker_name'),'removed owner focus or selection leaked');
+// List activation and a numeric change share one FIFO transport without overlap.
+holdRequests=true;await until(function(){return held.length>0;},'missing shared-queue poll');listRows()[0].click();
+var queueBar=row('amount').querySelector('.options-slider__bar'),queueBox=queueBar.getBoundingClientRect();
+queueBar.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,clientX:queueBox.left+queueBox.width*.7}));
+window.dispatchEvent(new MouseEvent('mouseup',{clientX:queueBox.left+queueBox.width*.7}));
+require(held.length===1,'parallel requests bypassed shared queue');held.shift().reply();
+await until(function(){return held.length>0;},'queued list missing');require(held[0].xhr.url.indexOf('/list/')>=0,'FIFO list order lost');held.shift().reply();
+await until(function(){return held.length>0;},'queued numeric setting missing');require(held[0].xhr.url.indexOf('/1/2/')>=0,'numeric write did not follow list');held.shift().reply();holdRequests=false;
+require(serverGroups[0].items[1].value===7,'shared queue numeric value lost');
+// Focused drafts survive background polls, including selection/caret position.
+var initialWrites=writes,textInput=input();edit('Draft');textInput.setSelectionRange(1,3);
+await delay();await delay();await delay();
+require(input()===textInput && input().value==='Draft' && input().selectionStart===1 && input().selectionEnd===3,'poll destroyed draft, focus or caret');
+input().blur();await delay();require(writes===initialWrites && input().value==='Draft','blur implicitly committed or discarded draft');
+input().focus();require(key('Escape').defaultPrevented,'Escape default was not cancelled');emitCancel();
+await delay();require(__crmlNativeUi.status().active && input().value==='Start' && stockCalls===0,'DOM Escape then native Cancel closed Options');
+edit('Again');emitCancel();key('Escape');await delay();
+require(__crmlNativeUi.status().active && input().value==='Start','native Cancel then DOM Escape closed Options');
+// UTF-8 byte limits include supplementary characters, not UTF-16 code units.
+edit('\u00e9\ud83d\ude00\u00e9');key('Enter');key('Enter');
+await until(function(){return textItem.value==='\u00e9\ud83d\ude00\u00e9';},'8-byte Unicode value did not commit');await delay();
+require(writes===initialWrites+1 && lastWrite==='tc3a9f09f9880c3a9','UTF-8 wire encoding or duplicate submission');
+initialWrites=writes;
+require(input().maxLength===8,'browser draft length is unbounded');
+var encodeCalls=0,originalEncode=window.encodeURIComponent;
+window.encodeURIComponent=function(value){encodeCalls++;return originalEncode(value);};
+edit(new Array(100001).join('x'));key('Enter');await delay();await delay();
+window.encodeURIComponent=originalEncode;
+require(encodeCalls===0 && writes===initialWrites && input().getAttribute('aria-invalid')==='true','oversized programmatic draft was encoded');
+['\u00e9\ud83d\ude00\u00e9x','\ud800','bad\u0001','bad\u0085','bad\u2028','bad\u2029'].forEach(function(value){
+    edit(value);key('Enter');require(input().getAttribute('aria-invalid')==='true','invalid UTF-8/control/byte count accepted');
+});await delay();require(writes===initialWrites,'invalid text reached host');
+key('Escape');edit('');row('marker_name').querySelector('button').click();
+await until(function(){return textItem.value==='';},'empty string did not commit');await delay();require(lastWrite==='t','empty text payload');
+edit('/%?#');key('Enter');await until(function(){return textItem.value==='/%?#';},'path punctuation did not commit');await delay();
+require(lastWrite==='t2f253f23','text altered route path');
+// IME Enter confirms composition only; native Cancel must not discard it.
+initialWrites=writes;edit('\u65e5');input().dispatchEvent(new CompositionEvent('compositionstart',{bubbles:true}));
+require(!key('Enter',{isComposing:true}).defaultPrevented,'composition Enter was suppressed');emitCancel();
+require(input().value==='\u65e5' && __crmlNativeUi.status().active,'native Cancel destroyed composition');
+input().dispatchEvent(new CompositionEvent('compositionend',{bubbles:true}));await delay();require(writes===initialWrites,'composition implicitly committed');
+key('Enter');await until(function(){return textItem.value==='\u65e5';},'post-composition Enter did not commit');await delay();
+// An observed concurrent revision keeps the draft and blocks overwrite until Escape.
+edit('Mine');textItem.value='Other';textItem.revision=String(Number(textItem.revision)+1);
+await until(function(){return input().getAttribute('aria-invalid')==='true';},'observed text revision conflict missing');
+require(input().value==='Mine','conflict overwrote draft');initialWrites=writes;key('Enter');await delay();
+require(writes===initialWrites && textItem.value==='Other','observed conflict sent a write');key('Escape');
+require(input().value==='Other','Escape did not reload latest host value');
+// A race after commit reaches the backend, which rejects it without losing the draft.
+holdRequests=true;await until(function(){return held.length>0;},'no held background poll');
+edit('Racing');key('Enter');textItem.value='Remote';textItem.revision=String(Number(textItem.revision)+1);
+held.shift().reply();await until(function(){return held.length>0;},'queued text write did not start');held.shift().reply();
+require(conflicts===1 && textItem.value==='Remote' && input().value==='Racing','text conflict race overwrote host/draft');
+holdRequests=false;key('Escape');input().blur();
+// Ordinary text keys retain browser defaults; only this field owns its bubbling events.
+var unrelatedKeys=0;function unrelated(){unrelatedKeys++;}document.addEventListener('keydown',unrelated);
+input().focus();require(!key('a').defaultPrevented && unrelatedKeys===0,'text key default or propagation');
+document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'a',bubbles:true}));require(unrelatedKeys===1,'unrelated keyboard event stolen');
+document.removeEventListener('keydown',unrelated);input().blur();
+responsePadding=1100000;
+await until(function(){return paddedReplies>0 && __crmlNativeUi.status().active && !__crmlNativeUi.status().error;},'valid bounded response above 1MiB failed');
+responsePadding=2097153;
+await until(function(){return __crmlNativeUi.status().error==='Settings connection unavailable.';},'oversized settings response was accepted');responsePadding=0;
+await until(function(){return !__crmlNativeUi.status().error;},'bounded response did not recover');
+// Full union of32 settings owners and32 list-only owners at descriptor bounds.
+var savedGroups=serverGroups,quote=function(n){return new Array(n+1).join('"');};serverGroups=[];
+for(var ownerIndex=0;ownerIndex<64;ownerIndex++){
+    var full={owner:(18446744073709551000n+BigInt(ownerIndex)).toString(),id:new Array(63).join('x')+String(ownerIndex).padStart(2,'0'),name:quote(95),version:'1.0.0+'+new Array(90).join('a'),author:quote(95),items:[]};
+    if(ownerIndex<32){for(var settingIndex=1;settingIndex<=32;settingIndex++){
+        var bounded=setting(settingIndex,new Array(30).join('k')+String(settingIndex).padStart(2,'0'),4,quote(255),0,0,0);
+        bounded.label=quote(95);bounded.description=quote(191);bounded.max_bytes=255;bounded.initial=0;bounded.revision='18446744073709551615';full.items.push(bounded);
+    }}else{full.list={revision:'18446744073709551615',title:quote(95),font_scale:1.5,rows:[]};for(var listIndex=1;listIndex<=32;listIndex++)full.list.rows.push({id:(18446744073709551000n+BigInt(listIndex)).toString(),flags:1,label:quote(95),detail:quote(191)});}
+    serverGroups.push(full);
+}
+require(JSON.stringify({result:1,groups:serverGroups}).length<2097152,'full catalog exceeds transport bound');
+await until(function(){return __crmlNativeUi.status().mods===64;},'bounded full64owner catalog rejected');
+require(!__crmlNativeUi.status().error,'full catalog raised transport error');
+serverGroups=savedGroups;await until(function(){return row('marker_name');},'normal catalog did not recover');
+row('enabled').click();row('enabled').click();
+await until(function(){return serverGroups[0].items[0].value===1;},'toggle did not reach host');
+await delay();require(serverGroups[0].items[0].revision==='2'&&conflicts===1,'rapid repeated click must not create stale self-conflict');
+var bar=row('amount').querySelector('.options-slider__bar'),box=bar.getBoundingClientRect();
+bar.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,clientX:box.left+box.width*0.75}));
+window.dispatchEvent(new MouseEvent('mouseup',{clientX:box.left+box.width*0.75}));
+await until(function(){return serverGroups[0].items[1].value===7.5;},'slider value/step mapping');
+await delay();
+Array.prototype.filter.call(document.querySelectorAll('.options-button'),function(n){return n.textContent==='Next mod';})[0].click();
+require(row('integer').textContent.indexOf('100000001')>=0,'distinct integer must remain visible');
+require(buttons[1].getAttribute('aria-disabled')==='true' && nav.textContent.indexOf('MOD 2 OF 2')>=0,'navigation bounds on last mod');
+buttons[1].click();require(row('integer'),'disabled next changed selected mod');
+Array.prototype.filter.call(document.querySelectorAll('.options-button'),function(n){return n.textContent==='Previous mod';})[0].click();
+// A concurrent writer during a drag must be rejected, not overwritten.
+bar=row('amount').querySelector('.options-slider__bar');box=bar.getBoundingClientRect();
+bar.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0,clientX:box.left+box.width*0.25}));
+serverGroups[0].items[1].value=9;serverGroups[0].items[1].revision=String(Number(serverGroups[0].items[1].revision)+1);
+window.dispatchEvent(new MouseEvent('mouseup',{clientX:box.left+box.width*0.25}));
+await until(function(){return conflicts===2;},'external revision conflict missing');
+require(serverGroups[0].items[1].value===9,'external value overwritten');
+// Navigating mods and removing a focused field release its draft/focus ownership.
+edit('Discard');buttons[1].click();require(!row('marker_name') && document.activeElement!==textInput,'mod navigation retained focused detached input');
+buttons[0].click();require(input().value===textItem.value,'draft leaked across mod navigation');
+edit('Removed');serverGroups[0].items.pop();await until(function(){return !row('marker_name');},'removed text row stayed mounted');
+require(document.activeElement.tagName!=='INPUT','removed row retained focus');
+serverGroups[0].items.push(textItem);await until(function(){return row('marker_name');},'re-added text row missing');
+require(input().value===textItem.value,'removed draft resurrected');
+(callbacks.OnCancel||[]).slice().forEach(function(f){f();});
+await until(function(){return !window.__crmlNativeUi.status().active;},'Cancel did not leave Mods');
+require(stockCalls===0 && callbacks.OnCancel.filter(function(f){return f===route.onCancel;}).length===1,'Cancel restoration duplicated stock handlers');
+optionsActive=false;await delay();idlePolls=polls;await delay();await delay();await delay();
+require(polls===idlePolls,'settings kept polling after returning to main menu');
+// An already delivered callback captured before teardown cannot resurrect UI.
+optionsActive=true;document.querySelector('[data-crml-native-tab]').click();holdRequests=true;
+await until(function(){return held.length>0;},'no delayed teardown response');var late=held.shift();edit('Unsaved');
+window.dispatchEvent(new Event('pagehide'));late.xhr.status=200;late.xhr.responseText=JSON.stringify({result:0,groups:serverGroups});late.late();
+await delay();idlePolls=polls;await delay();await delay();await delay();
+require(!window.__crmlNativeUi && polls===idlePolls,'settings survived pagehide');
+require(!document.querySelector('[data-crml-native-ui]'),'owned UI cleanup');
+require(late.xhr.aborted && document.activeElement.tagName!=='INPUT','teardown did not abort request/release focus');
+document.getElementById('result').textContent='PASS: text editing/UTF-8/IME, list precision/revisions/FIFO/full catalog, focus/drafts, conflict races, lifecycle and numeric controls';
+})().catch(function(error){document.getElementById('result').textContent='FAIL: '+error.message;});});
+</script>

@@ -1,19 +1,24 @@
 #include "input_filter.h"
 #include <MinHook.h>
 #include <intrin.h>
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstddef>
+#include <mutex>
 
 namespace crml::probe::input {
 namespace {
 constexpr std::array<unsigned,11> keys{'W','A','S','D',VK_SPACE,VK_CONTROL,VK_LCONTROL,VK_RCONTROL,VK_SHIFT,VK_LSHIFT,VK_RSHIFT};
-Active active_callback{};
+std::atomic<Active> active_callback{};
+std::mutex start_mutex;
 uintptr_t executable{}, executable_end{};
 std::atomic<bool> ready{};
 std::atomic<uint64_t> filtered{};
 std::array<std::atomic<BYTE>,256> cached{};
 std::atomic<uint64_t> cached_tick{};
+std::atomic_flag snapshot_lock = ATOMIC_FLAG_INIT;
+bool recent(uint64_t tick,uint64_t now) noexcept { return tick && now>=tick && now-tick<=500; }
 decltype(&PeekMessageW) peek_w{};
 decltype(&PeekMessageA) peek_a{};
 decltype(&GetMessageW) message_w{};
@@ -27,8 +32,12 @@ bool game_caller(void* caller) noexcept {
     return ready.load(std::memory_order_acquire) && address>=executable && address<executable_end;
 }
 void publish(const BYTE* state,uint64_t tick) noexcept {
+    // Readers and overlapping publishers cannot tear the copied snapshot. A
+    // contending observation is dropped; freshness still expires normally.
+    if(snapshot_lock.test_and_set(std::memory_order_acquire)) return;
     for(size_t i=0;i<cached.size();++i) cached[i].store(state[i],std::memory_order_relaxed);
     cached_tick.store(tick,std::memory_order_release);
+    snapshot_lock.clear(std::memory_order_release);
 }
 void observe(void* caller) noexcept {
     // Observation may pass through another mod's hook first. Thread/window
@@ -45,9 +54,11 @@ void observe(void* caller) noexcept {
 }
 
 bool capture(void* caller) noexcept {
-    if(!active_callback || !game_caller(caller)) return false;
+    if(!game_caller(caller)) return false;
+    const auto callback=active_callback.load(std::memory_order_acquire);
+    if(!callback) return false;
     const DWORD error=GetLastError();
-    const bool result=active_callback();
+    const bool result=callback();
     SetLastError(error);
     return result;
 }
@@ -100,7 +111,19 @@ bool owned(unsigned key) noexcept {
 bool down(unsigned key) noexcept {
     if(key>=cached.size()) return false;
     const auto tick=cached_tick.load(std::memory_order_acquire),now=GetTickCount64();
-    return tick && now>=tick && now-tick<=500 && (cached[key].load(std::memory_order_relaxed)&0x80)!=0;
+    return recent(tick,now) && (cached[key].load(std::memory_order_relaxed)&0x80)!=0;
+}
+bool fresh() noexcept {
+    const auto tick=cached_tick.load(std::memory_order_acquire);
+    return recent(tick,GetTickCount64());
+}
+bool snapshot(BYTE* state,uint64_t now) noexcept {
+    std::fill_n(state,256,BYTE{});
+    if(snapshot_lock.test_and_set(std::memory_order_acquire)) return false;
+    const bool usable=recent(cached_tick.load(std::memory_order_relaxed),now);
+    if(usable) for(size_t i=0;i<cached.size();++i) state[i]=cached[i].load(std::memory_order_relaxed);
+    snapshot_lock.clear(std::memory_order_release);
+    return usable;
 }
 bool filter(MSG& message) noexcept {
     if((message.message==WM_KEYDOWN || message.message==WM_SYSKEYDOWN) && owned(static_cast<unsigned>(message.wParam))) {
@@ -130,13 +153,22 @@ bool filter(RAWINPUT& event,UINT bytes) noexcept {
 void filter(BYTE* state) noexcept { for(auto key:keys) if(key) state[key]&=1; }
 
 bool start(Active callback) noexcept {
-    // Observation can share an existing suppression owner without replacing it.
-    if(ready.load(std::memory_order_acquire)) return !callback || active_callback==callback;
+    // Initialization order must not decide whether movement can acquire its
+    // suppression callback. Hooks never take this lock; callbacks stay pinned
+    // for process lifetime and cannot replace an existing owner.
+    const std::lock_guard lock(start_mutex);
+    if(ready.load(std::memory_order_acquire)) {
+        const auto current=active_callback.load(std::memory_order_acquire);
+        if(!callback || current==callback) return true;
+        if(current) return false;
+        active_callback.store(callback,std::memory_order_release);
+        return true;
+    }
     executable=reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     const auto dos=reinterpret_cast<const IMAGE_DOS_HEADER*>(executable);
     const auto nt=reinterpret_cast<const IMAGE_NT_HEADERS*>(executable+dos->e_lfanew);
     executable_end=executable+nt->OptionalHeader.SizeOfImage;
-    active_callback=callback;
+    active_callback.store(callback,std::memory_order_release);
     struct Hook { const char* name; void* detour; void** original; void* target{}; };
     Hook hooks[]{
         {"PeekMessageW",reinterpret_cast<void*>(&peekW),reinterpret_cast<void**>(&peek_w)},
@@ -171,6 +203,9 @@ void release_held(HWND window) noexcept {
 uint64_t consumed() noexcept { return filtered.load(std::memory_order_relaxed); }
 bool observing() noexcept { return ready.load(std::memory_order_acquire); }
 #ifdef CRML_INPUT_TESTING
-namespace testing { void publish(const BYTE* state,uint64_t tick) noexcept { input::publish(state,tick); } }
+namespace testing {
+void publish(const BYTE* state,uint64_t tick) noexcept { input::publish(state,tick); }
+bool fresh_at(uint64_t now) noexcept { return recent(cached_tick.load(std::memory_order_acquire),now); }
+}
 #endif
 }

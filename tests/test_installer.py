@@ -14,6 +14,52 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 
 class InstallerTests(unittest.TestCase):
+    def test_drawing_payload_owned_update_and_customization_preserved(self):
+        relative='crml/native-ui-drawing.html'
+        source=self.dist/relative
+        source.write_text('drawing v1')
+        installer.install(self.game,self.dist,self.profiles,True)
+        self.assertIn(relative,installer.read_receipt(self.game)['files'])
+        source.write_text('drawing v2')
+        installer.update(self.game,self.dist,self.profiles,True)
+        destination=self.game/relative
+        self.assertEqual(destination.read_text(),'drawing v2')
+        destination.write_text('custom drawing')
+        source.write_text('drawing v3')
+        with self.assertRaises(ValueError):
+            installer.update(self.game,self.dist,self.profiles,True)
+        self.assertEqual(destination.read_text(),'custom drawing')
+
+    def test_settings_panel_owned_update(self):
+        relative='crml/native-ui-panel.html'
+        source=self.dist/relative
+        source.write_text('settings v1')
+        installer.install(self.game,self.dist,self.profiles,True)
+        self.assertIn(relative,installer.read_receipt(self.game)['files'])
+        source.write_text('settings v2')
+        installer.update(self.game,self.dist,self.profiles,True)
+        self.assertEqual((self.game/relative).read_text(),'settings v2')
+
+    def test_feedback_payload_owned_update(self):
+        relative='crml/native-ui-feedback.html'
+        source=self.dist/relative
+        source.write_text('feedback v1')
+        installer.install(self.game,self.dist,self.profiles,True)
+        self.assertIn(relative,installer.read_receipt(self.game)['files'])
+        source.write_text('feedback v2')
+        installer.update(self.game,self.dist,self.profiles,True)
+        self.assertEqual((self.game/relative).read_text(),'feedback v2')
+
+    def test_tutorials_payload_owned_update(self):
+        relative='crml/native-ui-tutorials.html'
+        source=self.dist/relative
+        source.write_text('tutorials v1')
+        installer.install(self.game,self.dist,self.profiles,True)
+        self.assertIn(relative,installer.read_receipt(self.game)['files'])
+        source.write_text('tutorials v2')
+        installer.update(self.game,self.dist,self.profiles,True)
+        self.assertEqual((self.game/relative).read_text(),'tutorials v2')
+
     def test_ui_bootstrap_owned_update_and_customization_preserved(self):
         relative = 'crml/ui-bootstrap.html'
         source = self.dist / relative

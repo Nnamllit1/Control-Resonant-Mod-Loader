@@ -18,6 +18,7 @@ def analyze(path):
     targets = []
     controls = []
     lifetime_events = []
+    engine_leases = []
     lifetime_missed = 0
     target_dropped = 0
     terminal = None
@@ -96,6 +97,21 @@ def analyze(path):
             if kind == 'end':
                 terminal = item.get('reason')
                 continue
+            if kind == 'engine_lease':
+                for name in ('sequence', 'tick_ms', 'thread', 'owner', 'target'):
+                    if type(item.get(name)) is not int or not 0 <= item[name] < 2**64:
+                        raise ValueError('Invalid engine lease integer')
+                for name in ('entity', 'body'):
+                    value = item.get(name)
+                    if not isinstance(value, str) or not value.isascii() or not value.isdigit() or int(value) >= 2**64:
+                        raise ValueError('Invalid engine lease identity')
+                if not item['owner'] or not item['target'] or item.get('result') not in RESULTS:
+                    raise ValueError('Invalid engine lease outcome')
+                if item['sequence'] != previous + 1:
+                    raise ValueError('Non-contiguous event publication sequence')
+                previous = item['sequence']
+                engine_leases.append(item)
+                continue
             if kind != 'event':
                 raise ValueError('Unsupported record')
             for name in ('sequence', 'tick_ms', 'thread', 'action', 'result', 'selection'):
@@ -172,6 +188,7 @@ def analyze(path):
             'targets': targets, 'target_dropped': target_dropped,
             'controls': controls,
             'lifetime_events': lifetime_events, 'lifetime_missed': lifetime_missed,
+            'engine_leases': engine_leases,
             'gameplay_effect_verified': False}
 
 

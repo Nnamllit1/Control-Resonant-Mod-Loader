@@ -1,0 +1,317 @@
+{
+  "schema": 1,
+  "executable_sha256": "4f6596b08bb5bc7fe4150cf5b9f71d7bae87eea02d66627c03a5e05ffe84ea62",
+  "scope": "Bounded static producer traces for loadout requests, perfect dodge and resources, and encounter requests. Research evidence only; no callable ABI, public capability, transaction, or isolation guarantee.",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f705eb",
+      "target": "0x4a6ac70",
+      "label": "UI loadout process queue system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1f7065b",
+      "target": "0x1f81070",
+      "label": "UI loadout process queue dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2982f6a",
+      "target": "0x4db1510",
+      "label": "Variable ability loadout requests system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2983158",
+      "target": "0x2982840",
+      "label": "Variable loadout request dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2980166",
+      "target": "0x4db17d0",
+      "label": "Fixed ability loadout requests system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2980296",
+      "target": "0x29825e0",
+      "label": "Fixed loadout request dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2697fe1",
+      "target": "0x4ca77b0",
+      "label": "Perfect dodge window system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2698047",
+      "target": "0x269fc50",
+      "label": "Perfect dodge window dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2698121",
+      "target": "0x4ca8000",
+      "label": "Perfect dodge ghost volumes system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x2698187",
+      "target": "0x26a0060",
+      "label": "Perfect dodge ghost volumes dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x21e22c4",
+      "target": "0x4b186b0",
+      "label": "Resource request handling system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x21e2331",
+      "target": "0x21ea640",
+      "label": "Resource request handling dispatcher"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x266e2e4",
+      "target": "0x4c96600",
+      "label": "Encounter despawn request system name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x266e4b8",
+      "target": "0x2665d40",
+      "label": "Encounter despawn request dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2982a87",
+      "target": "0x2981030",
+      "label": "Variable request dispatcher invokes per-entry handler"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29827ac",
+      "target": "0x2981330",
+      "label": "Fixed request dispatcher invokes flag handler"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x298111f",
+      "target": "0x29846b0",
+      "label": "Variable entry validation helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x298113f",
+      "target": "0x2984700",
+      "label": "Variable entry compatibility helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29812a1",
+      "target": "0x2980c10",
+      "label": "Variable request equip helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29812c7",
+      "target": "0x2980ae0",
+      "label": "Variable request alternate equip helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x269ff96",
+      "target": "0x2699eb0",
+      "label": "Perfect dodge window callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x26a02ca",
+      "target": "0x269a480",
+      "label": "Perfect dodge ghost-volume callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x269a6f3",
+      "target": "0x2699b20",
+      "label": "Dodge detection geometric test"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x269a7b9",
+      "target": "0x2699840",
+      "label": "Dodge detection success effects"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2699a83",
+      "target": "0x1a28000",
+      "label": "Dodge success Lua payload allocation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2699b01",
+      "target": "0x4c3d50",
+      "label": "Dodge success Lua event publication"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23be370",
+      "target": "0x23def50",
+      "label": "Ability-resource getter resolves player component"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23be3b3",
+      "target": "0x2c996d0",
+      "label": "Ability-resource getter returns normalized Lua number"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21ea8fd",
+      "target": "0x21e3e90",
+      "label": "Resource dispatcher invokes request handler"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21e4069",
+      "target": "0x21e34a0",
+      "label": "Resource request invokes additive clamp helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21e40a7",
+      "target": "0x21e34a0",
+      "label": "Alternate resource request invokes additive clamp helper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21e34df",
+      "target": "0x20a94a0",
+      "label": "Resource credit amount passes through status hook"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21e3595",
+      "target": "0x1cf7f80",
+      "label": "Resource credit updates accounting ring"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x21e3528",
+      "target": "0x2134900",
+      "label": "Resource index two credit side effect"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23be6f2",
+      "target": "0x23d9970",
+      "label": "Encounter start resolves request state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23be727",
+      "target": "0x23d9970",
+      "label": "Encounter stop resolves request state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x23be864",
+      "target": "0x264a580",
+      "label": "Encounter completion binding invokes state mutation"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x264a58c",
+      "target": "0x1dbef40",
+      "label": "Encounter completion resolves state entry"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2665f7b",
+      "target": "0x2658aa0",
+      "label": "Encounter despawn dispatcher invokes callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2658afd",
+      "target": "0x2658750",
+      "label": "Encounter callback dispatches selected despawn mode"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23d5b90",
+      "target": "0xccc3c033",
+      "label": "Debug set-loadout-preset callback is xor eax,eax; ret; int3"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x2699ae8",
+      "target": "0x1a1acbcd",
+      "label": "Perfect dodge success Lua event key"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x23df104",
+      "target": "0x59f99e92",
+      "label": "Player resource component hash"
+    }
+  ],
+  "wardrobe": {
+    "bindings": {
+      "debug_set_loadout_preset": "0x23d5b90"
+    },
+    "evidence": [
+      "The debug preset setter returns zero immediately and performs no loadout mutation.",
+      "The UI loadout queue signature includes LoadoutRequests/LoadoutSlots, melee unlock loadout/data, charm data, and unlock database inputs.",
+      "The variable ability-loadout handler at 0x2981030 processes 16-byte request entries, validates individual entries, and then writes slot state or invokes equip helpers before advancing.",
+      "At 0x2981231 and 0x2981263 it clears selected slot identifiers; fixed requests at 0x2981330 instead update slot flags from an 8-byte request list."
+    ],
+    "missing": [
+      "Whole-preset validation and atomic commit or verified rollback across all equipment domains.",
+      "Authoritative unlocked-item/talent semantics without purchase or progression side effects.",
+      "Authoritative safe location and combat restrictions plus loadout-owned request completion acknowledgement."
+    ]
+  },
+  "counterflow": {
+    "evidence": [
+      "The ghost-volume callback at 0x269a480 reads real damage receiver entries and perfect-dodge detection state, validates target generation and performs faction/geometry checks before success effects at 0x2699840.",
+      "The success helper publishes Lua event key 0x1a1acbcd with two vector-tagged payload values. These values are not established as unique attack or hit identifiers.",
+      "The normalized ability-resource binding resolves component hash 0x59f99e92 with entity stride 0x350, reading maximum at +8 and current at +0xc.",
+      "The native request handler at 0x21e3e90 invokes additive helper 0x21e34a0. It selects a 0x108-byte resource slot, may modify the requested amount through a status hook, adds to current at +0xc, clamps to maximum at +8, and records accounting/flags.",
+      "The distinct helper at 0x21e31f0 subtracts resource; it is not a credit helper."
+    ],
+    "missing": [
+      "Unique attack and successful player melee-hit receipts with attribution and occurrence time.",
+      "Deduplication across repeated damage entries, detection volumes, targets, and event delivery.",
+      "Reviewed resource-slot meaning, exact credit semantics after modifiers, and scheduler-safe request ownership/acknowledgement.",
+      "A once-only conditional ten-percent-of-maximum credit transaction tied to the qualifying event."
+    ]
+  },
+  "rehearsal": {
+    "bindings": {
+      "encounter_start": "0x23be6e0",
+      "encounter_stop": "0x23be710",
+      "encounter_despawn": "0x23be790",
+      "encounter_save_as_completed": "0x23be820",
+      "encounter_has_been_completed": "0x23bf890"
+    },
+    "evidence": [
+      "Start writes a request word at state +0xa. Stop/despawn set stop/request mode fields; these are requests rather than synchronous completion operations.",
+      "The despawn callback at 0x2658aa0 reads a 0x60-byte EncounterState, passes mode +6 to helper 0x2658750, then clears that mode byte. Clearing the request does not acknowledge descendant cleanup.",
+      "The despawn query names EncounterEntry, GlobalID, Dead, SeizedEntity and DitherDespawn; ownership of spawned projectiles, effects and deferred requests is not established.",
+      "The completion binding calls 0x264a580, which resolves an encounter-state entry, writes its value and sets state byte +4. Its name must not be treated as an isolated practice API."
+    ],
+    "missing": [
+      "An isolated practice encounter lifecycle separated from campaign progression and rewards.",
+      "Complete owned-entity/effect/projectile/deferred-work tracking and cleanup acknowledgement.",
+      "Authoritative original-state capture and restoration across death, reload, cancellation and failures.",
+      "Reviewed spawn identity, save/quest side effects and safe reset barriers."
+    ]
+  }
+}

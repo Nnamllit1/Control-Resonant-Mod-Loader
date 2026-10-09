@@ -8,6 +8,6 @@ void crml_tick(float elapsed_seconds) {
     const uint32_t buttons = crml_input_buttons();
     const int32_t should_hide = (buttons & hide_button) != 0;
     // Renew while held; release when up. This does not change collision or AI.
-    crml_visibility_set(should_hide);
+    crml_player_mesh_set_hidden(should_hide);
 }
-void crml_shutdown(void) { crml_visibility_set(0); }
+void crml_shutdown(void) { crml_player_mesh_set_hidden(0); }

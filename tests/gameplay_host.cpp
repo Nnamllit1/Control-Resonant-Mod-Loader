@@ -1,4 +1,5 @@
 #include "runtime.h"
+#include "ui_service.h"
 #include <iostream>
 #include <set>
 #include <string>
@@ -7,19 +8,21 @@ struct FakeGame : crml::Gameplay {
     uint32_t capabilities() const noexcept override { return CRML_CAP_INPUT_BUTTONS|CRML_CAP_PLAYER_NOCLIP|
         CRML_CAP_PLAYER_VISIBILITY|CRML_CAP_PHYSICS_DAMPING|CRML_CAP_INPUT_MOTION|CRML_CAP_PLAYER_MOTION|
         CRML_CAP_PLAYER_READ|CRML_CAP_CAMERA_READ|CRML_CAP_UI_READ|CRML_CAP_UI_ACTIVATE|
-        CRML_CAP_MEDIA_READ|CRML_CAP_MEDIA_SKIP|CRML_CAP_UI_PRESENTATION; }
+        CRML_CAP_MEDIA_READ|CRML_CAP_MEDIA_SKIP|CRML_CAP_UI_PRESENTATION|CRML_CAP_NAVIGATION_READ; }
     std::set<uint64_t> owners;
     unsigned calls{}, input_index{};
-    unsigned player_reads{};
+    unsigned player_reads{}, navigation_reads{};
     unsigned ui_reads{}, tick_index{};
     unsigned media_reads{};
     uint64_t media_generation{0xe123456789abcdefull};
     std::string ui_mode;
+    crml::ui::Service receipt_ui;
     uint32_t ui_screen{CRML_UI_SCREEN_PHOTOSENSITIVITY};
     uint64_t ui_generation{0xf123456789abcdefull};
     float damping{.25f};
     int ui_read(crml_ui_state& out) noexcept override {
         ++calls;
+        if(ui_mode=="ui-receipts") return receipt_ui.read_at(out,100);
         if(ui_mode.rfind("media-",0)==0 && ui_mode!="media-both") {out={};return -1;}
         if(ui_mode=="ui-present-release-rejected") ui_screen=tick_index<8?1:2;
         if(ui_mode=="ui-changes") {
@@ -47,6 +50,12 @@ struct FakeGame : crml::Gameplay {
         if(ui_mode=="ui-rejected" || ui_mode=="ui-transient") return -1;
         owners.insert(owner);
         return 0;
+    }
+    int64_t ui_action_submit(uint64_t owner,uint64_t generation,uint32_t action) noexcept override {
+        ++calls;return receipt_ui.submit_at(owner,generation,action,100);
+    }
+    int ui_action_status(uint64_t owner,uint64_t ticket) noexcept override {
+        ++calls;return receipt_ui.status_at(owner,ticket,100);
     }
     int ui_present(uint64_t owner,uint64_t generation,uint32_t kind,std::string_view name,bool hidden,uint32_t duration) noexcept override {
         ++calls;
@@ -97,6 +106,11 @@ struct FakeGame : crml::Gameplay {
         ++calls;out={1,12,0x123456789abcdefull,{1,2,3},0};
         return player_reads++%2?0:1; // Failed provider intentionally leaves data: host must clear it.
     }
+    int navigation_read(crml_navigation_state& out) noexcept override {
+        ++calls;out={1,12,0x123456789abcdefull,0xf123456789abcdefull,CRML_NAV_UP_VALID|CRML_NAV_TELEPORTED,0,{1,2,3},{-1,0,0}};
+        // Exercise dirty unavailable and dirty error results independently.
+        const unsigned read=navigation_reads++;return read%3==0?1:read%3==1?0:-1;
+    }
     int camera_read(crml_camera_state& out) noexcept override {
         ++calls;out={1,10,0x23456789abcdef0ull,1,CRML_CAMERA_STATE_POSE|CRML_CAMERA_STATE_LENS,
             {4,5,6},{1,0,0,0,1,0,0,0,1},1.25f,1.75f};return 1;
@@ -133,7 +147,7 @@ struct FakeGame : crml::Gameplay {
     }
     int physics_status(uint64_t owner) noexcept override {++calls;return owners.count(owner)?3:0;}
     int physics_restore(uint64_t owner) noexcept override {++calls;owners.erase(owner);return 0;}
-    void release(uint64_t owner) noexcept override { owners.erase(owner); }
+    void release(uint64_t owner) noexcept override { owners.erase(owner);receipt_ui.release(owner); }
 };
 struct FakeInput : crml::Input {
     unsigned calls{};
@@ -151,6 +165,11 @@ struct FakeInput : crml::Input {
 int main(int argc,char** argv) {
     if(argc!=2 && argc!=3) return 2;
     FakeGame game;
+    if(argc==3 && std::string(argv[2])=="ui-receipts") {
+        game.ui_mode=argv[2];game.receipt_ui.enable(true);
+        const auto page=game.receipt_ui.open_page();std::string response;
+        if(game.receipt_ui.exchange(std::string(crml::ui::poll_prefix)+std::to_string(page)+"/1/1/1/0",100,response)!=200) return 5;
+    }
     FakeInput input;
     size_t failures{};
     {

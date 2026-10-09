@@ -1,0 +1,246 @@
+{
+  "schema": 1,
+  "initial": {
+    "ui": {
+      "screen": 1,
+      "actions": 1
+    },
+    "media": {
+      "elapsed_ms": 2500,
+      "name": "textures/videos/uiresources/splash/boot.tex"
+    },
+    "visibility_observation": "submitted",
+    "settings": [
+      {
+        "mod": "startup-preferences",
+        "key": "hide_selected_screens",
+        "value": 1
+      }
+    ]
+  },
+  "frames": [
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 100,
+      "state": {
+        "ui": {
+          "screen": 5,
+          "actions": 1
+        }
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui": {
+          "screen": 9
+        },
+        "media": {
+          "active": false
+        }
+      }
+    },
+    {
+      "dt_ms": 16,
+      "state": {
+        "ui": {
+          "screen": 0
+        },
+        "player": {
+          "generation": 1
+        },
+        "heading": {
+          "right": [
+            1,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F6",
+          "F8",
+          "W"
+        ]
+      }
+    },
+    {},
+    {
+      "state": {
+        "focused": false
+      }
+    },
+    {},
+    {
+      "state": {
+        "focused": true
+      }
+    },
+    {},
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F6",
+          "F8",
+          "W"
+        ]
+      }
+    },
+    {},
+    {
+      "state": {
+        "input_emergency": true
+      }
+    },
+    {
+      "state": {
+        "input_emergency": false
+      }
+    },
+    {},
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F6",
+          "F8",
+          "W"
+        ]
+      }
+    },
+    {},
+    {
+      "dt_ms": 600
+    },
+    {},
+    {},
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F6",
+          "F8",
+          "W"
+        ]
+      }
+    },
+    {},
+    {
+      "state": {
+        "settings": [
+          {
+            "mod": "photo-visibility",
+            "key": "mode",
+            "value": 1
+          },
+          {
+            "mod": "startup-preferences",
+            "key": "hide_selected_screens",
+            "value": 0
+          }
+        ]
+      }
+    },
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {},
+    {
+      "state": {
+        "settings": [
+          {
+            "mod": "photo-visibility",
+            "key": "reset_preferences",
+            "value": 1
+          },
+          {
+            "mod": "startup-preferences",
+            "key": "reset_preferences",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {},
+    {
+      "state": {
+        "player": {
+          "generation": 2
+        }
+      }
+    },
+    {},
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {},
+    {
+      "state": {
+        "player": {
+          "result": 0
+        },
+        "ui": {
+          "screen": 9
+        },
+        "keys": []
+      }
+    },
+    {}
+  ]
+}

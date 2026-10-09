@@ -110,11 +110,15 @@ BodyRead snapshot(uintptr_t owner,uint32_t index,uintptr_t vtable,BodySnapshot& 
 }
 }
 uint32_t body_slot_count(uintptr_t owner) noexcept {
-    if(!owner) return 0;
+    uint32_t count{};return read_body_slot_count(owner,count)?count:0;
+}
+bool read_body_slot_count(uintptr_t owner,uint32_t& out) noexcept {
+    out=0;if(!owner)return false;
     __try {
         uintptr_t pointer{}; uint32_t count{};
-        return table(owner,0x2d0,pointer,count)?count:0;
-    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return 0; }
+        if(!table(owner,0x2d0,pointer,count))return false;
+        out=count;return true;
+    } __except(GetExceptionCode()==EXCEPTION_ACCESS_VIOLATION?EXCEPTION_EXECUTE_HANDLER:EXCEPTION_CONTINUE_SEARCH) { return false; }
 }
 BodyRead read_body(uintptr_t owner,uint32_t index,uintptr_t vtable,BodySnapshot& out) noexcept {
     out={}; BodySnapshot copy{}; BodyRead result{};

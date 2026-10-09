@@ -70,6 +70,6 @@ Open a [GitHub issue](https://github.com/Nnamllit1/Control-Resonant-Mod-Loader/i
 - Any error message or a screenshot showing the problem.
 - `crml/crml.log` and any additional logs requested by the mod author.
 
-Copy the logs **before starting the game again**: a new session replaces them. Review files and screenshots before sharing them and remove personal information.
+The runtime keeps the current session in `crml/crml.log` and the three previous sessions in `crml/crml.1.log` through `crml/crml.3.log` (newest first). Each new runtime log is limited to 4 MiB. If a history file cannot be moved, the runtime preserves the current log and appends within that same limit. Other diagnostic captures have their own retention rules, so copy relevant logs promptly. Review files and screenshots before sharing them and remove personal information.
 
 Contributors investigating CRML itself can use the [building guide](building.md) and [architecture reference](architecture.md).

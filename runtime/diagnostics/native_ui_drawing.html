@@ -1,0 +1,523 @@
+<!-- CRML passive schematic drawing in the existing engine UI document -->
+<script>
+(function () {
+    'use strict';
+    if (window.__crmlDrawing) return;
+    var page = '__CRML_DRAWING_PAGE__';
+    if (!/^[1-9][0-9]*$/.test(page)) return;
+    var mapItems = [];
+    var root = null, items = [], request = null, sequence = 0, stopped = false;
+    var timer = null, nextPoll = 0, viewport = '';
+    var status=[];for(var si=0;si<24;++si)status.push(0);
+    function bump(i){if(status[i]<1000000)++status[i];}
+    function failedStage(error){bump(20);status[21]=error&&error.name==='TypeError'?1:error&&error.name==='ReferenceError'?2:3;}
+    function now() { return window.performance && performance.now ? performance.now() : Date.now(); }
+    function bounded(value, low, high) { return typeof value === 'number' && isFinite(value) && value >= low && value <= high; }
+    function integer(value, low, high) { return bounded(value, low, high) && Math.floor(value) === value; }
+    function identity(value) { return typeof value === 'string' && /^[1-9][0-9]{0,19}$/.test(value); }
+    function clearSchematic() {
+        if (root && root.parentNode) root.parentNode.removeChild(root);
+        root = null; items = [];
+    }
+    function clearMaps() { mapItems.forEach(function (item) { if (item.node.parentNode) item.node.parentNode.removeChild(item.node); }); mapItems = []; }
+    function clear() { clearSchematic(); clearMaps(); clearAnnotations(); clearSonarMarkers();clearExtraSonar(); }
+    function prune() {
+        var stamp = now();
+        items = items.filter(function (item) {
+            if (stamp < item.until) return true;
+            if (item.node.parentNode) item.node.parentNode.removeChild(item.node);
+            return false;
+        });
+        mapItems = mapItems.filter(function (item) {
+            if (stamp < item.until && document.documentElement.contains(item.parent)) return true;
+            if (item.node.parentNode) item.node.parentNode.removeChild(item.node); return false;
+        });
+        if (!items.length) clearSchematic();
+        pruneAnnotations();
+        fitEditor();
+        if(now()>=sonarUntil)clearSonarMarkers();
+        extraSonar=extraSonar.filter(function(r){if(now()<r.until&&document.documentElement.contains(r.parent))return true;removeNode(r.node);return false;});
+        if (document.hidden) clear();
+    }
+    function color(value) { return 'rgba(' + ((value >>> 24) & 255) + ',' + ((value >>> 16) & 255) + ',' + ((value >>> 8) & 255) + ',' + ((value & 255) / 255) + ')'; }
+    function valid(surface) {
+        if (!surface || !identity(surface.owner) || !identity(surface.revision) || !integer(surface.remaining_ms, 1, 1000) ||
+            !Array.isArray(surface.rect) || surface.rect.length !== 4 || !Array.isArray(surface.segments) || surface.segments.length > 128 ||
+            !Array.isArray(surface.labels) || surface.labels.length > 32 || (!surface.segments.length && !surface.labels.length)) return false;
+        var r = surface.rect, nativeMap = surface.target === 1 || surface.target === 2;
+        if (surface.target !== undefined && surface.target !== 0 && !nativeMap) return false;
+        if (nativeMap ? (!bounded(r[0],-100000,100000)||!bounded(r[1],-100000,100000)||!bounded(r[2],.000001,100000)||!bounded(r[3],.000001,100000)) : (!bounded(r[0], 0, 1) || !bounded(r[1], 0, 1) || !bounded(r[2], .049999, 1) || !bounded(r[3], .049999, 1) || r[0]+r[2] > 1.000001 || r[1]+r[3] > 1.000001)) return false;
+        return surface.segments.every(function (s) {
+            return Array.isArray(s) && s.length === 6 && bounded(s[0],0,1) && bounded(s[1],0,1) && bounded(s[2],0,1) && bounded(s[3],0,1) && bounded(s[4],.049999,1) && integer(s[5],0,4294967295);
+        }) && surface.labels.every(function (l) {
+            if (!Array.isArray(l) || l.length !== 5 || !bounded(l[0],0,1) || !bounded(l[1],0,1) || !bounded(l[2],1,5) || !integer(l[3],0,4294967295) ||
+                typeof l[4] !== 'string' || !l[4].length || l[4].length > 63 || /[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(l[4])) return false;
+            return encodeURIComponent(l[4]).replace(/%[0-9a-f]{2}|./gi, 'x').length <= 63;
+        });
+    }
+    function build(surface, reuse) {
+        var node = reuse || document.createElement('div'), lines=node._crmlLines||[], labels=node._crmlLabels||[], usedLines=0, usedLabels=0, r = surface.rect, nativeMap = surface.target === 1 || surface.target === 2;
+        node.setAttribute('data-crml-drawing-owner', surface.owner);
+        node.style.cssText = nativeMap ? 'position:absolute;pointer-events:none;overflow:hidden;left:'+r[0]+'px;top:'+r[1]+'px;width:'+r[2]+'px;height:'+r[3]+'px' : 'position:absolute;pointer-events:none;overflow:hidden;left:'+r[0]*100+'vw;top:'+r[1]*100+'vh;width:'+r[2]*100+'vw;height:'+r[3]*100+'vh';
+        if (nativeMap) node.setAttribute('data-crml-map-drawing',String(surface.target));
+        if (surface.target === 2) node.style.borderRadius='50%';
+        surface.segments.forEach(function (s) {
+            var dx = (s[2]-s[0])*r[2]*(nativeMap?1:innerWidth), dy = (s[3]-s[1])*r[3]*(nativeMap?1:innerHeight);
+            var length = Math.sqrt(dx*dx+dy*dy);
+            if (!length) return;
+            var line=lines[usedLines++];if(!line){line=document.createElement('div');lines.push(line);node.appendChild(line);}
+            var c = dx/length, t = dy/length, thickness = s[4]*innerHeight/100, radius = thickness/2;
+            line.setAttribute('data-crml-drawing-segment', '1');
+            // A round cap extends half a stroke beyond BOTH endpoints. Rotating
+            // around the first cap centre keeps adjacent segments joined even
+            // at sharp bends and when a segment is shorter than its thickness.
+            line.style.cssText = 'position:absolute;pointer-events:none;left:'+s[0]*100+'%;top:'+s[1]*100+'%;width:'+(length+thickness)+'px;height:'+thickness+'px;margin-left:'+(-radius)+'px;margin-top:'+(-radius)+'px;background-color:'+color(s[5])+';border-radius:999px;box-shadow:0 0 1px rgba(0,0,0,.45);transform-origin:'+radius+'px 50%;transform:matrix('+c+','+t+','+(-t)+','+c+',0,0)';
+
+        });
+        surface.labels.forEach(function (l) {
+            var label=labels[usedLabels++];if(!label){label=document.createElement('div');labels.push(label);node.appendChild(label);}
+            label.setAttribute('data-crml-drawing-label', '1');
+            label.style.cssText = 'position:absolute;pointer-events:none;white-space:nowrap;left:'+l[0]*100+'%;top:'+l[1]*100+'%;font-family:AlteredGrotesk,sans-serif;font-size:'+l[2]+'vh;line-height:1.2;color:'+color(l[3]);
+            if(label.textContent!==l[4])label.textContent=l[4];
+        });
+        while(lines.length>usedLines)removeNode(lines.pop());while(labels.length>usedLabels)removeNode(labels.pop());
+        node._crmlLines=lines;node._crmlLabels=labels;return node;
+    }
+    function renderMaps(surfaces, sentAt) {
+        // Attach to the existing marker coordinate plane, so native pan/zoom,
+        // menu visibility and clipping apply without changing stock markers.
+        var next = [];
+        [1,2].forEach(function(target) {
+            var parents=document.querySelectorAll(target===1?'.map-view__container__markers':'.sonar-container .sonar');
+            for(var i=0;i<Math.min(parents.length,target===1?2:1);++i) {
+                var parent=parents[i],width=parent.clientWidth,height=parent.clientHeight;
+                if(target===2&&(!width||!height))continue;
+                surfaces.filter(function(surface){return surface.target===target;}).forEach(function(surface) {
+                    var until=sentAt+surface.remaining_ms;if(until<=now())return;
+                    var existing=mapItems.filter(function(item){return item.owner===surface.owner&&item.parent===parent&&item.target===target;})[0];
+                    if(existing&&existing.revision===surface.revision&&existing.node.parentNode===parent&&
+                       (target!==2||(existing.width===width&&existing.height===height))){existing.until=until;next.push(existing);return;}
+                    var shape=surface;
+                    if(target===2){shape={owner:surface.owner,target:2,rect:[0,0,width,height],segments:surface.segments,labels:surface.labels};}
+                    if(existing&&existing.node.parentNode===parent){
+                        build(shape,existing.node);existing.revision=surface.revision;existing.until=until;existing.width=width;existing.height=height;next.push(existing);return;
+                    }
+                    var node=build(shape);
+                    // Keep stock POIs above the passive route; native HUD visibility applies.
+                    parent.insertBefore(node,target===2?parent.querySelector('.sonar__center-player, .poi-container'):null);
+                    next.push({owner:surface.owner,revision:surface.revision,parent:parent,node:node,until:until,target:target,width:width,height:height});
+                });
+            }
+        });
+        mapItems.forEach(function(item){if(next.indexOf(item)<0&&item.node.parentNode)item.node.parentNode.removeChild(item.node);});mapItems=next;
+    }
+    function render(surfaces, sentAt) {
+        var owners = {};
+        surfaces.forEach(function (s) { if (!valid(s) || owners[s.owner+':'+(s.target||0)]) throw new Error('Invalid drawing'); owners[s.owner+':'+(s.target||0)] = true; });
+        if (document.hidden || !document.body) { clear(); return; }
+        renderMaps(surfaces.filter(function(s){return s.target===1||s.target===2;}),sentAt);
+        surfaces=surfaces.filter(function(s){return !s.target;});
+        var size = innerWidth + ':' + innerHeight;
+        if (root && (!document.documentElement.contains(root) || size !== viewport)) clearSchematic();
+        viewport = size;
+        var next = [], previous = items;
+        surfaces.forEach(function (surface) {
+            // The two processes do not share a clock. Start the remaining lease
+            // at request dispatch, conservatively accounting for transport time.
+            var until = sentAt + surface.remaining_ms;
+            if (until <= now()) return;
+            var existing = previous.filter(function (item) { return item.owner === surface.owner; })[0];
+            if (existing && existing.revision === surface.revision) {
+                // The owner can renew the lease without changing geometry.
+                // Every reply still has its own conservative request-start bound.
+                existing.until = until; next.push(existing); return;
+            }
+            var node = build(surface); // Build complete owner frame off-tree.
+            if (!root) {
+                root = document.createElement('div'); root.setAttribute('data-crml-drawing', '1');
+                root.style.cssText = 'position:absolute;left:0;top:0;width:100vw;height:100vh;pointer-events:none;z-index:900';
+                document.body.appendChild(root);
+            }
+            if (existing && existing.node.parentNode === root) root.replaceChild(node, existing.node);
+            else root.appendChild(node);
+            next.push({owner:surface.owner, revision:surface.revision, node:node, until:until});
+        });
+        previous.forEach(function (item) { if (next.indexOf(item)<0 && item.node.parentNode) item.node.parentNode.removeChild(item.node); });
+        items = next;if (!items.length) clearSchematic();
+    }
+    // Optional interactive annotations; passive drawing remains input-transparent.
+    var worldHits=[], extraSonar=[],extraSonarLayer=null;
+    var annotations=[], editor=null, pendingEdit=null, preview=null, nativeMarkers=[], markerFrame=null;
+    var editorSupported=false, editorStyles=document.createElement('style');
+    editorStyles.textContent='html[data-crml-map-interaction] .map-context-menu[data-bind-rmd-visible]{visibility:hidden!important}'+
+        '[data-crml-map-editor] input{font-family:AlteredGrotesk,Arial,sans-serif;font-size:1.85185vh;line-height:2.77778vh}'+
+        '[data-crml-map-editor] input:focus{background:rgba(232,232,232,.12)!important;border-bottom-color:#e8e8e8!important}'+
+        '[data-crml-editor-scroll]{scrollbar-width:thin;scrollbar-color:rgba(232,232,232,.35) transparent}'+
+        '[data-crml-editor-scroll]::-webkit-scrollbar{width:.65vh}'+
+        '[data-crml-editor-scroll]::-webkit-scrollbar-track{background:rgba(232,232,232,.08)}'+
+        '[data-crml-editor-scroll]::-webkit-scrollbar-thumb{background:rgba(232,232,232,.35)}';
+    document.head.appendChild(editorStyles);
+    function tooltipOwnership(){if(editor||preview)document.documentElement.setAttribute('data-crml-map-interaction','1');else document.documentElement.removeAttribute('data-crml-map-interaction');}
+    function fitEditor(){
+        if(!editor)return;var panel=editor.node;
+        panel.style.maxHeight=Math.max(48,innerHeight-24)+'px';
+        panel.style.minWidth=Math.min(280,Math.max(48,innerWidth-24))+'px';
+        panel.style.maxWidth=Math.max(48,innerWidth-24)+'px';
+        var b=panel.getBoundingClientRect();
+        // Never feed a rendered (possibly transformed) position back into CSS.
+        panel.style.left=Math.max(12,Math.min(editor.anchorX,innerWidth-b.width-12))+'px';
+        panel.style.top=Math.max(12,Math.min(editor.anchorY,innerHeight-b.height-12))+'px';
+    }
+    function nativeCard(node){node.className='map-context-menu visible';node.style.cssText='position:fixed;z-index:950;pointer-events:auto;transform:none;opacity:1;font-family:AlteredGrotesk,Arial,sans-serif';}
+    function nativeSection(parent,className,text){var n=document.createElement('div');n.className=className;if(text)n.textContent=text;parent.appendChild(n);return n;}
+    function visible(node) {
+        if(!node||!document.documentElement.contains(node))return false;
+        for(var p=node;p&&p!==document.body;p=p.parentElement){var style=getComputedStyle(p);if(style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)return false;}
+        var box=node.getBoundingClientRect();return box.width>0&&box.height>0;
+    }
+    function closeEditor(){clearPreview();if(editor&&editor.nativeRecord)editor.nativeRecord.hit.style.outline="none";if(editor&&editor.node.parentNode)editor.node.parentNode.removeChild(editor.node);editor=null;pendingEdit=null;nextPoll=0;tooltipOwnership();}
+    function removeNode(node){if(node&&node.parentNode)node.parentNode.removeChild(node);}
+    function clearPreview(){if(preview){removeNode(preview);preview=null;}tooltipOwnership();}
+    var hoveredWorld=null;
+    function selectedWorld(){return !editor&&hoveredWorld&&hoveredWorld.item.editable&&document.documentElement.contains(hoveredWorld.node)&&hoveredWorld.hit.style.display==='block'&&hoveredWorld.hoverBox?hoveredWorld:null;}
+    function clearAnnotations(){hoveredWorld=null;worldHits.forEach(function(r){removeNode(r.hit);});worldHits=[];clearPreview();annotations.forEach(function(a){removeNode(a.layer);});annotations=[];clearNativeMarkers();closeEditor();}
+    function pruneAnnotations(){
+        if(editor&&editor.ready&&now()>=editor.readyUntil)closeEditor();
+        if(annotations.some(function(a){return now()>=a.until||!visible(a.parent);})){clearAnnotations();}
+    }
+    function cssText(node){node.style.fontFamily='AlteredGrotesk,Arial,sans-serif';node.style.fontSize='16px';node.style.fontWeight='400';node.style.letterSpacing='normal';node.style.lineHeight='1.3';node.style.fontStyle='normal';node.style.textShadow='none';node.style.textTransform='none';}
+    function button(label,callback){var b=document.createElement('button');b.type='button';b.textContent=label;cssText(b);b.style.cssText+=';pointer-events:auto;background:transparent;color:#f0f2f4;border:0;border-bottom:1px solid rgba(255,255,255,.3);padding:9px 12px;cursor:pointer';b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();callback();});return b;}
+    function hex(text){var bytes=unescape(encodeURIComponent(text)),out='t';for(var i=0;i<bytes.length;i++)out+=('0'+bytes.charCodeAt(i).toString(16)).slice(-2);return out;}
+    function byteLength(text){return unescape(encodeURIComponent(text)).length;}
+    function openEditor(group,item,x,y,screenX,screenY,nativeRecord){
+        bump(11);
+        closeEditor();
+        if(nativeRecord)nativeRecord.hit.style.outline="2px solid white";
+        var panel=document.createElement('div');panel.setAttribute('data-crml-map-editor','1');
+        nativeCard(panel);panel.style.cssText+=';display:flex;flex-direction:column;box-sizing:border-box;width:37vh;min-width:280px;max-width:90vw;max-height:80vh;min-height:0;overflow-x:hidden;overflow-y:auto;justify-content:flex-start;overscroll-behavior:contain';
+        panel.style.left=Math.max(12,Math.min(screenX+24,innerWidth-340))+'px';panel.style.top=Math.max(12,Math.min(screenY-25,innerHeight-520))+'px';
+        var content=nativeSection(panel,'map-context-menu__heading');
+        panel.setAttribute('data-crml-editor-scroll','1');panel.tabIndex=0;
+        content.style.cssText='box-sizing:border-box;flex:0 0 auto';
+        // Cohtml does not consistently scroll nested native page elements from
+        // CSS overflow alone. Keep wheel movement local, including at the ends.
+        panel.addEventListener('wheel',function(e){
+            e.preventDefault();e.stopPropagation();
+            var unit=e.deltaMode===1?24:(e.deltaMode===2?panel.clientHeight:1);
+            if(isFinite(e.deltaY))panel.scrollTop+=e.deltaY*unit;
+        },{passive:false});
+        panel.addEventListener('keydown',function(e){
+            if(e.target!==panel)return;
+            var amount={ArrowDown:40,ArrowUp:-40,PageDown:panel.clientHeight,PageUp:-panel.clientHeight};
+            if(e.key==='Home')panel.scrollTop=0;
+            else if(e.key==='End')panel.scrollTop=panel.scrollHeight;
+            else if(Object.prototype.hasOwnProperty.call(amount,e.key))panel.scrollTop+=amount[e.key];
+            else return;
+            e.preventDefault();e.stopPropagation();
+        });
+        nativeSection(content,'map-context-menu__title',nativeRecord?'EDIT MARKER '+nativeRecord.id:(item?'EDIT MARKER':'PLACE MARKER'));
+        function field(label,value,max){var holder=document.createElement('label');holder.className='map-context-menu__desc';holder.style.cssText='display:block;margin:1.1vh 0';holder.appendChild(document.createTextNode(label));var input=document.createElement('input');input.type='text';input.value=value;input.maxLength=max;input.setAttribute('autocomplete','off');input.setAttribute('spellcheck','false');input.readOnly=true;input.style.cssText='display:block;box-sizing:border-box;width:100%;height:3.4vh;min-height:30px;padding:.35vh .55vh;background:rgba(232,232,232,.06);color:#e8e8e8;border:0;border-bottom:1px solid rgba(232,232,232,.5);pointer-events:auto;user-select:text;cursor:text';holder.appendChild(input);content.appendChild(holder);return input;}
+        var symbol=field('Symbol',item?item.symbol:(nativeRecord?nativeRecord.id:'*'),1);
+        var name=field('Name',item?item.name:(nativeRecord?'Marker '+nativeRecord.id:'Marker'),63);
+        var description=field('Description',item?item.description:'',127);
+        var range=nativeRecord?{value:'0'}:field('Visible within world units (0 = anywhere)',item?String(item.distance):'0',10);
+        var palette=document.createElement('div');palette.style.cssText='display:flex;gap:.65vh;flex-wrap:wrap;margin:1.1vh 0';content.appendChild(palette);
+        var chosen=item?item.rgba:0xffe09aff,colors=[0xffe09aff,0x7ae8ffff,0x7ae8acff,0xeda9ffff,0xffab70ff,0xffffffff],names=['Yellow','Cyan','Green','Pink','Orange','White'];
+        colors.forEach(function(c,i){var swatch=button(names[i],function(){chosen=c;refreshColors();});swatch.title=names[i];swatch.style.cssText+=';background:'+color(c)+';color:#111;width:30px;height:30px;padding:0;font-size:0';swatch.setAttribute('aria-label',names[i]);swatch._color=c;palette.appendChild(swatch);});
+        function refreshColors(){for(var i=0;i<palette.children.length;++i)palette.children[i].style.outline=palette.children[i]._color===chosen?'2px solid white':'none';}refreshColors();
+        var note=document.createElement('div');note.className='map-context-menu__desc';note.style.cssText='opacity:.65;margin:1vh 0;font-size:1.5vh';note.textContent=nativeRecord?'The mod manages saving these marker details.':(item?'Description appears under the marker and in its hover preview.':'Uses your current height level, including on multi-floor maps.');content.appendChild(note);
+        var error=document.createElement('div');error.setAttribute('data-crml-map-error','1');error.className='map-context-menu__desc';error.style.color='#ffc49d';error.textContent='Acquiring map input...';content.appendChild(error);
+        var actions=document.createElement('div');actions.className='map-context-menu__footer';actions.style.cssText='display:flex;flex:0 0 auto;flex-wrap:wrap;gap:.5vh';panel.appendChild(actions);
+        function submit(action){
+            if(!editor||!editor.ready){error.textContent='Map input is not ready. Try reopening the marker.';return;}
+            var distance=nativeRecord?0:Number(range.value);
+            if(!/^[A-Za-z0-9*+!?]$/.test(symbol.value)){error.textContent='Symbol: use one letter, digit, *, +, ! or ?.';symbol.focus();return;}
+            if(!name.value.trim()){error.textContent='Enter a marker name.';name.focus();return;}
+            try{
+                if(byteLength(name.value)>63){error.textContent='Name is too long (63 UTF-8 bytes maximum).';name.focus();return;}
+                if(byteLength(description.value)>127){error.textContent='Description is too long (127 UTF-8 bytes maximum).';description.focus();return;}
+            }catch(_){error.textContent='Text contains an incomplete character. Remove it and try again.';return;}
+            if(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(name.value+description.value)){error.textContent='Use a single line of text without control characters.';return;}
+            if(!nativeRecord&&(!String(range.value).trim()||!bounded(distance,0,1000000))){error.textContent='Visibility distance must be a number from 0 to 1000000.';return;}
+            if(pendingEdit)return;
+            pendingEdit={group:group,target:(nativeRecord||(item&&item.native))?2:1,action:action,id:nativeRecord?nativeRecord.id:(item?item.id:'0'),rgba:chosen,distance:distance,x:x,y:y,symbol:symbol.value,name:name.value,description:description.value};
+            error.textContent='Saving...';
+        }
+        actions.appendChild(button(nativeRecord||item?'Save':'Place',function(){submit(nativeRecord?4:(item?2:1));}));
+        if(item)actions.appendChild(button(nativeRecord?'Reset details':'Delete',function(){submit(3);}));
+        actions.appendChild(button('Cancel',closeEditor));
+        for(var bi=0;bi<actions.children.length;++bi){var actionButton=actions.children[bi];actionButton.className='options-button';actionButton.style.cssText='width:auto;min-height:3.7vh;border:0;background:transparent;cursor:pointer;font-family:AlteredGrotesk,Arial,sans-serif;font-size:1.85vh;line-height:2.78vh;padding:.5vh 1vh';actionButton.addEventListener('mouseenter',function(){this.classList.add('options-button--focused');this.style.background='#f2f2f2';});actionButton.addEventListener('mouseleave',function(){this.classList.remove('options-button--focused');this.style.background='transparent';});}
+        ['mousedown','mouseup','click','dblclick','wheel','contextmenu','pointerdown','pointerup','keyup','keypress'].forEach(function(type){panel.addEventListener(type,function(e){e.stopPropagation();});});
+        panel.addEventListener('keydown',function(e){e.stopPropagation();if(e.key==='Escape'){e.preventDefault();closeEditor();}});
+        document.body.appendChild(panel);editor={node:panel,owner:group.owner,revision:group.revision,context:group.context,error:error,nativeRecord:nativeRecord,ready:false,nameInput:name,anchorX:screenX+18,anchorY:screenY-25};fitEditor();tooltipOwnership();nextPoll=0;
+    }
+    function renderAnnotations(groups,sentAt){
+        status[0]=1;for(var z=1;z<=8;++z)status[z]=0;for(var z=12;z<=19;++z)status[z]=0;status[22]=0;bump(23);
+        status[1]=Array.isArray(groups)?groups.length:0;
+        for(var z=0;z<6;++z)if(window["ui_map_custom_marker_"+z+"_position"])status[19]|=(1<<z);
+        if(!Array.isArray(groups)||groups.length>4)throw Error('Invalid annotations');
+        groups.forEach(function(g){
+            if(!identity(g.owner)||!identity(g.revision)||!identity(g.context)||!integer(g.remaining_ms,1,600)||!Array.isArray(g.rect)||g.rect.length!==4||!g.rect.every(function(v){return bounded(v,-100000,100000);})||g.rect[2]<=0||g.rect[3]<=0||!Array.isArray(g.items)||g.items.length>128)throw Error('Invalid annotation group');
+            var seen={};g.items.forEach(function(a){var key=(g.version===3?(a.native?'n:':'w:'):'')+a.id;if(!identity(a.id)||seen[key]||!bounded(a.x,0,1)||!bounded(a.y,0,1)||!integer(a.rgba,0,4294967295)||!bounded(a.distance,0,1000000)||typeof a.symbol!=='string'||!/^[A-Za-z0-9*+!?]$/.test(a.symbol)||typeof a.name!=='string'||!a.name.length||byteLength(a.name)>63||typeof a.description!=='string'||byteLength(a.description)>127)throw Error('Invalid annotation');seen[key]=true;});
+        });
+        var parents=document.querySelectorAll('.map-view__container__markers'),parent=null;
+        status[0]=2;status[2]=parents.length;
+        for(var p=0;p<parents.length;++p)if(visible(parents[p])){++status[3];if(!parent)parent=parents[p];}
+        if(!visible(parent)||document.hidden){clearAnnotations();return;}
+        var next=[];
+        groups.forEach(function(g,index){
+            var until=sentAt+g.remaining_ms;if(until<=now())return;
+            var signature=JSON.stringify([g.revision,g.context,g.rect,g.create,g.native_markers,g.items]);
+            var old=annotations.filter(function(a){return a.group.owner===g.owner&&a.parent===parent;})[0];
+            if(old&&old.signature===signature){old.until=until;old.group=g;next.push(old);return;}
+            worldHits=worldHits.filter(function(h){if(h.owner!==g.owner)return true;removeNode(h.hit);return false;});
+            var layer=document.createElement('div');layer.setAttribute('data-crml-annotations',g.owner);var r=g.rect;
+            layer.style.cssText='position:absolute;pointer-events:none;left:'+r[0]+'px;top:'+r[1]+'px;width:'+r[2]+'px;height:'+r[3]+'px;overflow:visible';
+            g.items.forEach(function(a){
+                if(a.native)return;
+                // Use the stock marker hierarchy, including its symbol centering.
+                // Metadata belongs in the hover card, not a permanent label crowding the map.
+                var marker=document.createElement('div');marker.className='custom-markers__marker';
+                marker.setAttribute('data-crml-annotation-visual',a.id);
+                marker.style.cssText='position:absolute;pointer-events:none;left:'+a.x*100+'%;top:'+a.y*100+'%;width:4.62962963vh;height:4.62962963vh;transform:translate(-50%,-50%);font-family:AlteredGrotesk,Arial,sans-serif';
+                var icon=document.createElement('div');icon.className='custom-marker';
+                icon.style.cssText='width:100%;height:100%;border-radius:50%;display:flex;align-items:center;justify-content:center;background:'+color(a.rgba)+';color:#171717;font-size:3.24074074vh;line-height:normal';
+                var symbol=document.createElement('div');symbol.className='custom-marker__number';symbol.textContent=a.symbol;symbol.style.fontWeight='bold';icon.appendChild(symbol);marker.appendChild(icon);
+                var hit=button('',function(){if(!a.editable)return;var b=hit.getBoundingClientRect();openEditor(g,a,a.x,a.y,b.right,b.top);});
+                hit.setAttribute('data-crml-annotation-id',a.id);hit.setAttribute('aria-label',a.name);
+                hit.style.cssText='position:fixed;pointer-events:auto;z-index:940;display:none;margin:0;padding:0;border:0;background:transparent;border-radius:0;cursor:pointer';
+                var record={node:marker,hit:hit,item:a,owner:g.owner,id:a.id,world:true,icon:icon,group:g};
+                ['mousedown','mouseup','pointerdown','pointerup','dblclick'].forEach(function(type){hit.addEventListener(type,function(e){e.stopPropagation();});});
+                hit.addEventListener('mouseenter',function(){hoveredWorld=record;nextPoll=0;record.icon.classList.add('custom-marker--hovered');nativePreview(record);});hit.addEventListener('mouseleave',function(){if(hoveredWorld===record){hoveredWorld=null;nextPoll=0;}record.icon.classList.remove('custom-marker--hovered');clearPreview();});
+                document.body.appendChild(hit);worldHits.push(record);
+                layer.appendChild(marker);
+            });
+            parent.appendChild(layer);
+            next.push({group:g,parent:parent,layer:layer,until:until,signature:signature});
+        });
+        annotations.forEach(function(a){if(next.indexOf(a)<0){clearPreview();removeNode(a.layer);}});annotations=next;
+        worldHits=worldHits.filter(function(r){if(document.documentElement.contains(r.node))return true;removeNode(r.hit);return false;});
+        if(editor&&!annotations.some(function(a){return a.group.owner===editor.owner&&a.group.revision===editor.revision&&a.group.context===editor.context;}))closeEditor();
+        syncNativeMarkers();
+    }
+    // Attach controls only to the game's six custom markers. Native X placement,
+    // deletion and controller actions remain untouched; no second placement mode.
+    function dropNative(record){
+        if(editor&&editor.nativeRecord===record)closeEditor();
+        removeNode(record.hit);removeNode(record.label);
+        if(record.icon)record.icon.style.visibility=record.visibility;
+        clearPreview();
+    }
+    function clearNativeMarkers(){if(markerFrame!==null&&window.cancelAnimationFrame)cancelAnimationFrame(markerFrame);markerFrame=null;nativeMarkers.forEach(dropNative);nativeMarkers=[];}
+    function positionNativeHits(){
+        // Apply zoom first, then measure once, then update hit targets. Interleaved
+        // writes/reads forced a fresh layout for each marker on dense maps.
+        var records=nativeMarkers.concat(worldHits),zoom=window.ui_map_transforms_zoom_range,level=zoom&&zoom.value;
+        records.forEach(function(a){if(a.world&&a.zoom!==level){a.zoom=level;
+            a.node.style.display=level===0?'none':'';
+            a.node.style.transform='translate(-50%,-50%) scale('+(level===2?.625:1)+')';
+        }});
+        var nodes=[],bounds=[];
+        function ancestor(node){
+            if(!node||node===document.body)return {visible:true,left:0,top:0,right:innerWidth,bottom:innerHeight};
+            var index=nodes.indexOf(node);if(index>=0)return bounds[index];
+            var outer=ancestor(node.parentElement),style=getComputedStyle(node);
+            var result={visible:outer.visible&&style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity)!==0,
+                left:outer.left,top:outer.top,right:outer.right,bottom:outer.bottom};
+            var clipX=/hidden|clip|scroll|auto/.test(style.overflowX||style.overflow),clipY=/hidden|clip|scroll|auto/.test(style.overflowY||style.overflow);
+            if(result.visible&&(clipX||clipY)){var r=node.getBoundingClientRect();
+                if(clipX){result.left=Math.max(result.left,r.left);result.right=Math.min(result.right,r.right);}
+                if(clipY){result.top=Math.max(result.top,r.top);result.bottom=Math.min(result.bottom,r.bottom);}
+            }
+            nodes.push(node);bounds.push(result);return result;
+        }
+        var measured=records.map(function(a){
+            if(!document.documentElement.contains(a.node))return null;
+            var outer=ancestor(a.node.parentElement),style=getComputedStyle(a.node);
+            if(!outer.visible||style.display==='none'||style.visibility==='hidden'||Number(style.opacity)===0)return null;
+            var b=a.node.getBoundingClientRect(),left=Math.max(outer.left,b.left),top=Math.max(outer.top,b.top),right=Math.min(outer.right,b.right),bottom=Math.min(outer.bottom,b.bottom);
+            if(!b.width||!b.height||right<=left||bottom<=top)return null;
+            return {box:b,clip:[top-b.top,right-b.left,bottom-b.top,left-b.left]};
+        });
+        records.forEach(function(a,i){var hit=a.hit,m=measured[i],display=m?'block':'none';
+            a.hoverBox=m?[(m.box.left+m.clip[3])/innerWidth,(m.box.top+m.clip[0])/innerHeight,(m.box.left+m.clip[1])/innerWidth,(m.box.top+m.clip[2])/innerHeight]:null;
+            if(m){var b=m.box,geometry=[b.left,b.top,b.width,b.height].concat(m.clip).join(':');
+                if(geometry!==a.geometry){a.geometry=geometry;hit.style.left=b.left+'px';hit.style.top=b.top+'px';hit.style.width=b.width+'px';hit.style.height=b.height+'px';hit.style.fontSize=(b.height*.65)+'px';hit.style.clip='rect('+m.clip.join('px,')+'px)';}
+            }
+            if(hit.style.display!==display)hit.style.display=display;
+        });
+    }
+    function nativeHitFrame(){markerFrame=null;if(stopped||(!nativeMarkers.length&&!worldHits.length))return;positionNativeHits();if(window.requestAnimationFrame)markerFrame=requestAnimationFrame(nativeHitFrame);}
+    function nativePreview(record){
+        bump(9);
+        if(editor)return;clearPreview();var b=record.node.getBoundingClientRect(),a=record.item;
+        preview=document.createElement('div');preview.setAttribute('data-crml-marker-preview','1');nativeCard(preview);
+        preview.style.cssText+=';z-index:949;pointer-events:none';
+        preview.style.left=Math.max(8,Math.min(b.right+18,innerWidth-innerHeight*.38))+'px';preview.style.top=Math.max(8,Math.min(b.top,innerHeight-150))+'px';
+        var heading=nativeSection(preview,'map-context-menu__heading');
+        nativeSection(heading,'map-context-menu__title',a?a.name:'Marker '+record.id);
+        if(a&&a.description)nativeSection(heading,'map-context-menu__desc',a.description);
+        var footer=nativeSection(preview,'map-context-menu__footer');
+        nativeSection(footer,'map-context-menu__footer__action__label',record.world?'Click to edit; use Remove Marker to delete':'Click to edit marker');
+        document.body.appendChild(preview);tooltipOwnership();
+    }
+    function nativeMarkerState(node){
+        // Native bindings can render values without changing inline style/text.
+        // Read the stock template's model family, never evaluate attribute code.
+        var binding=node.getAttribute('data-bind-style-left')||'',slot=/ui_map_custom_marker_([0-5])_position/.exec(binding);
+        if(slot){
+            ++status[15];
+            try{
+                var prefix='ui_map_custom_marker_'+slot[1]+'_',position=window[prefix+'position'],number=window[prefix+'number'],hidden=window[prefix+'hidden'],zoom=window.ui_map_transforms_zoom_range;
+                if(!position||!number||!hidden||!position.value||!integer(number.value,1,6)||typeof hidden.value!=='boolean'){++status[12];return null;}
+                ++status[16];
+                return {id:String(number.value),x:position.value.x,y:position.value.y,hidden:hidden.value||!!(zoom&&zoom.value===0)};
+            }catch(_){return null;}
+        }
+        var text=node.querySelector('.custom-marker__number');
+        return {id:text?text.textContent.trim():'',x:parseFloat(node.style.left),y:parseFloat(node.style.top),hidden:node.classList.contains('custom-markers__marker--hidden')};
+    }
+    var sonarMarkers=[],sonarUntil=0;
+    function dropSonar(record){
+        removeNode(record.label);record.number.style.visibility=record.visibility;
+        record.node.style.backgroundColor=record.background;
+    }
+    function clearSonarMarkers(){sonarMarkers.forEach(dropSonar);sonarMarkers=[];sonarUntil=0;}
+    function renderSonarMetadata(groups,sentAt){
+        if(!Array.isArray(groups)||groups.length>4)throw Error('Invalid native metadata');
+        var group=groups[0],next=[];
+        if(!group){clearSonarMarkers();return;}
+        if(!identity(group.owner)||!integer(group.remaining_ms,1,600)||!Array.isArray(group.items)||group.items.length>24)throw Error('Invalid native metadata group');
+        group.items.forEach(function(a){if(!/^[1-6]$/.test(a.id)||!bounded(a.px,-100000,100000)||!bounded(a.py,-100000,100000)||!integer(a.rgba,0,4294967295)||typeof a.symbol!=='string'||!/^[A-Za-z0-9*+!?]$/.test(a.symbol))throw Error('Invalid native metadata item');});
+        sonarUntil=sentAt+group.remaining_ms;
+        // Decorate the game's own POIs. Their rotation, range, elevation and
+        // clipping stay under the native sonar renderer's control.
+        var nodes=document.querySelectorAll('.poi__custom-marker');
+        for(var i=0;i<nodes.length;++i){
+            var node=nodes[i],number=node.querySelector('.custom-marker__number');if(!number)continue;
+            var match=/hud_sonar_poi_([0-9]+)_tracking_number/.exec(number.getAttribute('data-bind-value')||'');if(!match)continue;
+            var prefix='hud_sonar_poi_'+match[1]+'_',tracking=window[prefix+'tracking_number'],hidden=window[prefix+'is_not_custom_marker'];
+            if(!tracking||!hidden||hidden.value!==false||!integer(tracking.value,1,6))continue;
+            var id=String(tracking.value),item=group.items.filter(function(a){return a.id===id;})[0];if(!item)continue;
+            // Slot reuse must not give a newly placed marker an old decoration.
+            var matches=false;
+            for(var slot=0;slot<6;++slot){var base='ui_map_custom_marker_'+slot+'_',n=window[base+'number'],p=window[base+'position'];
+                if(n&&n.value===tracking.value&&p&&p.value&&Math.abs(p.value.x-item.px)<.5&&Math.abs(p.value.y-item.py)<.5){matches=true;break;}}
+            if(!matches)continue;
+            var signature=JSON.stringify([group.owner,item]);
+            var old=sonarMarkers.filter(function(r){return r.node===node&&r.signature===signature;})[0];
+            if(old){next.push(old);continue;}
+            sonarMarkers.filter(function(r){return r.node===node;}).forEach(function(r){dropSonar(r);r.dropped=true;});
+            var record={node:node,number:number,visibility:number.style.visibility,background:node.style.backgroundColor,signature:signature};
+            var label=document.createElement('span');label.setAttribute('data-crml-sonar-marker',id);label.textContent=item.symbol;
+            label.style.cssText='pointer-events:none;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:inherit;font-weight:bold;color:#171717';
+            number.style.visibility='hidden';node.style.backgroundColor=color(item.rgba);node.appendChild(label);record.label=label;next.push(record);
+        }
+        sonarMarkers.forEach(function(r){if(!r.dropped&&next.indexOf(r)<0)dropSonar(r);});sonarMarkers=next;
+    }
+    function clearExtraSonar(){extraSonar.forEach(function(r){removeNode(r.node);});extraSonar=[];removeNode(extraSonarLayer);extraSonarLayer=null;}
+    function renderExtraSonar(groups,sentAt){
+        if(!Array.isArray(groups)||groups.length>4)throw Error('Invalid sonar annotations');
+        var parent=document.querySelector('.sonar-container .sonar'),next=[],previous={};
+        extraSonar.forEach(function(r){previous[r.owner+':'+r.id]=r;});
+        if(!parent||document.hidden||!groups.length){clearExtraSonar();return;}
+        if(!extraSonarLayer||extraSonarLayer.parentNode!==parent){clearExtraSonar();extraSonarLayer=document.createElement('div');extraSonarLayer.setAttribute('data-crml-sonar-annotations','1');extraSonarLayer.style.cssText='position:absolute;left:0;top:0;width:100%;height:100%;border-radius:50%;overflow:hidden;pointer-events:none';parent.insertBefore(extraSonarLayer,parent.querySelector('.sonar__center-player, .poi-container'));}
+        groups.forEach(function(g){
+            if(!identity(g.owner)||!integer(g.remaining_ms,1,600)||!Array.isArray(g.items)||g.items.length>128)throw Error('Invalid sonar annotations');
+            g.items.forEach(function(a){
+                if(!identity(a.id)||!bounded(a.x,0,1)||!bounded(a.y,0,1)||!integer(a.rgba,0,4294967295)||!(/^[A-Za-z0-9*+!?]$/.test(a.symbol)))throw Error('Invalid sonar marker');
+                var r=previous[g.owner+':'+a.id];if(r&&r.parent!==parent)r=null;
+                if(!r){var n=document.createElement('div');n.setAttribute('data-crml-extra-sonar',a.id);n.className='custom-marker poi__custom-marker';n.style.cssText='position:absolute;pointer-events:none;width:1.57407407vh;height:1.57407407vh;display:flex;align-items:center;justify-content:center;line-height:normal;border-radius:50%;transform:translate(-50%,-50%);font-family:AlteredGrotesk,Arial,sans-serif;font-size:1.2962963vh;font-weight:bold;color:#171717';var glyph=document.createElement('div');glyph.className='custom-marker__number';n.appendChild(glyph);extraSonarLayer.appendChild(n);r={node:n,parent:parent,owner:g.owner,id:a.id};}
+                if(r.x!==a.x){r.x=a.x;r.node.style.left=a.x*100+'%';}if(r.y!==a.y){r.y=a.y;r.node.style.top=a.y*100+'%';}if(r.rgba!==a.rgba){r.rgba=a.rgba;r.node.style.backgroundColor=color(a.rgba);}if(r.node.firstChild.textContent!==a.symbol)r.node.firstChild.textContent=a.symbol;r.until=sentAt+g.remaining_ms;next.push(r);
+            });
+        });
+        extraSonar.forEach(function(r){if(next.indexOf(r)<0)removeNode(r.node);});extraSonar=next;
+    }
+    function syncNativeMarkers(){
+        // Only the retained host-selected owner advertises native marker editing.
+        status[0]=3;var owner=annotations.filter(function(a){return a.group.native_markers;})[0],next=[];
+        if(owner){var nodes=owner.parent.querySelectorAll('.custom-markers__marker[data-bind-style-left]');status[4]=nodes.length;
+            for(var i=0;i<Math.min(nodes.length,6);++i){var node=nodes[i],icon=node.querySelector('.custom-marker'),state=nativeMarkerState(node);
+                var raw=node.querySelector('.custom-marker__number');if(raw&&/^[1-6]$/.test(raw.textContent.trim()))++status[17];
+                if(isFinite(parseFloat(node.style.left))&&isFinite(parseFloat(node.style.top)))++status[18];
+                if(!state)continue;++status[5];
+                var id=state.id,px=state.x,py=state.y,r=owner.group.rect;
+                if(!/^[1-6]$/.test(id)||!bounded(px,-100000,100000)||!bounded(py,-100000,100000)){++status[7];continue;}
+                if(state.hidden){++status[6];continue;}if(!visible(node)){++status[14];continue;}
+                var x=(px-r[0])/r[2],y=(py-r[1])/r[3];if(!bounded(x,0,1)||!bounded(y,0,1)){++status[13];continue;}
+                var item=owner.group.items.filter(function(a){return a.native&&a.id===id&&Math.abs((a.x-x)*r[2])<.5&&Math.abs((a.y-y)*r[3])<.5;})[0]||null;
+                var signature=JSON.stringify([owner.group.owner,owner.group.context,owner.group.revision,id,px,py,item]);
+                var old=nativeMarkers.filter(function(a){return a.node===node&&a.signature===signature;})[0];
+                if(old){old.group=owner.group;next.push(old);continue;}
+                // Restore an old decoration before recording the original style.
+                nativeMarkers.filter(function(a){return a.node===node;}).forEach(function(a){dropNative(a);a.dropped=true;});
+                var record={node:node,icon:icon,visibility:icon?icon.style.visibility:'',id:id,x:x,y:y,item:item,group:owner.group,signature:signature};
+                (function(record){
+                    var hit=button('',function(){bump(10);if(record.item&&!record.item.editable)return;if(editor&&editor.nativeRecord===record){closeEditor();return;}var b=record.hit.getBoundingClientRect();openEditor(record.group,record.item,record.x,record.y,b.right,b.top,record);});
+                    record.hit=hit;hit.setAttribute('data-crml-native-marker',record.id);hit.setAttribute('aria-label',item?item.name:'Edit marker '+record.id);
+                    hit.style.cssText+=';position:fixed;display:none;box-sizing:border-box;margin:0;transform:none;padding:0;border:0;border-radius:50%;background:transparent;z-index:940';
+                    if(record.item){hit.textContent=record.item.symbol;hit.style.background=color(record.item.rgba);hit.style.color='#10141c';hit.style.fontWeight='700';if(record.icon)record.icon.style.visibility='hidden';
+                        var label=document.createElement('div');cssText(label);label.textContent=record.item.name;label.style.cssText+=';position:absolute;left:50%;top:100%;transform:translateX(-50%);white-space:nowrap;pointer-events:none;font-size:14px;color:'+color(record.item.rgba)+';background:rgba(9,11,17,.8);padding:3px 7px';node.appendChild(label);record.label=label;
+                    }
+                    ['mousedown','mouseup','dblclick','pointerdown','pointerup'].forEach(function(type){hit.addEventListener(type,function(e){e.stopPropagation();});});
+                    hit.addEventListener('mouseenter',function(){nativePreview(record);});hit.addEventListener('mouseleave',clearPreview);document.body.appendChild(hit);
+                }(record));next.push(record);
+            }
+        }
+        nativeMarkers.forEach(function(a){if(next.indexOf(a)<0&&!a.dropped)dropNative(a);});nativeMarkers=next;
+        if(preview&&next.length===0&&!selectedWorld())clearPreview();
+        status[8]=next.length;status[0]=4;positionNativeHits();
+        if((next.length||worldHits.length)&&markerFrame===null&&window.requestAnimationFrame)markerFrame=requestAnimationFrame(nativeHitFrame);
+        if(document.elementFromPoint)next.forEach(function(a){var b=a.hit.getBoundingClientRect(),target=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);if(!a.hit.contains(target))++status[22];});
+    }
+    function sendEdit(){
+        var edit=pendingEdit;if(!edit)return;pendingEdit=null;
+        var xhr=new XMLHttpRequest(),submittedEditor=editor;request=xhr;var g=edit.group;
+        var fields=[page,++sequence,g.owner,g.revision,g.context,edit.action,edit.id,edit.rgba,edit.distance,edit.x,edit.y,hex(edit.symbol),hex(edit.name),hex(edit.description)];if(g.version===3)fields.push(edit.target);
+        xhr.open('GET','coui://base/crml/drawing/v1/'+(g.version===3?'edit2/':'edit/')+fields.join('/'),true);xhr.timeout=1000;
+        function done(){if(request!==xhr)return;request=null;xhr.onload=xhr.onerror=xhr.ontimeout=xhr.onabort=null;
+            if(editor&&editor===submittedEditor){if(xhr.status===202)closeEditor();else editor.error.textContent='Could not apply this edit. Close and reopen the marker, then try again.';}nextPoll=0;}
+        xhr.onload=done;xhr.onerror=done;xhr.ontimeout=done;xhr.onabort=done;try{xhr.send();}catch(_){done();}
+    }
+    function poll() {
+        if (stopped) return;
+        try{prune();}catch(error){failedStage(error);clear();}
+        if (request || document.hidden || now() < nextPoll) return;
+        if(pendingEdit){sendEdit();return;}
+        var xhr = new XMLHttpRequest(), sentAt = now(), focusedEditor=editor,hover=selectedWorld(); request = xhr;
+        xhr.open('GET', 'coui://base/crml/drawing/v1/'+page+'/'+(++sequence)+'?status='+status.join(',')+(hover?'&hover='+[hover.owner,hover.group.revision,hover.group.context,hover.id].join(',')+'&hover_box='+hover.hoverBox.join(','):'')+(editor?'&editor='+[editor.owner,editor.revision,editor.context].join(','):''), true); xhr.timeout = 1000;
+        function release() { xhr.onload=xhr.onerror=xhr.ontimeout=xhr.onabort=null; if(request===xhr)request=null; }
+        function fail() { if(request!==xhr)return;release();clear();nextPoll=now()+500; }
+        xhr.onerror=fail;xhr.ontimeout=fail;xhr.onabort=fail;
+        xhr.onload=function () {
+            if (request!==xhr || stopped) return;
+            if(xhr.status===403 || xhr.status===409 || xhr.status===503){stop();return;}
+            if(xhr.status!==200){fail();return;}
+            try {
+                if(xhr.responseText.length>1048576)throw new Error('Drawing response too large');
+                var packet=JSON.parse(xhr.responseText);
+                if(!packet || !Array.isArray(packet.surfaces) || packet.surfaces.length>4)throw new Error('Invalid drawing packet');
+                editorSupported=packet.editor_supported===true;
+                render(packet.surfaces,sentAt);renderAnnotations(packet.annotations||[],sentAt);renderSonarMetadata(packet.native_metadata||[],sentAt);renderExtraSonar(packet.sonar_annotations||[],sentAt);
+                if(editor&&editor===focusedEditor){var ready=editorSupported&&packet.editing===true&&now()<sentAt+200;
+                    var fields=editor.node.querySelectorAll('input');for(var fi=0;fi<fields.length;++fi)fields[fi].readOnly=!ready;
+                    if(ready&&!editor.ready){editor.error.textContent='';editor.nameInput.focus();editor.nameInput.select();}
+                    if(!ready)editor.error.textContent='Map text editing is unavailable in this runtime.';
+                    editor.ready=ready;editor.readyUntil=sentAt+200;
+                }release();nextPoll=now()+((packet.sonar_active===true||extraSonar.length||mapItems.some(function(m){return m.target===2;}))?0:(items.length||mapItems.length||annotations.length||sonarMarkers.length)?67:500);
+            }catch(error){failedStage(error);fail();}
+        };
+        try{xhr.send();}catch(_){fail();}
+    }
+    function blur(){hoveredWorld=null;closeEditor();nextPoll=0;}
+    function stop() {
+        if(stopped)return;stopped=true;if(timer!==null)clearInterval(timer);
+        window.removeEventListener('pagehide',stop);window.removeEventListener('unload',stop);window.removeEventListener('blur',blur);removeNode(editorStyles);
+        if(request){var xhr=request;request=null;xhr.onload=xhr.onerror=xhr.ontimeout=xhr.onabort=null;xhr.abort();}
+        clear();
+    }
+    window.__crmlDrawing={stop:stop};
+    window.addEventListener('blur',blur);window.addEventListener('pagehide',stop);window.addEventListener('unload',stop);
+    timer=setInterval(poll,33);poll();
+}());
+</script>

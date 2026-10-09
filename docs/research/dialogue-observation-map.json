@@ -1,0 +1,410 @@
+{
+  "schema": 1,
+  "title": "Dialogue source, current timed segment, subtitle UI and audio timing",
+  "executable_sha256": "4f6596b08bb5bc7fe4150cf5b9f71d7bae87eea02d66627c03a5e05ffe84ea62",
+  "status": "Fingerprinted static trace and bounded opt-in selected-segment diagnostic. No dialogue SDK capability or proven presentation/completion/interruption event.",
+  "documentation": "../dialogue-observation.md",
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1e493bc",
+      "target": "0x1e4cb20",
+      "label": "Subtitle system registration selects dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4cc6b",
+      "target": "0x1e4a930",
+      "label": "Dispatcher forwards two queries and five environment arguments"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4aa99",
+      "target": "0x1884100",
+      "label": "Gather primary active subtitle records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4aaab",
+      "target": "0x1884100",
+      "label": "Gather second active subtitle environment"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4aace",
+      "target": "0x1e4c930",
+      "label": "Remove UI entries absent from eligible source records"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4ac7f",
+      "target": "0x1e4a630",
+      "label": "Update current timed text segment"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4acfc",
+      "target": "0x1e49a10",
+      "label": "Publish changed subtitle state to fact dictionary"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4ab0c",
+      "target": "0x1e498b0",
+      "label": "Subtitle option off applies per-source forced predicate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4abe7",
+      "target": "0x1886010",
+      "label": "Speaker identity follows actual active source resource"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4a6fd",
+      "target": "0x16a71c0",
+      "label": "Resolve current source timed text segment array"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e4a7b2",
+      "target": "0x1e4fc10",
+      "label": "Convert selected text segment for UI"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1e49cd1",
+      "target": "0x17f65e0",
+      "label": "Write copied formatted current line to fact dictionary"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1884617",
+      "target": "0x1885ee0",
+      "label": "Allocate source record using incremented counter"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1884633",
+      "target": "0x1884ca0",
+      "label": "Append source record to active vector"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x18850f4",
+      "target": "0x1884690",
+      "label": "FixedTime subtitle update dispatcher invokes worker"
+    },
+    {
+      "kind": "jump_rel32",
+      "rva": "0x336b70b",
+      "target": "0x336b490",
+      "label": "Audio timing dispatcher forwards active subtitles and shared playback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x336b516",
+      "target": "0x1b3ba50",
+      "label": "Query shared playback presence by source field 0x4c"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x336b53d",
+      "target": "0x1b3b9a0",
+      "label": "Query shared playback time by source field 0x4c"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x336b55c",
+      "target": "0x34371f0",
+      "label": "Optional audio playing ID timing query"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b4c932",
+      "target": "0x1b46980",
+      "label": "Separate dialogue chain removal path"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2772f26",
+      "target": "0x2764d00",
+      "label": "Conversation graph current line update worker"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1b4f4fb",
+      "target": "0x1b4c940",
+      "label": "Playback registration selects dispatcher"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b4c9fc",
+      "target": "0x1b45db0",
+      "label": "Playback dispatcher invokes state update worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x3395110",
+      "target": "0x1b3dfd0",
+      "label": "Lua dialogue stop queues a command"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b3e0bb",
+      "target": "0x1b50e90",
+      "label": "Command queue copies a 0x78-byte command before incrementing count"
+    }
+  ],
+  "instruction_checks": [
+    {
+      "rva": "0x1e4a630",
+      "bytes": "48895c241048897424185557415441564157488bec4883ec604d8bf8488bf248",
+      "label": "Exact October hotfix selected-segment worker prologue required by diagnostic hook"
+    },
+    {
+      "rva": "0x18845c8",
+      "bytes": "f00fc11510814504",
+      "label": "Atomic global source allocation counter increment"
+    },
+    {
+      "rva": "0x1885fb1",
+      "bytes": "41897660",
+      "label": "Constructor stores allocation counter at source+0x60"
+    },
+    {
+      "rva": "0x1e4ab19",
+      "bytes": "8b774c",
+      "label": "UI looks up source+0x4c, not allocation counter"
+    },
+    {
+      "rva": "0x1e4ab66",
+      "bytes": "3933",
+      "label": "UI record starts with source matching key"
+    },
+    {
+      "rva": "0x1e4ab5a",
+      "bytes": "486bc958",
+      "label": "UI record stride is 0x58"
+    },
+    {
+      "rva": "0x1884128",
+      "bytes": "486bf870",
+      "label": "Source record stride is 0x70"
+    },
+    {
+      "rva": "0x1e4a720",
+      "bytes": "4869d128010000",
+      "label": "Timed source text row stride is 0x128"
+    },
+    {
+      "rva": "0x1e4a727",
+      "bytes": "c4a1782f8c0220010000",
+      "label": "Segment lower time bound at row+0x120"
+    },
+    {
+      "rva": "0x1e4a733",
+      "bytes": "c4a17a10840224010000",
+      "label": "Segment upper time bound at row+0x124"
+    },
+    {
+      "rva": "0x1e4a786",
+      "bytes": "3b4750",
+      "label": "Current segment index compared at UI record+0x50"
+    },
+    {
+      "rva": "0x1e4a78f",
+      "bytes": "894750",
+      "label": "Current segment index stored at UI record+0x50"
+    },
+    {
+      "rva": "0x1e49ca8",
+      "bytes": "498d4e30",
+      "label": "Rendered line string begins at UI record+0x30"
+    },
+    {
+      "rva": "0x1e4a75c",
+      "bytes": "488379180f",
+      "label": "Rendered line storage uses capacity threshold 15"
+    },
+    {
+      "rva": "0x1884890",
+      "bytes": "c5fa104054",
+      "label": "Expiration reads source current time+0x54"
+    },
+    {
+      "rva": "0x1884895",
+      "bytes": "c5f82f4050",
+      "label": "Expiration compares source duration+0x50"
+    },
+    {
+      "rva": "0x336b58c",
+      "bytes": "c57a114354",
+      "label": "Audio loss can write duration into source current time"
+    },
+    {
+      "rva": "0x1884855",
+      "bytes": "c4c17a1001",
+      "label": "Fallback elapsed increment reads FixedTime first float"
+    },
+    {
+      "rva": "0x188485a",
+      "bytes": "c4c17a584e34",
+      "label": "Fallback adds FixedTime to source current time"
+    }
+  ],
+  "declarations": [
+    {
+      "signature_rva": "0x4871cb0",
+      "signature_sha256": "b0d02d0ebc581afad0211749c3aa3f10fb087e092b7feba31d27d4068d02462d",
+      "name": "coregame::subtitle_update::system"
+    },
+    {
+      "signature_rva": "0x4a20340",
+      "signature_sha256": "59174720e37749f51ccc71827d1ae6b8d211b9f1f93e32c5d360a8362a0b8ca6",
+      "name": "heron::ui_subtitles::system"
+    },
+    {
+      "signature_rva": "0x4cf4610",
+      "signature_sha256": "7138347bdf3b6db20639280fcedd2e16bfcf028bd4fa5e17df10e755d75d74d2",
+      "name": "heron::conversation_graph::update_dialogue_line::system"
+    },
+    {
+      "signature_rva": "0x5162e60",
+      "signature_sha256": "4106dfec2c7f9ee8a134b56bd5024fc4d47f0b67613849a11a1797de20704018",
+      "name": "sndencore::subtitle_audio_timing::system"
+    }
+  ],
+  "layouts": {
+    "ActiveSubtitles": {
+      "data": "0x10",
+      "count": "0x18",
+      "stride": "0x70"
+    },
+    "source_record": {
+      "resource_reference": "0x30",
+      "optional_audio_id": "0x48",
+      "ui_and_shared_playback_key": "0x4c",
+      "duration": "0x50",
+      "elapsed": "0x54",
+      "fallback_flag": "0x58",
+      "timing_mode": "0x5c",
+      "allocation_counter": "0x60"
+    },
+    "SubtitleState": {
+      "data": "0x00",
+      "count": "0x08",
+      "filter_flag": "0x10",
+      "dirty": "0x11",
+      "stride": "0x58"
+    },
+    "ui_record": {
+      "source_key": "0x00",
+      "speaker_key": "0x04",
+      "formatted_line_string": "0x30",
+      "segment_index": "0x50",
+      "forced": "0x54"
+    }
+  },
+  "semantics": {
+    "allocation_counter": "Atomic process-local 32-bit allocation counter. Wrap, reload and context lifetime require host epoch; it is not a campaign identity.",
+    "source_key": "UI and shared audio timing correlate by source+0x4c; not interchangeable with source allocation counter.",
+    "segment": "Selected by current time in [row+0x120,row+0x124); same source can yield several segments. Text equality cannot identify an occurrence.",
+    "completion": "Source expiry current>=duration is insufficient: audio timing loss can force current=duration. UI removal also covers option filtering. No completed/interrupted flag proven.",
+    "speaker": "Source resource provides speaker localization key; UI may omit it when speaker display is disabled and the line is not forced.",
+    "presentation": "Only the selected current segment is eligible. Active resource presence, audio posted/playing status and UI fact assignment do not prove on-screen visibility or audibility.",
+    "context": "No campaign/save lineage established here. Time is source-relative and can be audio-driven; not a verified global simulation timestamp."
+  },
+  "ui_contract": {
+    "slots": [
+      0,
+      1,
+      2
+    ],
+    "fields": [
+      "line",
+      "speaker",
+      "forced",
+      "narrative_graph_type"
+    ],
+    "visibility": "hud_visibility_subtitles",
+    "options": [
+      "interface_subtitles_size",
+      "interface_subtitles_speaker_names"
+    ],
+    "speaker_render": "engine.translate(ui_subtitle_N_speaker.value)",
+    "text_render": "ui_subtitle_N_line.value",
+    "visibility_warning": "HUD parent and renderer presentation acknowledgements still need tracing; model values may be hidden."
+  },
+  "probe_plan": {
+    "mode": "bounded read-only opt-in diagnostic for selected-segment changes only",
+    "installed_site": {
+      "worker_rva": "0x1e4a630",
+      "caller_return_rva": "0x1e4ac84",
+      "caller_instruction_bytes": "e8acf9ffff",
+      "result": "Worker AL changed result; copied post-call while producer-owned UI and source records are live",
+      "scope": "selected current segment only; no presentation, audibility, end reason or guest access"
+    },
+    "sites": [
+      {
+        "rva": "0x1884550",
+        "phase": "after native return",
+        "capture": "allocation result and source matching key; no retained resource pointers"
+      },
+      {
+        "rva": "0x1e4a630",
+        "phase": "after native return while producer-owned records remain valid",
+        "capture": "source allocation, source playback key, selected segment index, bounded copied line, source relative time; omit unselected resource segments"
+      },
+      {
+        "rva": "0x1e49a10",
+        "phase": "after native return",
+        "capture": "published slot mapping, option state and actual visibility evidence independently"
+      },
+      {
+        "rva": "0x336b490",
+        "phase": "before/after native call",
+        "capture": "timing transition only; never infer interruption from disappearance"
+      }
+    ],
+    "limits": {
+      "max_sources_per_sample": 64,
+      "max_events_per_batch": 64,
+      "max_utf8_bytes_per_field": 4096,
+      "max_retained_events": 256,
+      "max_admitted_changed_samples": 4096,
+      "capture_ms": 600000
+    },
+    "required_before_runtime": [
+      "Dispatcher phase/lifetime and thread observation proof",
+      "Localized speaker copy boundary",
+      "Allocation wrap and world/context epoch behavior",
+      "Explicit successful end versus stop/cancel producer",
+      "Render presentation acknowledgement and subtitle-disabled audio eligibility",
+      "Semantic campaign identity and simulation clock correlation"
+    ],
+    "qualification_cases": [
+      "Repeated identical lines and overlapping speakers",
+      "Multiple timed segments under one source allocation",
+      "Ordinary end versus dialogue cancellation",
+      "Subtitles disabled, forced subtitle, speaker names disabled and hidden HUD",
+      "Paused time, scene transition, reload and capture overflow"
+    ]
+  },
+  "end_reason_followup": {
+    "playback_worker_rva": "0x1b45db0",
+    "stop_binding_rva": "0x3394fb0",
+    "stop_command_writer_rva": "0x1b3dfd0",
+    "command_stride": "0x78",
+    "limitation": "Stop is queued intent, not an acknowledged end event. Trace queue consumption and successful playback completion before assigning interruption reasons."
+  },
+  "runtime_evidence": {
+    "scope": "Bounded native selected-segment observations on this executable fingerprint.",
+    "finding": "Changed-result invocations produced copied nonempty selected segments and empty selections. Empty selections are rejected as text samples; they do not identify why a line ended.",
+    "limitations": [
+      "Selected model text is not proof of final rendering or audibility.",
+      "Speaker identity, completion and cancellation remain unqualified.",
+      "An observation log ending with active totals does not establish clean observer shutdown."
+    ]
+  }
+}

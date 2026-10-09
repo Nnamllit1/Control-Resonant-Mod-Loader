@@ -13,6 +13,7 @@ struct BodySnapshot {
 // Guarded observations, not ownership acquisition or callable mod handles.
 // Caller must gate both executable and PhysX fingerprints and use an engine callback.
 uint32_t body_slot_count(uintptr_t owner) noexcept;
+bool read_body_slot_count(uintptr_t owner,uint32_t& out) noexcept;
 BodyRead read_body(uintptr_t owner, uint32_t index, uintptr_t dynamic_vtable,
                    BodySnapshot& result) noexcept;
 enum class MotionRead : uint8_t { ok, arguments, target, phase, scalar, changed, memory };

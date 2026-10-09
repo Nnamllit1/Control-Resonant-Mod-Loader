@@ -5,6 +5,11 @@ description: Reference for CONTROL Resonant Wasm mod manifests, lifecycle functi
 
 # Package format and API
 
+This reference covers the **Alpha 5 development source checkpoint**. New APIs
+require its matching runtime build. For Alpha 4.5 downloads, use the reference
+bundled with that SDK; ABI 1 compatibility does not add newer imports to older
+runtimes.
+
 ## Manifest
 
 `mod.ini` is a strict UTF-8/ASCII-compatible `key=value` file without sections. Blank lines and lines beginning with `#` are ignored. Duplicate and unknown fields are errors.
@@ -20,13 +25,33 @@ capabilities=log
 | --- | --- |
 | `id` | Required, 1–64 lowercase letters, digits, `_` or `-`; unique within the host |
 | `abi` | Required, exactly `1` |
+| `name` | Optional display name, 1–95 UTF-8 bytes; no control characters. Defaults to `id` in the settings UI. |
+| `version` | Optional mod semantic version without `v`, at most 96 ASCII bytes; independent of the runtime version and guest ABI. |
+| `author` | Optional author credit, 1–95 UTF-8 bytes; no control characters. |
+| `min_runtime` | Optional minimum CRML semantic version, without `v`, at most 96 ASCII bytes. Available in development builds after Alpha 4.3. |
 | `module` | Required, local `.wasm` filename; no directories or absolute paths |
-| `capabilities` | Empty/omitted, or a comma-separated list of `log`, `input.actions`, `input.buttons`, `input.motion`, `player.noclip`, `player.visibility`, `player.motion`, `player.read`, `camera.read`, `physics.damping`, `ui.read`, `ui.activate`, `ui.presentation`, `media.read`, and `media.skip`; duplicates and unknown requests are rejected |
+| `capabilities` | Empty/omitted, or a comma-separated list of `log`, `input.actions`, `input.buttons`, `input.motion`, `player.noclip`, `player.visibility`, `player.motion`, `player.read`, `camera.read`, `physics.damping`, `ui.read`, `ui.activate`, `ui.presentation`, `media.read`, `media.skip`, `storage`, `settings`, and `feedback` (the last three require development builds); duplicates and unknown requests are rejected |
 | `action.0` through `action.15` | Optional named key bindings for `input.actions`; omitted slots and `None` are unbound. Requires Alpha 4.2 or later. |
 
 Logging is available when requested. Engine operations also require native build support, executable compatibility checks (and an installation opt-in on older releases); declaring a capability cannot bypass those gates. Existing ABI 1 packages remain supported. New imports and action fields require Alpha 4.2 or later and are rejected by older runtimes.
 
+`min_runtime` is checked before module loading or preparing its native services. For example, `min_runtime=0.1.0-alpha.4.3.dev.0` requires the SDK development build following Alpha 4.3 or a newer runtime. Older releases reject this new field; omit it only for mods that support those releases. Run `crml_host --version` to identify the SDK host. Runtime startup also records its compiled version. Versions follow [Semantic Versioning precedence](https://semver.org/spec/v2.0.0.html): numeric prerelease identifiers compare numerically, and build metadata does not affect precedence. A minimum version does not guarantee engine support or change the guest ABI; still check capabilities and operation results.
+
 From Alpha 4.2, normal startup prepares movement, visibility, physics and read-only player/camera services from installed mods' valid manifests. They can run together with independent ownership; no gameplay-mode marker is needed. Diagnostic observer/trial modes still suspend mods. A service that fails its native compatibility checks reports unavailable without disabling other services.
+
+The development-only [mod persistence API](mod-storage.md) provides bounded, installation-scoped storage through the `storage` capability. It does not grant filesystem or campaign access.
+
+The optional `name`, `version` and `author` fields are supported by development builds after Alpha 4.3. Older manifests remain valid. Display metadata is copied into the settings UI and startup log; it never changes package identity, persistence paths, permissions or runtime compatibility. Use `min_runtime` to require a runtime feature; `version` describes your mod, not its requirements.
+
+The development-only `settings` capability registers [typed mod preferences](mod-settings.md)
+with validated snapshots and native UI presentation on supported builds.
+The `feedback` capability provides [passive native messages and delivery receipts](mod-feedback.md).
+The development-only `tutorials` capability provides [native hints and dismissible
+panels](mod-tutorials.md), with bounded text, request tickets and owner cleanup.
+Runtime `0.1.0-alpha.4.4.dev.1` adds text settings, `navigation.read` for copied
+position and optional movement-plane up, and `drawing` for [passive schematic
+frames](mod-drawing.md), plus `lists` for [dynamic rows and activations](mod-lists.md). These do not provide persistent zone/save identities or
+complete dialogue, combat, equipment or encounter APIs.
 
 ## Guest exports
 
@@ -41,6 +66,67 @@ From Alpha 4.2, normal startup prepares movement, visibility, physics and read-o
 All callbacks run serially on a runtime worker. In-game ticks are approximately 100 ms apart, or 10 ms once action input is requested or the isolated physics/movement service is active. Elapsed time is capped at one second. These are not timing guarantees, render callbacks or game-thread scheduling guarantees.
 
 ## Host imports
+
+### Named results
+
+`crml.h` includes `crml_results.h`, which names the existing integer results
+without changing import signatures, values or structure layouts. These are
+source-level conveniences; using a name does not itself require a newer runtime.
+The import's own minimum runtime still applies.
+
+Names are operation-specific: `CRML_PHYSICS_APPLY_ACCEPTED` is `0`, while
+`CRML_PHYSICS_STATUS_QUEUED` is `1`. A successful snapshot is
+`CRML_PLAYER_READ_COPIED` (`1`), but a storage read returns a byte count, including
+zero for an empty record. Receipt-producing calls return positive identifiers.
+Keep those returns as `int32_t` or `int64_t` as declared; do not convert to unsigned
+before checking negative errors. UI action and feedback positive receipt states
+retain their existing names in `crml_ui.h` and `crml_feedback.h`.
+
+For example, after requesting a physics selection, this code distinguishes a
+ready selection from contention before obtaining its owner-scoped token:
+
+```c
+int32_t state = crml_physics_status();
+if (state == CRML_PHYSICS_STATUS_SELECTED) {
+    uint64_t target = crml_physics_target();
+    if (target != 0) {
+        int32_t result = crml_physics_apply(target, 0.25f, 1200);
+        if (result == CRML_PHYSICS_APPLY_ACCEPTED) {
+            /* Retain target and observe subsequent status; execution is pending. */
+        }
+    }
+} else if (state == CRML_PHYSICS_STATUS_BUSY) {
+    /* Retry observation on a later tick; another mod may own the service. */
+}
+```
+
+The names preserve collapsed outcomes. For example,
+`CRML_MEDIA_SKIP_REJECTED` (`-1`) does not identify whether the service is absent,
+the observation is stale, the media is not skippable or another request is pending.
+There is no universal error enum. Invalid memory, invalid bounded arguments and
+exhausted call budgets can trap instead of returning a named result. See
+[result and ownership contracts](sdk-contracts.md#results-and-ownership).
+
+### Monotonic time
+
+`crml_v1.clock_ms() -> i64` (C: `uint64_t crml_clock_ms(void)`) returns
+monotonic milliseconds since this runtime instance was constructed. It requires
+no capability and uses one of the eight observation calls per invocation.
+Require `min_runtime=0.1.0-alpha.4.3.dev.0` when importing it.
+
+The host samples once at the start of each guest invocation, including the Wasm
+start function, ABI query, initialization, tick and shutdown. All reads within
+that invocation agree. Initialization need not see zero: compilation and earlier
+guests may already have consumed time. Differences between samples include host
+stalls that `elapsed_seconds` loses through its one-second clamp. Use this clock
+for retry deadlines and debounce intervals; keep tick delta for bounded updates.
+The scenario host uses its scripted clock instead of real time.
+
+This is neither engine simulation time nor a calendar timestamp. It continues
+while game simulation is paused if the host clock advances. It shares no public
+epoch with engine snapshots or native lease deadlines, and does not schedule
+callbacks or guarantee their frequency. Do not persist its absolute values.
+See [SDK contracts](sdk-contracts.md) for lifecycle and scheduling boundaries.
 
 ### Capability availability and cleanup
 
@@ -63,12 +149,28 @@ All callbacks run serially on a runtime worker. In-game ticks are approximately 
 | 12 | `CRML_CAP_MEDIA_READ` | `media.read` |
 | 13 | `CRML_CAP_MEDIA_SKIP` | `media.skip` |
 | 14 | `CRML_CAP_UI_PRESENTATION` | `ui.presentation` |
+| 15 | `CRML_CAP_STORAGE` | `storage` (development builds) |
+| 16 | `CRML_CAP_SETTINGS` | `settings` (development builds) |
+| 17 | `CRML_CAP_FEEDBACK` | `feedback` (development builds) |
+| 18 | `CRML_CAP_TUTORIALS` | `tutorials` (development builds) |
+| 19 | `CRML_CAP_NAVIGATION_READ` | `navigation.read` (development builds) |
+| 20 | `CRML_CAP_DRAWING` | `drawing` (development builds) |
+| 21 | `CRML_CAP_LISTS` | `lists` (development builds) |
 
-Availability describes a service, not a live player, a selected prop, successful execution or ownership of a lease. Continue checking operation results. The standalone host reports only declared logging support; it has no game or keyboard service. These bits do not imply colliding flight, free-camera ownership or general entity spawning.
+Availability describes a service, not a live player, a selected prop, successful execution or ownership of a lease. Continue checking operation results. The standalone host provides core services such as settings but has no native game, drawing renderer or keyboard service. These bits do not imply colliding flight, free-camera ownership or general entity spawning.
 
 `crml_v1.release() -> ()` requests cleanup of **this mod's** native leases without unloading the mod. It takes no owner ID and cannot release another mod's leases. Physics restoration can remain pending until an engine callback can safely perform it. Automatic cleanup on traps, shutdown and destruction remains in force, even if the guest never calls this function.
 
-Both imports are available from Alpha 4.2 and count toward the shared limit of eight input and gameplay calls per lifecycle invocation. These are one combined budget, not eight calls per subsystem. Logging has its own limits.
+Both imports are available from Alpha 4.2. Released versions through Alpha 4.3 share eight input/gameplay calls per invocation. Development builds starting at `0.1.0-alpha.4.3.dev.0` separate **eight observations** from **eight commands**, per mod and per start/version/lifecycle invocation. A mod relying on the separate allowances must declare that `min_runtime`. Imports and ABI 1 layouts remain unchanged.
+
+| Allowance | Imports |
+| --- | --- |
+| Observations (8) | `capabilities`, `input_actions`, `input_read`, `input_buttons`, `input_motion`, `motion_camera`, `motion_read`, `visibility_read`, `player_read`, `navigation_read`, `navigation_read_v2`, `map_read`, `camera_read`, `physics_target`, `physics_status`, `physics_read`, `ui_read`, `ui_action_status`, `media_read`, `list_next` |
+| Commands (8) | `release`, `noclip_poll`, `visibility_poll`, `visibility_set`, `motion_set`, `physics_select`, `physics_select_near`, `physics_apply`, `physics_restore`, `ui_activate`, `ui_action_submit`, `ui_present`, `media_skip`, `drawing_publish`, `drawing_hide`, `map_publish`, `map_hide`, `list_publish`, `list_hide` |
+
+The legacy `noclip_poll` and `visibility_poll` functions can change gameplay state, so they count as commands despite their names. Failed or unavailable calls consume their allowance too. Exceeding either allowance traps the mod before the excess native operation runs; automatic owner cleanup remains available independently of these limits. `release` itself is a command. Logging, storage, settings, feedback and live input rebinding retain separate limits. These are shared allowances across subsystems, not eight calls per service.
+
+This lets a composed callback inspect input, player/camera state and a selected prop before submitting physics, movement or visibility requests. It does not make snapshots atomic or guarantee host wall-clock time. Cache configuration and avoid querying the same state repeatedly within a callback.
 
 ### Media observation and skipping
 
@@ -80,7 +182,7 @@ Flags are `CRML_MEDIA_ACTIVE` (1), `CRML_MEDIA_SKIPPABLE` (2), `CRML_MEDIA_ENGIN
 
 `crml_v1.media_skip(i64 generation) -> i32` requires `media.skip`. Zero generation traps; `0` means queued and a negative result means rejected/unavailable. The current adapter accepts one pending request, expires it after one second, and rechecks identity and readiness on the engine thread. It consumes a skip only at the original initialization-gated loop exit with playback time strictly greater than 2,000 ms. Original destruction and renderer cleanup run normally. Neither copied pointers nor raw timer writes are available to guests.
 
-Both imports share the eight-call budget. `release()` and automatic trap/unload cleanup cancel pending requests; a completed skip cannot be undone. The startup-skip example chooses the boot asset name and retry policy in Wasm. Native observation can miss this one-time video if the runtime starts too late; unavailable support leaves playback unchanged. See the [startup control-flow map](research/startup-media-map.json).
+`media_read` consumes an observation; `media_skip` consumes a command. `release()` and automatic trap/unload cleanup cancel pending requests; a completed skip cannot be undone. The startup-skip example chooses the boot asset name and retry policy in Wasm. Native observation can miss this one-time video if the runtime starts too late; unavailable support leaves playback unchanged. See the [startup control-flow map](research/startup-media-map.json).
 
 ### Startup UI state and actions
 
@@ -90,6 +192,8 @@ These Alpha 4.2 imports provide a bounded interface to recognized startup screen
 | --- | --- | --- | --- |
 | `ui_read` | `(i32 output, i32 size) -> i32` | `ui.read` | `1` copied; non-positive unavailable |
 | `ui_activate` | `(i64 generation, i32 action) -> i32` | `ui.activate` | `0` queued; negative rejected/unavailable |
+| `ui_action_submit` | `(i64 generation, i32 action) -> i64` | `ui.activate` | Positive receipt; negative rejected/unavailable; development builds |
+| `ui_action_status` | `(i64 receipt) -> i32` | `ui.activate` | Delivery outcome below; development builds |
 | `ui_present` | `(i64 generation, i32 kind, i32 name, i32 name_length, i32 hidden, i32 duration_ms) -> i32` | `ui.presentation` | `0` queued; `-1` unavailable/stale; `-2` occupied/full |
 
 `ui_read` requires exactly 32 output bytes. The snapshot has `u32 size`, `u32 version`, `u32 screen`, `u32 actions`, `u64 generation`, `u32 age_ms` and `u32 reserved`, at offsets 0, 4, 8, 12, 16, 24 and 28. Successful samples have version 1 and age at most 1,000 ms. Non-success clears the output; invalid memory or layout size traps before native access. Generation values are opaque 64-bit identities, not addresses.
@@ -107,15 +211,56 @@ These Alpha 4.2 imports provide a bounded interface to recognized startup screen
 | 8 | `USER_INTERACTION` | Yes |
 | 9 | `MAIN_MENU` | No |
 
-Action `CRML_UI_ACTION_CONTINUE` is 1; its availability bit is `CRML_UI_ACTION_MASK_CONTINUE` (also 1). Only request advertised actions using the current generation. A generation changes when the observed screen or allowed actions change, or a new UI document publishes its first sample. There is one pending action across mods, with a two-second expiry. Calls share the eight-call lifecycle budget. Zero generation and unsupported action values trap.
+Action `CRML_UI_ACTION_CONTINUE` is 1; its availability bit is `CRML_UI_ACTION_MASK_CONTINUE` (also 1). Only request advertised actions using the current generation. A generation changes when the observed screen or allowed actions change, or a new UI document publishes its first sample. There is one pending action across mods, with a two-second expiry. `ui_activate` consumes a command from the shared eight-command allowance. Zero generation and unsupported action values trap.
 
 Acceptance means queued, not that the game advanced. The trusted UI bridge rechecks readiness and screen identity before sending the game's ordinary Continue event, at most once per observed screen visit. A loading/readiness change does not rearm that event. Read state again to observe the result. `release()`, trap cleanup and unload cancel this mod's pending action; an event already delivered to the engine cannot be recalled. The bridge does not automatically accept consent screens or interrupt saving.
 
+### UI action receipts
+
+Development builds add `ui_action_submit` and `ui_action_status`. Declare
+`min_runtime=0.1.0-alpha.4.3.dev.0` and `ui.activate`. These cover the same actions
+as `ui_activate`; they add delivery information, not broader UI control.
+Submission consumes one command and returns a positive receipt on acceptance.
+`-1` means unavailable service, stale observation or internal lock contention;
+`-2` means another command is pending; `-3` means stale generation or the action
+is unavailable on this screen; `-5` means command IDs are exhausted. Zero
+generation and unsupported action values trap before native access.
+
+Status consumes one observation. It returns `-1` if the provider or lock is
+unavailable, and `-2` for an unknown, foreign or evicted receipt. The native
+service retains the most recent 64 accepted tracked commands across all mods.
+Reading does not consume a result. Receipts remain owner-scoped after
+`release()` and are unrelated to save files, entities or native addresses.
+
+| Constant (`CRML_UI_ACTION_` prefix) | Value | Meaning |
+| --- | --- | --- |
+| `QUEUED` | 1 | Accepted; not yet offered to the renderer |
+| `DELIVERED` | 2 | Included in a response; no renderer outcome reported yet |
+| `DISPATCHED` | 3 | Renderer reports that the engine event trigger returned |
+| `SKIPPED` | 4 | Renderer declined the command, for example after readiness or screen changed |
+| `DISPATCH_FAILED` | 5 | Renderer reports that the event trigger threw |
+| `EXPIRED` | 6 | Two-second deadline passed before delivery |
+| `OUTCOME_UNKNOWN` | 7 | Delivered, but cancellation, expiry, page change or legacy acknowledgement leaves dispatch uncertain |
+| `CANCELLED` | 8 | Cancelled before delivery, including screen/page replacement or owner cleanup |
+
+`DISPATCHED` does not prove the engine completed the requested transition.
+`DISPATCH_FAILED` also does not prove the event had no side effects before the
+exception. Re-read current UI state before deciding what to do next. Never
+retry a delivered request solely because its outcome is unknown. A late report
+from the same page can resolve `OUTCOME_UNKNOWN` while its receipt is retained;
+a replacement page cannot report for its predecessor. Definitive reported
+outcomes do not change on duplicate reports. Legacy `ui_activate` keeps its
+original return values and does not allocate a queryable receipt.
+
+### UI visibility leases
+
 `ui_present` temporarily hides a uniquely matched native UI element while preserving layout, bindings and engine work. `kind` is `CRML_UI_TARGET_ID` (1) or `CRML_UI_TARGET_CLASS` (2). Supply an exact engine DOM ID or single class token as 1–64 ASCII letters, digits, underscores or hyphens; `name_length` excludes a terminator. This is not a CSS selector, script, resource path or screen enumeration API. The copied screen values above remain the adapter's fixed mapping.
 
-With `hidden=1`, choose a lease duration of 1–1,000 ms and renew while needed. `hidden=0` requires duration 0 and removes that mod's lease. A nonzero current snapshot generation is required. Invalid arguments or guest memory trap before native access. Up to eight named leases are shared across mods; another owner cannot replace a lease for the same kind/name. All three imports share the eight-call budget. A successful queue result does not confirm that the element exists or was hidden.
+With `hidden=1`, choose a lease duration of 1–1,000 ms and renew while needed. `hidden=0` requires duration 0 and removes that mod's lease. A nonzero current snapshot generation is required. Invalid arguments or guest memory trap before native access. Up to eight named leases are shared across mods; another owner cannot replace a lease for the same kind/name. `ui_read` consumes an observation; `ui_activate` and `ui_present` consume commands. A successful queue result does not confirm that the element exists or was hidden.
 
 The UI bridge applies fresh requests only to one attached matching element. Missing or ambiguous targets, two names resolving to the same element, and inline `visibility: … !important` overrides are left unchanged. Lease expiry, screen/page changes and owner cleanup remove the override. Readiness-only generation changes can retain a lease on the same screen. Engine style changes are preserved rather than overwritten. Cleanup reaches the UI through polling; deadlines are checked on its 250 ms poll, including while a request is pending. No synchronous render-thread deadline is promised.
+
+Target failures are independent: duplicate requests, aliases resolving to one element, malformed individual entries and target lookup failures release only the affected presentation. Other valid targets in the same response remain active. A malformed or oversized response envelope still rejects the entire batch. Alias conflicts are detected by the renderer after queue acceptance; `ui_present` does not report their delivery outcome.
 
 The startup example targets the engine's `splash` class during selected notices. Suppressing that presentation does not declare preferences loaded, bypass save-header reads, dismiss consent or remove UI nodes. Startup may remain blank while required engine initialization finishes; the boot-video gate and native loading time still apply.
 
@@ -133,15 +278,49 @@ abi=1
 module=my-mod.wasm
 capabilities=log,input.actions
 action.0=F10
-action.1=Insert
+action.1=F12
 action.2=None
 ```
 
-Supported names are case-sensitive: `F1`–`F12`, `Insert`, `Home`, `End`, `PageUp`, `PageDown`, `W`, `A`, `S`, `D`, `Q`, `E`, `R`, `Space`, `Ctrl`, `Shift`, `Up`, `Down`, `Left`, `Right`, and `None`. Numeric key codes and other names are rejected. Bindings are read when the mod loads; restart after editing them. Duplicate fields and indices outside 0–15 are rejected; assigning the same key to multiple actions is allowed.
+Supported names are case-sensitive: `F1`–`F12`, `Insert`, `Home`, `End`, `PageUp`, `PageDown`, `W`, `A`, `S`, `D`, `Q`, `E`, `R`, `Space`, `Ctrl`, `Shift`, `Up`, `Down`, `Left`, `Right`, and `None`. Numeric key codes and other names are rejected. Manifest bindings are read when the mod loads; restart after editing the file. Development builds also support all letters `A` through `Z` and number-row keys `0` through `9`, plus live rebinding through `input_bind`. Use the development minimum runtime when relying on these additions. Duplicate fields and indices outside 0–15 are rejected; assigning the same key to multiple actions is allowed.
 
 The release runtime supplies this read-only service without a gameplay-mode marker. It does not enable movement, visibility or physics. It returns zero while the game lacks focus, Escape is held, the keyboard snapshot is stale, or the service is unavailable. Reading actions does not consume or suppress another mod's input. Shared bindings can still trigger both mods. This API provides no text input, system-wide keyboard access or input injection.
 
-This is a snapshot, not an event queue: very brief presses can be missed. Derive press edges in guest code with `current & ~previous`; choose an explicit policy for keys held on startup or when returning to the game. Calls share the eight-call budget above. The SDK's `examples/input-actions` includes C and WAT implementations with no gameplay dependency.
+This is a snapshot, not an event queue: very brief presses can be missed. Derive press edges in guest code with `current & ~previous`; choose an explicit policy for keys held on startup or when returning to the game. Calls share the observation allowance above. The SDK's `examples/input-actions` includes C and WAT implementations with no gameplay dependency.
+
+Development builds add `input_bind(slot, name, length)` and `input_read(output, size)` under the same `input.actions` permission. Rebinding has a separate 16-call allowance, allowing all slots to be configured in one callback without spending gameplay commands. The copied state reports held bits, binding names, local and cross-mod overlaps, potential native shortcuts and keyboard context. These functions do not grant input suppression. See [Action bindings and input state](mod-input.md) for layouts, results, revision handling and recovery policy.
+
+### Navigation observation
+
+`crml_v1.navigation_read(i32 output, i32 size) -> i32` requires `navigation.read`
+and runtime `0.1.0-alpha.4.4.dev.1`. Pass the exact 56-byte `crml_navigation_state`
+layout from `crml_state.h`. `crml_v1.navigation_read_v2` requires runtime
+`0.1.0-alpha.4.4.dev.3` and the flattened 64-byte `crml_navigation_state_v2`
+layout. Both consume one shared observation. Invalid memory or
+size traps; other failures zero the output. `1` means copied, `0` means no fresh
+foreground sample, and `-1` means unavailable. The native adapter requires the
+reviewed October hotfix executable; this is not a generic engine lookup.
+
+The state contains version, host-monotonic `age_ms`, transient `generation`,
+publication `sequence`, flags, position and optional up. Sequence identifies a
+publication, so repeated reads may return the same sequence. V1 generation changes
+after a publication gap over 500 ms, observed world/player replacement, explicit
+invalidation, or clock rollback. V2 preserves that v1 field and adds `continuity`,
+which changes on observed world/player replacement, explicit invalidation, or
+clock rollback, but not on elapsed time alone. Both counters are transient; v2
+continuity is not a saved world, entity, zone or coordinate identity and cannot
+prove an unobserved world or entity was never reused.
+Samples expire after 500 ms. The position and optional up are copied at the same
+authenticated movement callback; they are not synchronized with separate camera
+or physics reads. The observation does not contain a semantic simulation timestamp.
+
+Use `up` only with `CRML_NAV_UP_VALID`. It is movement-plane local +Y rotated into
+world coordinates, not a camera axis, collision normal or grounded flag.
+`CRML_NAV_TELEPORTED`, `CRML_NAV_CONTROLLER_DISABLED` and `CRML_NAV_KEYFRAMED`
+describe the sampled callback. Polling can miss intervening transitions; this is
+not a complete teleport event stream. Break a recorded route on unknown samples,
+generation changes or detected discontinuities. Do not revive saved coordinates
+in a world whose semantic identity has not been established.
 
 ### Player, camera and physics snapshots
 
@@ -153,7 +332,7 @@ These Alpha 4.2 imports copy a bounded snapshot into exported guest memory. Incl
 | `camera_read` | `(i32 output, i32 size) -> i32` | `camera.read` | `crml_camera_state`, 80 bytes |
 | `physics_read` | `(i64 token, i32 output, i32 size) -> i32` | `physics.damping` | `crml_physics_state`, 32 bytes |
 
-Each call consumes one of the shared **eight input and gameplay calls per lifecycle invocation**. A size other than the exact layout size, missing or invalid exported memory, or an output range outside guest memory traps before native access. Unaligned output is supported. For a valid call, `1` means copied, `0` means no fresh readable snapshot, and `-1` means unavailable. Every non-success result clears the entire output structure; argument-validation traps do not promise an output write. `physics_read` can also return `-2` for contention or another owner, and `-3` for an invalid or stale selection token.
+Each snapshot call consumes one of the shared **eight observations per invocation** in development builds. A size other than the exact layout size, missing or invalid exported memory, or an output range outside guest memory traps before native access. Unaligned output is supported. For a valid call, `1` means copied, `0` means no fresh readable snapshot, and `-1` means unavailable. Every non-success result clears the entire output structure; argument-validation traps do not promise an output write. `physics_read` can also return `-2` for contention or another owner, and `-3` for an invalid or stale selection token.
 
 Successful snapshots have `version = 1` and `age_ms <= 500`. Reads do not renew a movement or physics lease. Player, camera and physics data come from separate engine callbacks and **do not represent a synchronized frame**, even when read in the same Wasm callback. Handle temporary unavailability and check flags before using optional fields.
 
@@ -208,9 +387,11 @@ Pass the token returned by `physics_target` for **this mod's** selected body. Re
 
 `crml_v1.log(level: i32, offset: i32, length: i32) -> ()`
 
-Requires `log`. `offset` and `length` describe guest memory, never a native address. Level must be 0–3 (debug/info/warning/error); the current plain-text sink uses the same format for each level. Text should be UTF-8. Control characters are replaced with spaces to keep log entries on one line. Invalid byte sequences are not transcoded.
+Requires `log`. `offset` and `length` describe guest memory, never a native address. Level must be 0–3 (debug/info/warning/error). Text should be UTF-8. Control characters are replaced with spaces to keep log entries on one line. Invalid byte sequences are not transcoded.
 
 One call accepts at most 4,096 bytes. Each lifecycle invocation accepts at most 32 calls and 16,384 bytes. Invalid ranges and exhausted logging budgets trap the guest.
+
+Development builds after Alpha 4.3 retain severity and elapsed milliseconds in each guest entry. Each mod has a separate 64 KiB session log allowance, including entry prefixes; exhausted allowance suppresses later output from that mod without trapping it. Other mods keep their own allowances. Host diagnostics have a separate 1 MiB allowance, so guest flooding cannot consume the space reserved for load failures and traps. Native session logging retains the current log and up to three previous files, capped at 4 MiB per new file. If rotation is blocked, it attempts bounded append without truncating the current file. Elapsed timestamps are relative to the current session, not game time.
 
 ### Experimental noclip
 
@@ -230,11 +411,51 @@ The host handles movement keys and the status panel; this is not a general UI or
 
 `crml_v1.visibility_set(hidden: i32) -> i32` requires `player.visibility` and native gameplay support (before Alpha 4.2, install with `--experimental-visibility`). Only 0 and 1 are accepted: 1 renews a 500 ms hide lease; 0 releases it. The **guest decides** when to request hiding, using button input, a timer, or other guest logic. It does not need the input capability if it does not read buttons.
 
-The native runtime validates the request, enforces focus/Escape cancellation and lease expiry, then submits the renderer command on the engine's mesh update phase. It releases ownership on mod failure and shutdown. The host accepts at most eight calls per lifecycle invocation shared across input, gameplay and UI imports.
+The native runtime validates the request, enforces focus/Escape cancellation and lease expiry, then submits the renderer command on the engine's mesh update phase. It releases ownership on mod failure and shutdown. Visibility requests share the eight-command allowance with other gameplay and UI commands.
 
 Returns `1` for a renewed lease, `0` for release, `-1` when unavailable, and `-2` when another mod owns the lease. This is request status, not confirmation of a rendered result. The bridge targets only a fresh, generation-checked player entity in the mesh visibility query. Guests cannot supply a pointer, render handle, entity ID, or renderer opcode. Normal engine visibility resumes on the next eligible update after release or cancellation.
 
 The legacy `visibility_poll()` import remains available for older mods and combines native F7 polling with a visibility lease. New mods should use `visibility_set()` instead.
+
+### Visibility lease observations
+
+`crml_v1.visibility_read(output: i32, length: i32) -> i32` requires
+**`player.visibility`** and `min_runtime=0.1.0-alpha.4.4.dev.0`. Supply a 16-byte
+`crml_visibility_state`. It uses one shared observation and applies the usual
+exact-size and guest-memory bounds checks. Return `1` includes valid idle snapshots;
+`-1` means unsupported and clears every output byte. The caller's owner is supplied
+by the host; another mod's evidence is never returned.
+
+Version 1 has four `uint32_t` fields: `version`, `state`, `flags`, `remaining_ms`.
+
+| Field/value | Meaning |
+| --- | --- |
+| `CRML_VISIBILITY_IDLE` | No retained lease for this caller; this does not promise that another mod has left visibility available |
+| `CRML_VISIBILITY_ACTIVE` | An accepted lease with 1–500 ms remaining; no engine observation is implied |
+| `CRML_VISIBILITY_EXPIRED` | This caller's last lease reached its deadline; remaining time is zero |
+| `CRML_VISIBILITY_OBSERVED_HIDDEN` | A render-hook invocation for this lease observed the player's root mesh hidden, or set it hidden while publishing a command |
+| `CRML_VISIBILITY_SUBMITTED` | The adapter published a hide command to the native renderer queue; also implies `OBSERVED_HIDDEN` |
+
+Flags are historical evidence within the current continuous lease. They do not
+prove current pixels, renderer consumption, GPU completion or that CRML was the
+only hide reason. The adapter does not turn a failed player lookup or unavailable
+renderer into a success flag. With no flags, a request may still be waiting for an
+eligible mesh update. A render callback already in progress can publish its
+lease-tagged observation after expiry; this is not a deadline-completion fence.
+
+Reads never acknowledge, renew or release the lease. Normal renewal before expiry
+retains evidence. Release, reacquisition after expiry, or another owner's takeover
+discards it. Expired evidence is available only until release or takeover, not as a
+per-mod event history. Late callbacks from an old lease cannot mark its replacement
+as observed. Visibility follows the current player root mesh rather than pinning a
+target entity; pair this API with `player_read` if your policy must stop on player
+replacement. No restoration-completion receipt is provided: the original mesh
+system must run again to recompute visibility after release.
+
+Photo Visibility demonstrates checking this snapshot **before** renewal. If its
+lease has expired or disappeared, the guest turns its request off and requires a
+released key followed by a new press. A low-level mod can still deliberately
+reacquire an expired lease through the unchanged `visibility_set` contract.
 
 See [the visibility example](visibility.md) for installation and controls.
 
@@ -258,9 +479,29 @@ The mod owns the search region, input bindings, timing, damping value and durati
 
 Command results are `0` accepted (or already idle for restore), `-1` unavailable, `-2` busy or another owner, and `-3` invalid/stale target or arguments. Acceptance is not execution: the engine callback consumes requests. Requests older than 500 ms are not applied. The guest must wait for selection to complete before obtaining a token and applying a value. A token is neither an engine address nor an entity/body ID; passing another mod's token does not grant access.
 
-`physics_status` returns `0` idle, `1` queued, `2` searching, `3` selected, `4` active, `5` restoring, `6` finished, `7` retired, `8` conflicting game change, or `9` refused. It can return `-1` unavailable or `-2` busy. Finished includes a value already equal to the request; it does not by itself prove a write occurred. Terminal status is transient and returns to idle when the selection is cleared. A failed search also returns to idle, with its reason shown in the panel and diagnostic log.
+`physics_status` returns the `CRML_PHYSICS_STATUS_*` values in `crml_results.h`:
 
-The import accepts finite damping from **0 through 8**, for **1 through 5,000 ms**. Nonfinite/out-of-range values or exceeding the shared eight-call host budget trap the mod. Native code independently checks these limits. Unused selection expires after 15 seconds; completing a trial consumes its token. A new application requires a fresh selection. Damping affects linear velocity decay, not friction, mass or angular damping.
+| Suffix | Value | Meaning |
+| --- | --- | --- |
+| `IDLE` | 0 | No current owned operation, including after cleanup or a failed search |
+| `QUEUED` | 1 | Request awaits its engine callback |
+| `SEARCHING` | 2 | Selection search in progress |
+| `SELECTED` | 3 | Idle selected target; obtain its token with `physics_target` |
+| `ACTIVE` | 4 | Damping operation active |
+| `RESTORING` | 5 | Restoration or cancellation pending |
+| `FINISHED` | 6 | Operation finished; can include a value already equal to the request |
+| `RETIRED` | 7 | Selected target retired |
+| `GAME_CONFLICT` | 8 | A conflicting game-written value was preserved |
+| `REFUSED` | 9 | Operation refused |
+| `UNAVAILABLE` | -1 | Service not accepting status queries |
+| `BUSY` | -2 | Another owner or native state-lock contention |
+
+Finished does not by itself prove a write occurred. Terminal status is transient
+and returns to idle when the selection is cleared. A failed search also returns
+to idle, with its reason shown in the panel and diagnostic log. These names do
+not create a durable per-request receipt or add target information.
+
+The import accepts finite damping from **0 through 8**, for **1 through 5,000 ms**. Nonfinite/out-of-range values or exceeding the shared eight-command allowance trap the mod. Native code independently checks these limits. Unused selection expires after 15 seconds; completing a trial consumes its token. A new application requires a fresh selection. Damping affects linear velocity decay, not friction, mass or angular damping.
 
 Focus loss, Escape, F11, a missed worker heartbeat, mod failure, shutdown and runtime destruction request cleanup. Cleanup is serviced on the physics callback, including after the guest has stopped. A game-written conflicting value is preserved; retired bodies are not written through stale handles. Temporary unavailability keeps restoration pending. From Alpha 4.2, Wasm physics continues after ten minutes and after its bounded diagnostic log fills or fails. The five-second operation limit, heartbeat checks and restoration rules remain. Native diagnostic trials retain their finite session limits.
 
@@ -274,8 +515,73 @@ The `player.motion` service exposes explicit character movement commands. Alpha 
 
 `crml_v1.motion_camera(output: i32) -> i32` requires **`player.motion`**. It copies two `f32` values into eight bytes of exported guest memory: the normalized horizontal right vector's X and Z components. Return `1` means a validated camera sample no older than 100 ms; `-1` means unavailable and zeroes both outputs. Invalid guest-memory ranges trap the mod before native access. The vector is a snapshot, not camera ownership; guest forward can be computed as `(-right_z, 0, right_x)`.
 
-`crml_v1.motion_set(enabled: i32, x: f32, y: f32, z: f32) -> i32` requires **`player.motion`**. With `enabled = 1`, it submits a world-space velocity and renews an owner-bound, 500 ms noncolliding character-motion lease. The vector must be finite and its magnitude at most **20 world units per second**. Zero velocity holds position. With `enabled = 0`, it releases this mod's lease. Invalid enable values, nonfinite velocities, excess speed and exceeding the shared eight-call host budget trap the mod.
+`crml_v1.motion_set(enabled: i32, x: f32, y: f32, z: f32) -> i32` requires **`player.motion`**. With `enabled = 1`, it submits a world-space velocity and renews an owner-bound, 500 ms noncolliding character-motion lease. The vector must be finite and its magnitude at most **20 world units per second**. Zero velocity holds position. With `enabled = 0`, it releases this mod's lease. Invalid enable values, nonfinite velocities, excess speed and exceeding the shared eight-command allowance trap the mod.
 
 Results are `1` accepted, `0` released/already off, `-1` unavailable, or `-2` another owner. Acceptance is not proof of a controller update. The native callback integrates the velocity using a maximum 50 ms step and validates current player/world identity and controller arguments. Normal WASD, Space, Ctrl and Shift keyboard actions are suppressed while the lease is active; mouse look remains under game control.
 
 Escape, focus loss, stale input samples, an expired lease, player/world replacement, disabled/keyframed controllers, large unexplained displacement and engine teleports cancel movement. A controller gap over 250 ms also cancels. A pending guest cancellation is reported on its next renewal so the example can switch off instead of silently restarting. Mod traps and shutdown release ownership independently of guest cleanup. On supported builds, the [boundary guard](fall-recovery.md#flight-boundary-guard) prevents selected recovery entry points while the movement lease is active; pending recovery and unmatched producers continue normally. This is native service policy, not guest access to Lua or arbitrary script hooks. The service does not restore pre-flight position, override engine teleports or provide free-camera control.
+
+Pending cancellations belong to individual mods. Another mod acquiring or
+releasing movement does not acknowledge your cancellation. While another mod
+owns movement, a request still returns `-2`; after that ownership ends and input
+is usable, the cancelled mod's next enable request returns `-1` before it can
+acquire again. An explicit `motion_set(0, ...)` or `release()` acknowledges that
+mod's pending cancellation. `release()` also clears a pending cancellation while
+another mod owns movement, without changing that owner's lease. Cancellation
+storage is bounded to 32 owners; exhausting it rejects new acquisition instead
+of discarding another mod's result.
+
+Development builds after Alpha 4.3 also require a keyboard sample no older than 500 ms, independently of controller activity or guest renewals. An expired keyboard sample cancels zero-velocity hover too; releasing all keys in a fresh sample does not. A release request remains valid when input is stale.
+
+### Movement cancellation snapshots
+
+`crml_v1.motion_read(output: i32, length: i32) -> i32` requires **`player.motion`**
+and `min_runtime=0.1.0-alpha.4.4.dev.0`. Pass a 16-byte `crml_motion_state` from
+`crml_state.h`. This costs one shared observation; a wrong length, invalid memory
+range or exhausted observation budget traps the guest. Returns `1` for a valid
+snapshot, including idle, or `-1` for an unsupported provider with all output bytes
+zeroed. No owner argument is accepted: the runtime supplies the calling mod's owner.
+
+Version 1 contains four `uint32_t` fields: `version`, `state`, `stop_reason`,
+and `flags`. `CRML_MOTION_IDLE` means no retained guest-motion lease or cancellation;
+it does not promise that another mod has left the controller available.
+`CRML_MOTION_ACTIVE` means this mod's `motion_set` lease is accepted. It does not
+prove a controller callback applied it. `CRML_MOTION_STOPPED` includes a
+`CRML_MOTION_STOP_*` reason: focus loss, Escape, stale input/player sample, lease
+expiry, player/world replacement, controller disable/keyframing, teleport, tick
+gap, displacement, or invalid speed/direction/coordinates/controller view.
+Handle unknown future reasons as a generic cancellation.
+
+`CRML_MOTION_CANCEL_PENDING` means a cancellation still awaits the existing
+renewal handshake. Reading never acknowledges, renews, releases or rearms movement.
+The first eligible enable request clears this flag and returns `-1`; the reason
+remains readable afterward. A later successful acquisition replaces the stopped
+snapshot with active. Explicit `motion_set(0, ...)` or `release()`, guest teardown
+and reload clear that owner's record. Other owners' releases do not clear it.
+The fixed table retains up to 32 owners; pending cancellations are never evicted.
+Once full, an acknowledged record can be reused for a new owner. Read and copy a
+reason when handling a failed renewal instead of treating the table as an event log.
+
+Snapshots remain readable without focus or a live player. They describe the
+last adapter transition, not an independent focus/context sample. Initial request
+refusal or contention does not create a cancellation: check `motion_set`'s return
+as well. The legacy `noclip_poll` helper has no guest-motion receipt.
+
+```c
+int32_t result = crml_motion_set(1, velocity_x, velocity_y, velocity_z);
+if (result < 0) {
+    crml_motion_state state;
+    if (crml_motion_read(&state, sizeof(state)) == 1 &&
+        state.state == CRML_MOTION_STOPPED) {
+        /* Copy state.stop_reason before explicit cleanup; update your mod UI. */
+    }
+    enabled = 0; /* Require deliberate user reactivation. */
+}
+```
+
+## Action restriction requests
+
+`player.action_rules` exposes `action_rule_set(actions, restrictions) -> i32` and
+`action_rule_read(out, size) -> i32`. See [action restriction exceptions](action-rules.md)
+for masks, the 32-byte snapshot, return values, owner composition and the 500ms
+lease contract. Requires `0.1.0-alpha.4.4.dev.11`; ABI 1 is unchanged.

@@ -378,11 +378,41 @@ int main() {
         {
             using namespace crml::probe::visibility;
             Lease lease;
+            crml_visibility_state observed{};
+            require(lease.read_state(0,100,observed)==-1 && !observed.version,"Visibility zero owner accepted");
+            require(lease.read_state(1,100,observed)==1 && observed.version==1 && !observed.state && !observed.flags,"Idle visibility state invalid");
             require(lease.renew(1,true,100)==1 && lease.active(599) && !lease.active(600),"Visibility lease expiry failed");
+            const auto old_token=lease.observation_token(100);
+            require(old_token && !lease.observation_token(600),"Expired visibility has a render token");
+            require(lease.read_state(1,200,observed)==1 && observed.state==CRML_VISIBILITY_ACTIVE &&
+                observed.remaining_ms==400 && !observed.flags,"Accepted hide falsely reported native evidence");
+            lease.observe(old_token,false);
+            require(lease.read_state(1,200,observed)==1 && observed.flags==CRML_VISIBILITY_OBSERVED_HIDDEN,"Hidden observation missing");
+            lease.observe(old_token,true);
+            require(lease.read_state(1,200,observed)==1 && observed.flags==(CRML_VISIBILITY_OBSERVED_HIDDEN|CRML_VISIBILITY_SUBMITTED),"Submission observation missing");
+            require(lease.read_state(2,200,observed)==1 && !observed.state && !observed.flags && !observed.remaining_ms,"Foreign visibility evidence leaked");
+            require(lease.read_state(1,599,observed)==1 && observed.remaining_ms==1 &&
+                lease.read_state(1,600,observed)==1 && observed.state==CRML_VISIBILITY_EXPIRED && !observed.remaining_ms,"Visibility read extended lease");
             require(lease.renew(2,true,200)==-2,"Visibility lease stolen");
             lease.release(2); require(lease.active(200),"Foreign release revoked visibility");
             lease.release(1); require(!lease.active(200),"Visibility release failed");
-            require(lease.renew(2,true,700)==1 && lease.renew(2,false,701)==0 && !lease.active(701),"Key release failed");
+            require(lease.renew(2,true,700)==1,"Visibility peer acquisition failed");
+            const auto new_token=lease.observation_token(700);
+            require(new_token>old_token,"Visibility reused retired render token");
+            lease.observe(old_token,true);
+            require(lease.read_state(2,700,observed)==1 && !observed.flags,"Old render callback attributed to new owner");
+            lease.observe(new_token,true);lease.observe(old_token,true);
+            require(lease.read_state(2,700,observed)==1 && observed.flags==3,"Late old callback erased new evidence");
+            require(lease.renew(2,true,701)==1 && lease.observation_token(701)==new_token,"Renewal changed continuous lease token");
+            require(lease.renew(2,false,701)==0 && !lease.active(701),"Key release failed");
+            require(lease.read_state(2,701,observed)==1 && !observed.state && !observed.flags,"Explicit release retained visibility evidence");
+            require(lease.renew(2,true,800)==1,"Same-owner visibility reacquisition failed");
+            lease.observe(new_token,true);
+            require(lease.read_state(2,800,observed)==1 && !observed.flags,"Same owner inherited old-lease evidence");
+            lease.release(2);
+            require(lease.renew(1,true,UINT64_MAX-499)==-1,"Visibility deadline overflow accepted");
+            lease.epoch.store(UINT64_MAX);
+            require(lease.renew(1,true,900)==-1,"Visibility token wrapped");
             Fixture f(3); Sample s{}; require(f.inspect(s)==Observation::player,"Visibility fixture failed");
             f.hashes.resize(14*4); f.offsets.resize(14*4);
             put(f.world,(1+0xc22)*32+0x10,address(f.hashes)); put(f.world,(1+0xc22)*32+0x24,uint32_t{14});
@@ -557,63 +587,101 @@ int main() {
             for(size_t i=1;i<5;++i) require(replacement.view[i]==camera_view[i],"Camera cleanup lost native output/config pointers");
             require(f.chunk==before,"Private camera view mutated game recovery state");
         }
+        {
+            crml::probe::LeaseToggle toggle;
+            require(toggle.sample(2,0,true)==1,"Initial owner missed legacy toggle");
+            require(toggle.sample(1,2,false)==-2,"Foreign poll was not contended");
+            require(toggle.sample(2,2,false)==0,"Owner key release became a press");
+            require(toggle.sample(1,2,true)==-2,"Foreign poll stole owner press");
+            require(toggle.sample(2,2,true)==1,"Owner could not toggle off after foreign poll");
+            require(toggle.sample(1,0,true)==0,"Held release edge transferred to another mod");
+            require(toggle.sample(1,0,false)==0 && toggle.sample(1,0,true)==1,"Fresh press did not transfer ownership");
+            // Unavailable input may still update the uncontended baseline, so
+            // returning to availability with the same held key adds no edge.
+            require(toggle.sample(1,0,true)==0,"Unavailable baseline was lost");
+        }
         Sample s{};
         s.entity=42; s.world=100;
+        {
+            crml::probe::Flight guest;std::array<float,3> target{};
+            const auto request=[&](uint64_t sample_tick,uint64_t now,bool focus=true,bool escape=false,bool fresh=true) {
+                return guest.request_sampled_motion(1,true,0,0,0,s,sample_tick,now,focus,escape,fresh);
+            };
+            require(request(1000,1101)==-1 && !guest.enabled,"stale sample acquired new flight");
+            require(request(1000,1100)==1,"fresh activation rejected");
+            require(guest.step(s,100,1100,true,true,{},target),"initial controller step rejected");
+            require(request(1100,1250)==1 && guest.enabled,"150ms frame hitch cancelled a valid renewal");
+            require(guest.step(s,100,1250,true,true,{},target),"short frame hitch failed live controller guards");
+            require(request(1250,1500)==1,"250ms renewal boundary rejected");
+            require(!guest.step(s,100,1501,true,true,{},target) && guest.stopped.reason==crml::probe::StopReason::tick_gap,
+                "renewal bypassed independent controller gap guard");
+            guest.release_owner(1);require(request(1600,1600)==1,"fresh reactivation rejected");
+            require(request(1600,1851)==-1 && !guest.enabled && guest.stopped.sample_age_ms==251 &&
+                std::string(guest.stopped.source)=="player_sample","stale renewal lost cancellation evidence");
+            guest.release_owner(1);require(request(1900,1900)==1,"fresh reacquisition failed");
+            require(request(1900,1910,true,false,false)==-1 && std::string(guest.stopped.source)=="keyboard_sample",
+                "keyboard staleness not distinguished from player staleness");
+            guest.release_owner(1);require(request(2000,2000)==1,"acquisition before focus check failed");
+            require(request(2000,2010,false)==-1 && guest.stopped.reason==crml::probe::StopReason::focus,"focus guard bypassed");
+            guest.release_owner(1);require(request(2100,2100)==1,"acquisition before escape check failed");
+            require(request(2100,2110,true,true)==-1 && guest.stopped.reason==crml::probe::StopReason::escape,"Escape guard bypassed");
+            guest.release_owner(1);require(request(2201,2200)==-1,"future sample accepted");
+        }
         crml::probe::Flight flight;
         const auto arm=[&] { flight.reset(); flight.enabled=true; flight.owner=1; flight.entity=42; flight.world=100; flight.lease=1000; flight.last_step=1000; };
         std::array<float,3> next{};
-        arm(); require(flight.step(s,100,1050,true,{1,1,1,false},next),"Valid flight rejected");
+        arm(); require(flight.step(s,100,1050,true,true,{1,1,1,false},next),"Valid flight rejected");
         require(std::abs(std::sqrt(next[0]*next[0]+next[1]*next[1]+next[2]*next[2])-.25f)<.001f,"Diagonal speed is not normalized");
-        arm(); require(!flight.step(s,100,1501,true,{},next) && !flight.enabled,"Expired lease retained flight");
-        arm(); require(!flight.step(s,100,1050,false,{},next) && !flight.enabled,"Focus loss retained flight");
-        arm(); require(!flight.step(s,101,1050,true,{},next),"World replacement retained flight");
-        arm(); s.entity=43; require(!flight.step(s,100,1050,true,{},next),"Player replacement retained flight"); s.entity=42;
-        arm(); s.keyframed[0]=1; require(!flight.step(s,100,1050,true,{},next),"Engine keyframing retained flight"); s.keyframed[0]=0;
-        arm(); require(!flight.step(s,100,1300,true,{},next),"Long frame gap retained flight");
-        arm(); s.teleported=1; require(!flight.step(s,100,1050,true,{},next),"Engine teleport retained flight"); s.teleported=0;
+        arm(); require(!flight.step(s,100,1501,true,true,{},next) && !flight.enabled,"Expired lease retained flight");
+        arm(); require(!flight.step(s,100,1050,false,true,{},next) && !flight.enabled,"Focus loss retained flight");
+        arm(); require(!flight.step(s,101,1050,true,true,{},next),"World replacement retained flight");
+        arm(); s.entity=43; require(!flight.step(s,100,1050,true,true,{},next),"Player replacement retained flight"); s.entity=42;
+        arm(); s.keyframed[0]=1; require(!flight.step(s,100,1050,true,true,{},next),"Engine keyframing retained flight"); s.keyframed[0]=0;
+        arm(); require(!flight.step(s,100,1300,true,true,{},next),"Long frame gap retained flight");
+        arm(); s.teleported=1; require(!flight.step(s,100,1050,true,true,{},next),"Engine teleport retained flight"); s.teleported=0;
         arm();
         // Regression: an engine ground clamp must not erase accumulated descent each tick.
         for(uint64_t now=1050;now<=1400;now+=50) {
             flight.lease=now;
-            require(flight.step(s,100,now,true,{0,-1,0,false},next),"Descent cancelled by a small floor correction");
+            require(flight.step(s,100,now,true,true,{0,-1,0,false},next),"Descent cancelled by a small floor correction");
         }
         require(std::abs(next[1]+2.f)<.001f,"Descent kept resetting to the floor");
-        flight.lease=1450; require(flight.step(s,100,1450,true,{},next) && next[1]==-2.f,"No-input flight drifted back toward ground");
+        flight.lease=1450; require(flight.step(s,100,1450,true,true,{},next) && next[1]==-2.f,"No-input flight drifted back toward ground");
         s.position[0]=100;
-        require(!flight.step(s,100,1500,true,{},next) && !flight.enabled,"Large relocation dragged player to stale flight target"); s.position[0]=0;
+        require(!flight.step(s,100,1500,true,true,{},next) && !flight.enabled,"Large relocation dragged player to stale flight target"); s.position[0]=0;
         require(flight.stopped.reason==crml::probe::StopReason::displacement && flight.stopped.tick==1500 &&
                 flight.stopped.observed[0]==100 && flight.stopped.requested[1]==-2.f,"Displacement cancellation lost evidence");
         const auto stopped=flight.stopped;
         flight.reset(crml::probe::StopReason::focus,1600,&s);
         require(flight.stopped.count==stopped.count && flight.stopped.reason==stopped.reason,"Inactive cleanup erased stop cause");
-        arm(); s.teleported=1; require(!flight.step(s,100,1050,true,{},next) && flight.stopped.reason==crml::probe::StopReason::teleport,"Teleport stop reason missing"); s.teleported=0;
-        arm(); require(!flight.step(s,100,1501,true,{},next) && flight.stopped.reason==crml::probe::StopReason::lease,"Lease stop reason missing");
+        arm(); s.teleported=1; require(!flight.step(s,100,1050,true,true,{},next) && flight.stopped.reason==crml::probe::StopReason::teleport,"Teleport stop reason missing"); s.teleported=0;
+        arm(); require(!flight.step(s,100,1501,true,true,{},next) && flight.stopped.reason==crml::probe::StopReason::lease,"Lease stop reason missing");
         // Recorded reset: unchanged entity/world and altitude, 94-unit sideways
         // engine teleport. Retain the flight target instead of cancelling F6.
         arm();
         s.position[0]=-2068.3772f; s.position[1]=-6.91603994f; s.position[2]=1971.72351f;
-        require(flight.step(s,100,1033,true,{},next),"Flight did not acquire initial position");
+        require(flight.step(s,100,1033,true,true,{},next),"Flight did not acquire initial position");
         require(!flight.teleport_blocks(1),"Worker would cancel a positioned flight on teleport");
         s.teleported=1; s.position[0]=-2002.07007f; s.position[2]=2038.81567f;
-        require(flight.step(s,100,1066,true,{},next) && flight.enabled,"Recorded engine reset disabled active flight");
+        require(flight.step(s,100,1066,true,true,{},next) && flight.enabled,"Recorded engine reset disabled active flight");
         require(next[0]==-2068.3772f && next[1]==-6.91603994f && next[2]==1971.72351f,"Engine reset replaced flight target");
         require(flight.restored.count==1 && flight.restored.observed[0]==s.position[0] && flight.restored.requested==next,"Teleport restoration evidence missing");
         std::copy(next.begin(),next.end(),s.position);
-        require(flight.step(s,100,1099,true,{},next) && flight.restored.count==1,"Unmoved flagged sample counted as another reset");
+        require(flight.step(s,100,1099,true,true,{},next) && flight.restored.count==1,"Unmoved flagged sample counted as another reset");
         s.teleported=0;
-        require(flight.step(s,100,1132,true,{1,0,0,false},next) && next[0]>-2068.3772f,"Flight did not continue after reset correction");
+        require(flight.step(s,100,1132,true,true,{1,0,0,false},next) && next[0]>-2068.3772f,"Flight did not continue after reset correction");
         s.teleported=1;
-        require(!flight.step(s,101,1165,true,{},next) && flight.stopped.reason==crml::probe::StopReason::world,"Teleport retained flight across a world change");
+        require(!flight.step(s,101,1165,true,true,{},next) && flight.stopped.reason==crml::probe::StopReason::world,"Teleport retained flight across a world change");
         require(flight.teleport_blocks(1),"Inactive flight accepted a teleport as an activation point");
         for(int guard=0;guard<5;++guard) {
             s={}; s.entity=42; s.world=100; arm();
-            require(flight.step(s,100,1033,true,{},next),"Guard fixture did not acquire position");
+            require(flight.step(s,100,1033,true,true,{},next),"Guard fixture did not acquire position");
             s.teleported=1; s.position[0]=94;
             if(guard==0) s.entity=43;
             if(guard==1) s.disabled=1;
             if(guard==2) s.keyframed[0]=1;
             const auto now=guard==3?1600ull:1066ull;
-            require(!flight.step(s,100,now,guard!=4,{},next) && !flight.enabled,"Teleport restoration bypassed a lifecycle guard");
+            require(!flight.step(s,100,now,guard!=4,true,{},next) && !flight.enabled,"Teleport restoration bypassed a lifecycle guard");
         }
         s={}; s.entity=42; s.world=100;
         const auto missing_camera=crml::probe::camera_relative({1,-1,1,true},{});
@@ -631,24 +699,94 @@ int main() {
         {
             crml::probe::Flight guest;
             s={};s.entity=42;s.world=100;
-            require(guest.request_motion(1,true,5,0,0,s,1000)==1,"Guest velocity request rejected");
-            require(guest.request_motion(2,false,0,0,0,s,1000)==-2 && guest.enabled,"Foreign owner released movement");
-            require(guest.request_motion(1,true,20,20,0,s,1000)==-1,"Excess magnitude accepted");
-            require(guest.step(s,100,1000,true,guest.requested,next),"Guest position acquisition failed");
-            require(guest.step(s,100,1050,true,guest.requested,next) && std::abs(next[0]-.25f)<.0001f,"World velocity integrated incorrectly");
+            require(guest.request_motion(1,true,5,0,0,s,1000,true)==1,"Guest velocity request rejected");
+            require(guest.request_motion(2,false,0,0,0,s,1000,true)==-2 && guest.enabled,"Foreign owner released movement");
+            require(guest.request_motion(1,true,20,20,0,s,1000,true)==-1,"Excess magnitude accepted");
+            require(guest.step(s,100,1000,true,true,guest.requested,next),"Guest position acquisition failed");
+            require(guest.step(s,100,1050,true,true,guest.requested,next) && std::abs(next[0]-.25f)<.0001f,"World velocity integrated incorrectly");
             s.teleported=1;
-            require(!guest.step(s,100,1060,true,guest.requested,next) && guest.stopped.reason==crml::probe::StopReason::teleport,"Guest mode fought a teleport");
+            require(!guest.step(s,100,1060,true,true,guest.requested,next) && guest.stopped.reason==crml::probe::StopReason::teleport,"Guest mode fought a teleport");
             s.teleported=0;
-            guest.request_motion(2,false,0,0,0,s,1060);
-            require(guest.request_motion(1,true,5,0,0,s,1060)==-1,"Cancellation silently rearmed on next heartbeat");
-            require(guest.request_motion(1,false,0,0,0,s,1060)==0,"Explicit guest release failed");
-            require(guest.request_motion(1,true,0,0,0,s,1070)==1,"Zero velocity cannot hold position");
-            require(guest.request_motion(1,true,0,0,0,s,1600)==-1 && !guest.enabled,"Missed heartbeat renewed stale flight");
-            guest.request_motion(1,false,0,0,0,s,1600);
-            require(guest.request_motion(1,true,0,-5,0,s,1700)==1,"Fresh guest descent rejected");
+            guest.request_motion(2,false,0,0,0,s,1060,true);
+            require(guest.request_motion(1,true,5,0,0,s,1060,true)==-1,"Cancellation silently rearmed on next heartbeat");
+            require(guest.request_motion(1,false,0,0,0,s,1060,true)==0,"Explicit guest release failed");
+            require(guest.request_motion(1,true,0,0,0,s,1070,true)==1,"Zero velocity cannot hold position");
+            require(guest.request_motion(1,true,0,0,0,s,1600,true)==-1 && !guest.enabled,"Missed heartbeat renewed stale flight");
+            guest.request_motion(1,false,0,0,0,s,1600,true);
+            require(guest.request_motion(1,true,0,-5,0,s,1700,true)==1,"Fresh guest descent rejected");
             s.entity=43;
-            require(guest.request_motion(1,true,0,-5,0,s,1710)==-1 && !guest.enabled,"Guest request adopted a replacement player");
+            require(guest.request_motion(1,true,0,-5,0,s,1710,true)==-1 && !guest.enabled,"Guest request adopted a replacement player");
             require(guest.restored.count==0,"Guest mode unexpectedly restored a teleport");
+        }
+        {
+            crml::probe::Flight guest;
+            s={};s.entity=42;s.world=100;
+            for(uint64_t owner=1;owner<=guest.cancellation_capacity;++owner) {
+                require(guest.request_motion(owner,true,0,0,0,s,1000,true)==1,"Cancellation table rejected available slot");
+                require(!guest.step(s,100,1001,false,true,{},next),"Focus did not cancel owner");
+            }
+            require(guest.request_motion(100,true,0,0,0,s,1002,true)==-1 && !guest.enabled,
+                "Full cancellation table evicted an unobserved owner");
+            guest.release_owner(100); // Foreign cleanup cannot free a pending result.
+            require(guest.request_motion(100,true,0,0,0,s,1002,true)==-1,"Foreign release erased cancellation");
+            require(guest.request_motion(1,true,0,0,0,s,1002,true)==-1 && !guest.enabled,"Oldest cancellation was lost");
+            require(guest.request_motion(100,true,0,0,0,s,1002,true)==1,"Acknowledgement did not free capacity");
+            guest.release_owner(2); // Clear only owner 2 while owner 100 is active.
+            require(guest.enabled && guest.owner==100,"Pending-owner cleanup stopped another lease");
+            guest.release_owner(100);
+            require(guest.request_motion(2,true,0,0,0,s,1003,true)==1,"Explicit cleanup left a cancellation");
+            guest.release_owner(2);
+            guest.release_owner(2); // Idempotent cleanup.
+            for(uint64_t owner=3;owner<=guest.cancellation_capacity;++owner)
+                require(guest.request_motion(owner,true,0,0,0,s,1003,true)==-1 && !guest.enabled,
+                    "Unrelated owner cleanup erased pending cancellation");
+            require(guest.request_motion(3,true,0,0,0,s,1004,true)==1,"Acknowledged owner could not reacquire");
+        }
+        {
+            crml::probe::Flight guest;
+            crml_motion_state state{};
+            s={};s.entity=42;s.world=100;
+            require(guest.read_motion(0,state)==-1 && state.version==0,"Zero owner acquired a receipt");
+            const std::pair<crml::probe::StopReason,uint32_t> reasons[]{
+                {crml::probe::StopReason::focus,CRML_MOTION_STOP_FOCUS},
+                {crml::probe::StopReason::escape,CRML_MOTION_STOP_ESCAPE},
+                {crml::probe::StopReason::stale_sample,CRML_MOTION_STOP_STALE_SAMPLE},
+                {crml::probe::StopReason::lease,CRML_MOTION_STOP_LEASE},
+                {crml::probe::StopReason::entity,CRML_MOTION_STOP_PLAYER_CHANGED},
+                {crml::probe::StopReason::world,CRML_MOTION_STOP_WORLD_CHANGED},
+                {crml::probe::StopReason::disabled,CRML_MOTION_STOP_CONTROLLER_DISABLED},
+                {crml::probe::StopReason::teleport,CRML_MOTION_STOP_TELEPORT},
+                {crml::probe::StopReason::keyframed,CRML_MOTION_STOP_KEYFRAMED},
+                {crml::probe::StopReason::tick_gap,CRML_MOTION_STOP_TICK_GAP},
+                {crml::probe::StopReason::speed,CRML_MOTION_STOP_INVALID_SPEED},
+                {crml::probe::StopReason::displacement,CRML_MOTION_STOP_DISPLACEMENT},
+                {crml::probe::StopReason::direction,CRML_MOTION_STOP_INVALID_DIRECTION},
+                {crml::probe::StopReason::coordinates,CRML_MOTION_STOP_INVALID_COORDINATES},
+                {crml::probe::StopReason::view,CRML_MOTION_STOP_INVALID_VIEW},
+                {crml::probe::StopReason::mod_release,CRML_MOTION_STOP_RELEASE},
+                {crml::probe::StopReason::shutdown,CRML_MOTION_STOP_SHUTDOWN},
+                {crml::probe::StopReason::toggle,CRML_MOTION_STOP_OTHER}
+            };
+            for(const auto& [reason,code]:reasons) {
+                require(guest.request_motion(1,true,0,0,0,s,1000,true)==1,"Receipt owner failed acquisition");
+                require(guest.read_motion(1,state)==1 && state.version==1 && state.state==CRML_MOTION_ACTIVE &&
+                    !state.stop_reason && !state.flags,"Active receipt invalid");
+                guest.reset(reason,1001,&s);
+                for(int i=0;i<2;++i) require(guest.read_motion(1,state)==1 && state.state==CRML_MOTION_STOPPED &&
+                    state.stop_reason==code && state.flags==CRML_MOTION_CANCEL_PENDING,"Read consumed or corrupted cancellation");
+                require(guest.read_motion(2,state)==1 && !state.state && !state.stop_reason && !state.flags,"Foreign stop receipt leaked");
+                require(guest.request_motion(2,true,0,0,0,s,1002,true)==1,"Peer acquisition failed");
+                guest.release_owner(2);
+                require(guest.request_motion(1,true,0,0,0,s,1003,true)==-1,"Read consumed cancellation handshake");
+                require(guest.read_motion(1,state)==1 && state.stop_reason==code && state.state==CRML_MOTION_STOPPED &&
+                    !state.flags,"Failed renewal lost its reason");
+                require(guest.request_motion(2,true,0,0,0,s,1004,true)==1,"Peer failed after acknowledged cancellation");
+                guest.release_owner(2);
+                require(guest.read_motion(1,state)==1 && state.stop_reason==code && state.state==CRML_MOTION_STOPPED &&
+                    !state.flags,"Peer cycle erased acknowledged receipt below capacity");
+                guest.release_owner(1);
+                require(guest.read_motion(1,state)==1 && !state.state && !state.stop_reason && !state.flags,"Release retained owner history");
+            }
         }
         require(crml::probe::inspect(nullptr,nullptr,3,s)==Observation::invalid,"Null view accepted");
         auto page=VirtualAlloc(nullptr,4096,MEM_RESERVE|MEM_COMMIT,PAGE_NOACCESS);

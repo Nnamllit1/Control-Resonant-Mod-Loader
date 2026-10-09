@@ -1,0 +1,630 @@
+{
+  "schema": 1,
+  "title": "Input context flags, predicate-gated action views and native UI navigation",
+  "executable_sha256": "a2e8e57c86ea60f12de1fa628f8db12014eb296fb259449ea688df9c7ba1497a",
+  "status": "Reviewed static instruction and data flow for the October executable. No live input-ownership contract or callable Wasm API is established by this map.",
+  "documentation": "../engine-paths.md#native-input-contexts",
+  "related_maps": [{"path":"input-context-hotfix-map.json","scope":"Separately fingerprinted 0.564.478.0 input/menu observer relocation; this map retains the prior October addresses."}],
+  "checks": [
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a43a06",
+      "target": "0x48f5870",
+      "label": "player enable-controls binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a43a14",
+      "target": "0x1a40ca0",
+      "label": "player enable-controls callback"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a43a22",
+      "target": "0x48f5890",
+      "label": "player controls-enabled binding name"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x1a43a30",
+      "target": "0x1a40cf0",
+      "label": "player controls-enabled callback"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a40cc8",
+      "target": "0x29d56e0",
+      "label": "script setter resolves shared controls object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a40cd6",
+      "target": "0x29d70e0",
+      "label": "script setter changes raw bit 10"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a40cf9",
+      "target": "0x29d56e0",
+      "label": "script query resolves shared controls object"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a40d01",
+      "target": "0x29d70a0",
+      "label": "script query tests raw controls gates"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d5709",
+      "target": "0x5de85b0",
+      "label": "initialized singleton return"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d576a",
+      "target": "0x5de85b0",
+      "label": "singleton return following lazy initialization"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d70a2",
+      "target": "0x570",
+      "label": "raw controls field offset in query"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d70a7",
+      "target": "0xc00",
+      "label": "raw controls query mask"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d70ac",
+      "target": "0xc00",
+      "label": "raw controls query expected bits"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2547900",
+      "target": "0x29d70e0",
+      "label": "native state application sets raw bit 10"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2547912",
+      "target": "0x29d70e0",
+      "label": "native state application sets raw bit 11"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d5bba",
+      "target": "0x29d7260",
+      "label": "context update invokes raw-to-derived reducer"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d726a",
+      "target": "0x578",
+      "label": "reducer clears derived context field"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7270",
+      "target": "0x570",
+      "label": "reducer reads raw flags"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d6138",
+      "target": "0x4dbf578",
+      "label": "construct derived bit-0 predicate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d616a",
+      "target": "0x29c5730",
+      "label": "construct action view with derived bit-0 predicate"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d61e9",
+      "target": "0x4dbf5b0",
+      "label": "construct derived bit-1 predicate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d6225",
+      "target": "0x29c5730",
+      "label": "construct action view with derived bit-1 predicate"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4dbf588",
+      "target": "0x29d73b0",
+      "label": "derived bit-0 predicate invoke slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4dbf5c0",
+      "target": "0x29d7450",
+      "label": "derived bit-1 predicate invoke slot"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d73b7",
+      "target": "0x578",
+      "label": "bit-0 predicate reads derived context field"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7457",
+      "target": "0x578",
+      "label": "bit-1 predicate reads derived context field"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c8336",
+      "target": "0x90",
+      "label": "digital action reader locates optional predicate"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29c6a09",
+      "target": "0x90",
+      "label": "analog action reader locates optional predicate"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2541f88",
+      "target": "0x29d6ad0",
+      "label": "native update observes derived bit 1 before update"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2541f93",
+      "target": "0x29d5b80",
+      "label": "native update rebuilds context views"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2541f9b",
+      "target": "0x29d6ad0",
+      "label": "native update observes derived bit 1 after update"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2541fac",
+      "target": "0x29c88e0",
+      "label": "derived bit-1 rising transition invokes input helper"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x22c7ced",
+      "target": "0x22cc730",
+      "label": "variable analog input dispatcher registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22cc8fc",
+      "target": "0x22c96f0",
+      "label": "variable analog input dispatcher reaches worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22c973a",
+      "target": "0x29c69c0",
+      "label": "player analog input uses predicate-gated reader"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x22c976e",
+      "target": "0x29c8300",
+      "label": "player digital action uses predicate-gated reader"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e0657",
+      "target": "0x17d7770",
+      "label": "UI navigation obtains applied current state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e0739",
+      "target": "0x17d8680",
+      "label": "matching UI state additionally checks stack activity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e07a8",
+      "target": "0x29c8300",
+      "label": "eligible UI navigation polls a digital action"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a93b65",
+      "target": "0x29d56e0",
+      "label": "Input environment population resolves controls singleton"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a93b9b",
+      "target": "0x29d6d30",
+      "label": "Input environment selects third controls action view"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d6d40",
+      "target": "0x148",
+      "label": "Third controls view offset"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d6d34",
+      "target": "0x5de8510",
+      "label": "Disconnected controls view fallback"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a93ba6",
+      "target": "0x138",
+      "label": "Destination player action view offset in input environment"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a93baa",
+      "target": "0x1a94470",
+      "label": "Copy selected controls view into player input environment"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1a944cc",
+      "target": "0x90",
+      "label": "Copy helper locates source predicate for cloning"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1a944ed",
+      "target": "0x3f28b0",
+      "label": "Copy helper installs cloned predicate wrapper"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d6835",
+      "target": "0x29d7fb0",
+      "label": "Publish constructed context views into controls object"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7fe9",
+      "target": "0x138",
+      "label": "Source third view offset in context block assignment"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x29d7ff0",
+      "target": "0x138",
+      "label": "Destination third view offset in context block assignment"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x29d7ff4",
+      "target": "0x29d7f10",
+      "label": "Third context block view assignment"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4dbf5b0",
+      "target": "0x29d7410",
+      "label": "Bit-1 predicate clone slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x4dbf5b8",
+      "target": "0x29d7430",
+      "label": "Bit-1 predicate move slot"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d7410",
+      "target": "0x4dbf5b0",
+      "label": "Bit-1 predicate clone retains its type"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x29d7430",
+      "target": "0x4dbf5b0",
+      "label": "Bit-1 predicate move retains its type"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17e2630",
+      "target": "0x4837780",
+      "label": "menuModeSystem signature literal"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x17e2721",
+      "target": "0x17e2f60",
+      "label": "menuModeSystem dispatcher registration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2fed",
+      "target": "0x17e27e0",
+      "label": "dispatcher calls menu-mode worker"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2813",
+      "target": "0x29d56e0",
+      "label": "menu worker obtains controls singleton"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e281b",
+      "target": "0x29d6df0",
+      "label": "menu worker reads raw bit5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e283d",
+      "target": "0x17e2bb0",
+      "label": "menu worker resolves active contexts"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x17e2ca8",
+      "target": "0x65d86b58",
+      "label": "UINavigationContextSimple query hash"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2d2a",
+      "target": "0x17d7770",
+      "label": "menu helper obtains applied stack state"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2dfd",
+      "target": "0x17d8680",
+      "label": "menu helper verifies stack activity"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2859",
+      "target": "0x1b711f0",
+      "label": "present context+5c true selects type5 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2860",
+      "target": "0x1b71260",
+      "label": "present context+5c false selects type6 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x17e2867",
+      "target": "0x1b71180",
+      "label": "absent context selects type3 request"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b7119b",
+      "target": "0x3",
+      "label": "request payload type3"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b7120b",
+      "target": "0x5",
+      "label": "request payload type5"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x1b7127b",
+      "target": "0x6",
+      "label": "request payload type6"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b711ad",
+      "target": "0x1b722f0",
+      "label": "insert type3 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b7121d",
+      "target": "0x1b722f0",
+      "label": "insert type5 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x1b7128d",
+      "target": "0x1b722f0",
+      "label": "insert type6 request"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x254789f",
+      "target": "0x29d6e60",
+      "label": "configuration sourcebit1 writes rawbit4"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x25478af",
+      "target": "0x29d6eb0",
+      "label": "configuration sourcebit2 writes rawbit7"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x25478bf",
+      "target": "0x29d6e10",
+      "label": "configuration sourcebit3 writes rawbit5"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x25478cf",
+      "target": "0x29d71f0",
+      "label": "configuration sourcebit10 writes rawbit15"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x2547e79",
+      "target": "0x25477c0",
+      "label": "state entry applies configuration"
+    },
+    {
+      "kind": "call_rel32",
+      "rva": "0x254875e",
+      "target": "0x25477c0",
+      "label": "state restoration applies configuration"
+    },
+    {
+      "kind": "lea_rax_rip",
+      "rva": "0x3492407",
+      "target": "0x51d5960",
+      "label": "PageContent listener table installation"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x51d5a00",
+      "target": "0x36938f9",
+      "label": "PageContent text-input notification slot"
+    },
+    {
+      "kind": "pointer64",
+      "rva": "0x51d5958",
+      "target": "0x56764c0",
+      "label": "listener RTTI complete-object locator"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x56764cc",
+      "target": "0x5c823e8",
+      "label": "RTTI PageContent type descriptor RVA"
+    },
+    {
+      "kind": "u32",
+      "rva": "0x36938fb",
+      "target": "0x4396c1",
+      "label": "text callback thunk displacement to IAT0x3accfc0"
+    }
+  ],
+  "controls_object": {
+    "getter_rva": "0x29d56e0",
+    "static_storage_rva": "0x5de85b0",
+    "initialization_guard_rva": "0x5de8b30",
+    "raw_flags_offset": "0x570",
+    "previous_raw_flags_offset": "0x574",
+    "derived_context_offset": "0x578",
+    "previous_derived_context_offset": "0x57a",
+    "lifetime": "The getter has guarded lazy initialization. A mapped static address alone does not establish initialized state or a safe arbitrary-thread read.",
+    "script_query": "nl_player_controls_enabled returns (raw_flags & 0xc00) == 0xc00 through callback 0x1a40cf0 and query 0x29d70a0.",
+    "script_writer": "nl_player_enable_controls passes its Boolean to 0x29d70e0 with the third argument true, selecting raw bit 10. The other selector branch writes bit 11.",
+    "native_writer": "State application 0x25477c0 sets both raw bits when its source configuration bit 6 is set. Generic flag mutator 0x29d7220 can OR or clear an arbitrary supplied mask. The reviewed direct setter callers are not an exhaustive writer census."
+  },
+  "derived_context": {
+    "update_rva": "0x29d5b80",
+    "reducer_rva": "0x29d7260",
+    "sequence": "Save raw and derived previous values, then clear and recompute the derived word from raw flags before constructing input views.",
+    "raw_query_is_insufficient": "Raw flags 0xc00 satisfy the Lua controls-enabled query but produce a zero derived word in the reducer. Raw control enablement is not input-context eligibility.",
+    "bit_1_dependency": "The reducer may set derived bit 1 only after selecting a context with derived bit 0, passing its higher-priority branches, and observing raw bit 10. Raw bit 11 is not read by this reducer.",
+    "rising_transition": "0x2541f70 compares derived bit 1 before and after the update and invokes 0x29c88e0 on a false-to-true transition. The helper's complete reset semantics are not established here.",
+    "names": "Derived bit meanings are identified numerically. Complete engine context names and menu/text-capture relationships have not been established."
+  },
+  "action_views": {
+    "constructor_rva": "0x29c5730",
+    "predicate_pointer_offset": "0x90",
+    "predicate_invoke_vtable_offset": "0x10",
+    "digital_reader_rva": "0x29c8300",
+    "analog_reader_rva": "0x29c69c0",
+    "guards": "Both readers require a backend, matching generation (or the all-ones wildcard), an accepting optional predicate, and a usable input source. A false predicate returns no action value. An absent predicate bypasses only that predicate check.",
+    "predicates": [
+      {
+        "vtable_rva": "0x4dbf578",
+        "invoke_rva": "0x29d73b0",
+        "object_pointer_offset": "0x8",
+        "derived_bit": 0
+      },
+      {
+        "vtable_rva": "0x4dbf5b0",
+        "invoke_rva": "0x29d7450",
+        "object_pointer_offset": "0x8",
+        "derived_bit": 1
+      }
+    ],
+    "player_consumer": "heron::player_input::update_analog_inputs::variableSystem reaches worker 0x22c96f0, which reads the action view at input-environment offset 0x138 through these readers. Population 0x1a93b40 copies this view from controls-object offset 0x148 through accessor 0x29d6d30 and copy helper 0x1a94470, preserving its derived-bit-1 predicate.",
+    "environment_copy": {
+      "populate_rva": "0x1a93b40",
+      "accessor_rva": "0x29d6d30",
+      "copy_rva": "0x1a94470",
+      "controls_view_offset": "0x148",
+      "environment_view_offset": "0x138",
+      "fallback_rva": "0x5de8510",
+      "selection": "The accessor selects controls-object offset 0x148 only while the connection pointer at offset 0 is nonzero. Otherwise it returns the static empty fallback; stale embedded view data is not evidence of a connected player view.",
+      "predicate_lifetime": "The copy helper clones the source predicate through vtable slot 0 before installing its wrapper. Bit-1 clone and move functions copy the vtable and the borrowed controls-object pointer. They do not clone the controls object.",
+      "assignment": "Context update builds a temporary block and assigns it into controls-object offset 0x10 using 0x29d7fb0. Its third view, block offset 0x138, therefore occupies controls-object offset 0x148. That view carries the derived-bit-1 predicate.",
+      "limits": "The pointer chain is statically established for this population path. Population frequency, later environment mutation and an exhaustive census of alternate producers are not established; a controls-object observation is not an atomic snapshot of every ECS environment."
+    }
+  },
+  "ui_navigation": {
+    "worker_rva": "0x17e05d0",
+    "context_state_offset": "0x28",
+    "current_state_reader_rva": "0x17d7770",
+    "activity_predicate_rva": "0x17d8680",
+    "eligibility": "The context name must match a currently applied state and pass stack activity. A missing input object, context byte +0x5e and countdown +0x64 can additionally skip polling.",
+    "limits": "An eligible context is positive evidence for that UI navigation path. Absence of polling is not proof of gameplay ownership; mouse, text entry and other UI consumers are outside this trace. Byte +0x5e is reset within the worker and must not be treated as a durable global menu flag."
+  },
+  "integration_boundaries": [
+    "Do not authorize guest suppression from foreground focus, the Lua raw-controls query, or absence of UI navigation polling.",
+    "Sample on a reviewed engine phase and copy bounded observations; do not invoke predicate vtables or singleton initialization from a Wasm worker.",
+    "Establish input-view identity, generation and replacement before retaining any engine-derived observation.",
+    "Keep native cancel and system shortcuts available. Unknown, stale, loading and non-gameplay context must not renew a future suppression lease.",
+    "Menu, dialog, text entry, key capture and reload behavior need independent evidence before any derived bit is named exclusive gameplay ownership."
+  ],
+  "observation": {
+    "hook_rva": "0x29d5b80",
+    "edge": "After successful return; a pending or unwound update invalidates the cache.",
+    "implementation": "runtime/diagnostics/input_context.cpp",
+    "scope": "Optional copied raw/derived flags, connection state, reviewed third-view predicate identity, backend generation match, source availability and callback thread ID. The sampler does not invoke engine methods or write controls data; the hook forwards the original update unchanged. No input suppression or Wasm ownership flag.",
+    "guards": "Disconnected controls skip embedded view inspection. Backend and generation eligibility precede predicate dereferences; an accepting reviewed predicate precedes fallback-source dereferences. source_checked distinguishes skipped source evaluation from a missing source. Observed identity or state churn clears the sample.",
+    "limits": "Exact reviewed build and entry fingerprint required; the hotfix has a separate related map. Snapshots expire after 100 ms and are not permission to mutate input. At most 64 semantic changes are logged, no more often than every 250 ms; thread migration alone does not spend the budget. This is not complete transition capture. Game menu, text-entry, loading and reload behavior remain unconfirmed."
+  },
+  "menu_mode": {
+    "registration_rva": "0x17e25e0",
+    "dispatcher_rva": "0x17e2f60",
+    "worker_rva": "0x17e27e0",
+    "context_match_rva": "0x17e2bb0",
+    "identity": "The current executable names this variable-update system menuModeSystem and its query UINavigationContextSimple.",
+    "eligibility": "The worker requires a player-context getter and GameReadiness byte +1. The helper enumerates navigation contexts, matches their names against applied UI stack states and requires stack activity. A match sets menu-present and copies context byte +0x5c; a later match can overwrite the second output.",
+    "transitions": "The worker compares menu-present with controls raw bit 5. A mismatch queues request type 3 to leave or type 5/6 to enter, selected by the helper second output. Helpers 0x1b71180, 0x1b711f0 and 0x1b71260 append through 0x1b722f0 to a 0x48-stride request vector. This is deferred request production, not an immediate controls write.",
+    "application": "State configuration application 0x25477c0 maps configuration bits 1, 2, 3 and 10 to controls raw bits 4, 7, 5 and 15 respectively. Transition processing also writes raw bit 7 independently. Exact request-type to configuration selection remains unresolved.",
+    "limits": "Positive menu requests are a concrete observation lead. Absence of a match is not exclusive gameplay permission. Request application latency, context byte +0x5c semantics, text entry and coverage of other UI consumers remain unverified.",
+    "machine_abi": {
+      "worker": "void(query temporary address in RCX, UIStateStacks address in RDX, TransitionRequest Ptr-wrapper address in R8, GameReadiness Ptr-wrapper address in R9). The query is a caller-owned 32-byte temporary, not an ECS world pointer.",
+      "helper": "void(query address in RCX, UIStateStacks address in RDX, uint8_t* matched_active_context in R8, uint8_t* last_match_flag_5c in R9). Return register contents are not a Boolean result.",
+      "reviewed_caller_return_rva": "0x17e2842",
+      "output_lifetime": "The reviewed worker zero-initializes two stack bytes before calling the helper. The helper does not initialize outputs; it sets the first byte to one on any match and overwrites the second with the raw +0x5c byte for each match. Copy only on normal helper return before returning to this caller; do not retain addresses.",
+      "raw_bit_correlation": "Worker latches raw bit5 before helper execution. Reading raw controls after the helper is a separate observation, not that latched value or proof of exact transition choice.",
+      "scope": "Machine-level ABI for this reviewed call path only. The optional native observer copies completed outputs from this call path; live coverage remains unverified. No exclusive gameplay or text-ownership permission follows from negative or absent menu observations."
+    },
+    "observation": {
+      "implementation": "runtime/diagnostics/menu_context.cpp",
+      "activation": "The input-context.enabled marker opts into both independent native observers on the reviewed October update and hotfix profiles; hotfix addresses are recorded in the separate related map. The helper observer checks its instruction fingerprint and caller return address before copying outputs.",
+      "lifetime": "The original helper receives all four arguments unchanged. Only normally returned, initially zeroed output bytes are copied; no engine pointer is retained. In-flight, overlapping, unwound or older-than-100ms observations are unknown.",
+      "logging": "At most 64 semantic changes, sampled no faster than every 250ms. Status and observed fields trigger records; thread migration alone does not spend the budget. Records include the callback thread ID. Separate controls and menu records do not form a coherent engine-frame snapshot.",
+      "evidence": "Native tests cover borrowing, argument forwarding, rejected contracts, expiration, overlap and exception propagation. Actual menu coverage and text-entry ownership require gameplay evidence. This observer does not grant or change input suppression."
+    }
+  },
+  "text_input_notification": {
+    "type": "ui::PageContent",
+    "constructor_rva": "0x34923e0",
+    "vtable_rva": "0x51d5960",
+    "callback_slot": "0xa0",
+    "callback_thunk_rva": "0x36938f9",
+    "import_iat_rva": "0x3accfc0",
+    "identity": "The PageContent listener slot references the imported Cohtml IViewListener::OnTextInputTypeChanged default callback. No game-defined override storing a capture flag is established by this trace.",
+    "limits": "This identifies a possible observation boundary only. ControlType values, actual notification delivery, active-page identity and destruction/replacement must be established before exposing text capture or granting suppression."
+  }
+}

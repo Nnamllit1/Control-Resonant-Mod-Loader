@@ -3,6 +3,14 @@
   "title": "Player mesh and collision component ownership",
   "executable_sha256": "2c6575be23ea9a2d316fb530d094773b371ab1da6344aa7a97b8cc2dabaf1ca0",
   "status": "Static player component layouts, mesh/material commands and physics resource references.",
+  "visibility_adapter": {
+    "implementation": "runtime/visibility.cpp and runtime/visibility.h",
+    "guest_observation": "crml_v1.visibility_read returns owner-local lease state and lease-tagged hidden/submitted evidence. No engine addresses, entity handles or other mod identifiers cross the guest boundary.",
+    "hidden_evidence": "The applyHide hook resolved the player root MeshHidden component as hidden, or wrote the hide flag while publishing a renderer command. This is a historical observation for that continuous lease, not a current-frame visibility query.",
+    "submission_evidence": "The hook published the one-handle hide command through the existing engine queue. Publication does not establish renderer consumption, GPU completion or pixels on screen.",
+    "lifetime": "Renewing an active lease retains its epoch. Release, expiry followed by reacquisition, or takeover starts a different epoch. Atomic monotonic evidence tags exclude old callbacks from replacement leases; an already-running callback may report for an expired lease.",
+    "validation_scope": "Adapter guards, attribution and guest memory/capability contracts have automated tests. Engine layout checks and gameplay evidence are separate from receipt API validation."
+  },
   "checks": [
     {
       "kind": "lea_rax_rip",

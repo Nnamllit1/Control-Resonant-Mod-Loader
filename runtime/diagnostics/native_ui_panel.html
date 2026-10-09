@@ -5,7 +5,78 @@
     if (window.__crmlNativeUi) return;
     var stackName = 'menu_options';
     var normalStates = ['gameplay', 'controls', 'graphics', 'audio', 'interface'];
-    var state = { enabled: false, amount: 50 };
+    var page = '__CRML_SETTINGS_PAGE__';
+    var groups = [], groupIndex = 0, sequence = 0, request = null, queued = [], writing = null;
+    var transportError = '', settingsLoaded = false, listNotice = '', listNoticeUntil = 0;
+    function selectGroup() { return groups.length ? groups[Math.min(groupIndex, groups.length - 1)] : null; }
+    function pending(row) {
+        function same(change) { return change && change.owner === row.owner && change.handle === row.item.handle; }
+        return same(writing) || queued.some(same);
+    }
+    function submit(row, value, revision) {
+        if (!owns(row.entry) || pending(row)) return;
+        var change = { owner: row.owner, handle: row.item.handle, revision: revision || row.item.revision, value: value, row: row };
+        if (row.list) { listNotice = ''; listNoticeUntil = 0; }
+        var existing = -1;
+        for (var i = 0; i < queued.length; ++i) if (queued[i].owner === change.owner && queued[i].handle === change.handle) existing = i;
+        if (existing >= 0) queued[existing] = change;
+        else if (queued.length < 32) queued.push(change);
+        else { transportError = 'Too many pending changes. Try again.'; refresh(); return; }
+        refresh(); pollSettings();
+    }
+    function pollSettings() {
+        if (stopped || request || !/^[1-9][0-9]*$/.test(page)) return;
+        // Keep the initial catalog for the tab, then refresh only while editing
+        // or finishing an already authorized write. The UI document survives
+        // returning to the main menu; hidden controls must not be rewritten.
+        if (settingsLoaded && !active && !queued.length) return;
+        var change = queued.shift();
+        writing = change || null;
+        var url = 'coui://base/crml/settings/v1/' + page + '/' + (++sequence);
+        if (change) url += '/' + change.owner + '/' + change.handle + '/' + change.revision + '/' +
+            (change.row.item.kind === 4 ? textPayload(change.value) : String(change.value));
+        var xhr = new XMLHttpRequest(); request = xhr;
+        xhr.open('GET', url, true); xhr.timeout = 1500;
+        function releaseRequest() {
+            xhr.onload = xhr.onerror = xhr.ontimeout = xhr.onabort = null;
+            if (request === xhr) request = null;
+        }
+        function fail() {
+            if (request !== xhr) return;
+            releaseRequest(); writing = null; transportError = 'Settings connection unavailable.'; queued = [];
+            refresh();
+        }
+        xhr.onerror = fail; xhr.ontimeout = fail; xhr.onabort = fail;
+        xhr.onload = function () {
+            if (request !== xhr || stopped) return;
+            if (xhr.status === 403 || xhr.status === 409 || xhr.status === 503) { stop();return; }
+            if (xhr.status !== 200) { fail(); return; }
+            try {
+                if (xhr.responseText.length > 2097152) throw new Error('Response too large');
+                var response = JSON.parse(xhr.responseText);
+                if (!response || !Array.isArray(response.groups) || response.groups.length > 64) throw new Error('Invalid response');
+                response.groups.forEach(function (group) { if (group.list && !validList(group.list)) throw new Error('Invalid list'); });
+                var previous = selectGroup();
+                groups = response.groups;
+                groupIndex = Math.max(0, Math.min(groupIndex, groups.length - 1));
+                if (previous) {
+                    var found = -1;
+                    for (var i = 0; i < groups.length; ++i) if (groups[i].owner === previous.owner) found = i;
+                    groupIndex = found < 0 ? 0 : found;
+                }
+                transportError = response.result === -4 ? 'Value changed elsewhere. Try again.' :
+                    response.result < 0 ? 'This setting could not be changed.' : '';
+                if (change && change.row.list) {
+                    listNotice = response.result === -4 ? 'List changed. Choose again.' : response.result === -6 ?
+                        'Action unavailable. Try again.' : response.result < 0 ? 'This item is unavailable. Choose again.' : '';
+                    listNoticeUntil = Date.now() + 2000; transportError = '';
+                }
+                if (change && change.row.input && response.result >= 0) change.row.edit = null;
+                settingsLoaded = true;releaseRequest(); writing = null; refresh();
+            } catch (_) { fail(); }
+        };
+        try { xhr.send(); } catch (_) { fail(); }
+    }
     var mounted = [];
     var active = null;
     var timer = null;
@@ -65,7 +136,7 @@
         });
     }
     function endDrag() {
-        if (drag) drag.entry.fill.classList.remove('options-slider__bar__fill--dragging');
+        if (drag) drag.row.fill.classList.remove('options-slider__bar__fill--dragging');
         drag = null;
         window.removeEventListener('mousemove', moveDrag);
         window.removeEventListener('mouseup', releaseDrag);
@@ -115,6 +186,9 @@
     function leave() {
         if (!active) return true;
         var entry = active;
+        if (entry.closeSelector) entry.closeSelector(false, true);
+        clearTextEdits(entry);
+        blurList(entry);
         active = null;
         entry.phase = 'idle';
         endDrag();
@@ -142,6 +216,17 @@
     }
     function cancel() {
         if (!active || !owns(active) || cancelFrame !== null) return;
+        if (active.selectorOpen) { active.closeSelector(true); return; }
+        if (active.selectorEscapeFrame !== null) return;
+        // Native OnCancel and DOM Escape can both describe the same key. Keep
+        // focus after cancelling the draft so either event order is harmless.
+        for (var i = 0; i < active.rows.length; ++i) {
+            var row = active.rows[i];
+            if (row.input && document.activeElement === row.input) {
+                if (!row.composing) resetText(row);
+                return;
+            }
+        }
         var entry = active;
         // Restore stock handlers after this entire native event dispatch ends.
         // The same Cancel must not also close the underlying Options menu.
@@ -159,28 +244,30 @@
         if (event && typeof event.screenX === 'number' && isFinite(event.screenX)) return event.screenX;
         return null;
     }
-    function sliderGeometry(entry) {
-        var box = entry.bar.getBoundingClientRect();
+    function sliderGeometry(row) {
+        var box = row.bar.getBoundingClientRect();
         var left = typeof box.x === 'number' ? box.x : box.left;
         return typeof left === 'number' && isFinite(left) && typeof box.width === 'number' &&
             isFinite(box.width) && box.width > 0 ? { left: left, width: box.width } : null;
     }
-    function updateSlider(entry, event, geometry) {
-        if (!owns(entry)) return;
-        var box = geometry || sliderGeometry(entry);
-        var x = xPosition(event);
-        if (!box || x === null) return;
-        state.amount = Math.max(0, Math.min(100, Math.round((x - box.left) * 100 / box.width)));
-        refresh();
+    function updateSlider(row, event, geometry) {
+        if (!owns(row.entry)) return;
+        var x = xPosition(event), item = row.item;
+        if (!geometry || x === null) return;
+        var fraction = Math.max(0, Math.min(1, (x - geometry.left) / geometry.width));
+        var steps = Math.round((item.maximum - item.minimum) * fraction / item.step);
+        row.draft = Math.max(item.minimum, Math.min(item.maximum, item.minimum + steps * item.step));
+        row.render(row.draft);
     }
     function moveDrag(event) {
         if (!drag || !owns(drag.entry)) { endDrag(); return; }
-        consume(event);
-        updateSlider(drag.entry, event, drag.geometry);
+        consume(event); updateSlider(drag.row, event, drag.geometry);
     }
     function releaseDrag(event) {
-        if (drag) updateSlider(drag.entry, event, drag.geometry);
-        endDrag();
+        if (drag && owns(drag.entry)) {
+            var editing = drag; updateSlider(editing.row, event, editing.geometry);
+            endDrag(); submit(editing.row, editing.row.draft, editing.revision);
+        } else endDrag();
     }
     function interactive(node) {
         node.style.pointerEvents = 'auto';
@@ -194,6 +281,229 @@
     }
     function remove(node) { if (node.parentNode) node.parentNode.removeChild(node); }
 
+    function decimal(value) { return typeof value === 'string' && /^[1-9][0-9]{0,19}$/.test(value); }
+    function validList(list) {
+        if (!decimal(list.revision) || typeof list.title !== 'string' || !list.title.length || list.title.length > 95 ||
+            typeof list.font_scale !== 'number' || !isFinite(list.font_scale) || list.font_scale < .75 || list.font_scale > 1.5 ||
+            !Array.isArray(list.rows) || list.rows.length > 32) return false;
+        var ids = {};
+        return list.rows.every(function (row) {
+            if (!row || !decimal(row.id) || ids[row.id] || typeof row.flags !== 'number' ||
+                row.flags < 0 || row.flags > 3 || Math.floor(row.flags) !== row.flags ||
+                typeof row.label !== 'string' || !row.label.length || row.label.length > 95 || typeof row.detail !== 'string' || row.detail.length > 191) return false;
+            ids[row.id] = true; return true;
+        });
+    }
+    function blurList(entry) {
+        if (entry.list && entry.list.node.contains(document.activeElement)) document.activeElement.blur();
+    }
+    // Explicit longhands keep form controls independent of inherited font
+    // decoration. The game registers this face for its normal UI labels.
+    function textStyle(size) {
+        return 'font-family:AlteredGrotesk,sans-serif;font-size:' + size + 'vh;font-weight:400;font-style:normal;line-height:1.3;letter-spacing:0;text-shadow:none;text-transform:none;';
+    }
+    function renderList(entry, parent, group) {
+        var list = group && group.list, previous = entry.list;
+        if (!list) {
+            if (previous) { blurList(entry); remove(previous.node);entry.list = null; }
+            return;
+        }
+        if (!previous || previous.owner !== group.owner || previous.revision !== list.revision) {
+            var focused = previous && previous.owner === group.owner ? previous.rows.filter(function (row) { return row.node === document.activeElement; })[0] : null;
+            var scroll = parent.scrollTop;
+            var section = element('div', ''); section.setAttribute('data-crml-list', '1');
+            var size = 1.7 * list.font_scale;
+            section.style.cssText = 'padding:1vh 1.85vh;' + textStyle(size);
+            var title = element('div', 'crml-list-title', list.title);
+            title.style.cssText = textStyle(size) + 'padding-bottom:0.75vh';section.appendChild(title);
+            var state = { owner: group.owner, revision: list.revision, node: section, rows: [] };
+            list.rows.forEach(function (item) {
+                var node = element('button', 'options-button');node.type = 'button';
+                node.setAttribute('data-crml-list-row', item.id);node.setAttribute('aria-pressed', item.flags & 2 ? 'true' : 'false');
+                node.style.cssText = textStyle(size) + 'display:flex;flex-direction:column;align-items:flex-start;box-sizing:border-box;width:100%;text-align:left;pointer-events:auto;padding:1vh;border:0;border-left:0.25vh solid '+(item.flags & 2 ? '#e8e8e8' : 'transparent')+';background:rgba(255,255,255,0.06);color:#e8e8e8;white-space:normal';
+                var label = element('div', 'crml-list-label', item.label);label.style.cssText=textStyle(size);node.appendChild(label);
+                if (item.detail) { var detail=element('div','crml-list-detail',item.detail);detail.style.cssText=textStyle(size*.85)+'opacity:0.75';node.appendChild(detail); }
+                var row = {entry:entry,owner:group.owner,item:{handle:'list',revision:list.revision},id:item.id,flags:item.flags,node:node,list:true};
+                node.disabled = !(item.flags & 1);
+                hover(node, 'options-button--focused');
+                node.addEventListener('focus',function(){node.classList.add('options-button--focused');});
+                node.addEventListener('blur',function(){node.classList.remove('options-button--focused');});
+                node.addEventListener('mouseleave',function(){if(document.activeElement===node)node.classList.add('options-button--focused');});
+                node.addEventListener('mousedown',function(event){event.stopPropagation();});
+                function activate(event) {
+                    consume(event);
+                    if (entry.list === state && owns(entry) && (row.flags & 1) && !pending(row)) submit(row,row.id,row.item.revision);
+                }
+                node.addEventListener('click',activate);
+                ['keydown','keyup'].forEach(function(name){node.addEventListener(name,function(event){
+                    if (!owns(entry) || entry.list !== state) return;
+                    var key=event.key, code=event.keyCode;
+                    if (key==='Escape' || code===27) {consume(event);if(name==='keydown')cancel();return;}
+                    if (key==='Enter' || key===' ' || code===13 || code===32) {consume(event);if(name==='keydown' && !event.repeat)activate(event);return;}
+                    var delta=key==='ArrowDown'||key==='ArrowRight'||code===40||code===39?1:key==='ArrowUp'||key==='ArrowLeft'||code===38||code===37?-1:0;
+                    if (!delta && key!=='Home' && key!=='End') return;
+                    consume(event);if(name!=='keydown')return;
+                    var enabled=state.rows.filter(function(candidate){return candidate.flags&1;}),index=enabled.indexOf(row);
+                    if(key==='Home')index=0;else if(key==='End')index=enabled.length-1;else index=Math.max(0,Math.min(enabled.length-1,index+delta));
+                    if(enabled[index])enabled[index].node.focus();
+                });});
+                section.appendChild(node);state.rows.push(row);
+            });
+            if (previous) {blurList(entry);parent.replaceChild(section,previous.node);} else parent.appendChild(section);
+            entry.list=state;
+            if (focused && owns(entry)) state.rows.some(function(row){if(row.id!==focused.id || !(row.flags&1))return false;row.node.focus();return true;});
+            parent.scrollTop=previous && previous.owner===group.owner ? scroll : 0;
+        }
+        entry.list.rows.forEach(function(row){
+            var disabled=!(row.flags&1)||pending(row),value=disabled?'true':'false';
+            if(row.node.getAttribute('aria-disabled')!==value){row.node.setAttribute('aria-disabled',value);row.node.style.opacity=disabled?'0.45':'1';row.node.style.cursor=disabled?'default':'pointer';}
+        });
+    }
+
+    function textPayload(value) {
+        // encodeURIComponent rejects lone UTF-16 surrogates. Encode every byte,
+        // including path separators, so user text cannot alter the GET route.
+        return 't' + encodeURIComponent(value).replace(/%([0-9a-f]{2})|([^%])/gi, function (_, byte, plain) {
+            return byte ? byte.toLowerCase() : ('0' + plain.charCodeAt(0).toString(16)).slice(-2);
+        });
+    }
+    function textProblem(row) {
+        // UTF-16 code units cannot outnumber UTF-8 bytes for valid text. Bound
+        // programmatic edits too, before scanning/encoding a pasted draft.
+        if (row.input.value.length > row.item.max_bytes) return 'Text exceeds the ' + row.item.max_bytes + '-byte limit.';
+        if (/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/.test(row.input.value)) return 'Use a single line without control characters.';
+        try {
+            if ((textPayload(row.input.value).length - 1) / 2 > row.item.max_bytes) return 'Text exceeds the ' + row.item.max_bytes + '-byte limit.';
+        } catch (_) { return 'Text contains an invalid character.'; }
+        if (row.edit && row.edit.revision !== row.item.revision) return 'Value changed elsewhere. Press Escape to reload it.';
+        return '';
+    }
+    function resetText(row) {
+        row.edit = null; row.composing = false;
+        row.input.value = row.item.value;
+        row.render();
+    }
+    function clearTextEdits(entry) {
+        entry.rows.forEach(function (row) {
+            if (!row.input) return;
+            if (document.activeElement === row.input) row.input.blur();
+            resetText(row);
+        });
+    }
+    function addTextSetting(entry, parent, owner, item) {
+        var node = element('div', 'crml-text-setting');
+        node.setAttribute('data-crml-setting', item.key);
+        node.style.cssText = 'padding:1vh 1.85vh';
+        node.appendChild(element('div', 'options-slider__label', item.label));
+        // Cohtml can collapse intrinsic input widths in a flex row. Give both
+        // controls explicit bounds instead of relying on form-control flexing.
+        var controls = element('div', ''); controls.style.cssText = 'position:relative;width:100%;height:5vh';
+        var input = element('input', 'crml-text-input');
+        input.type = 'text'; input.setAttribute('aria-label', item.label);
+        input.maxLength = item.max_bytes;
+        input.setAttribute('autocomplete', 'off'); input.setAttribute('spellcheck', 'false');
+        input.style.cssText = textStyle(2.2) + 'display:block;pointer-events:auto;cursor:text;width:75%;height:5vh;box-sizing:border-box;color:#e8e8e8;background:rgba(13,13,13,0.65);border:1px solid rgba(232,232,232,0.65);padding:0.8vh;user-select:text';
+        var apply = element('button', 'options-button', 'Apply'); apply.type = 'button';
+        apply.style.cssText = textStyle(2) + 'position:absolute;right:0;top:0;pointer-events:auto;cursor:pointer;width:23%;height:5vh;min-height:0;box-sizing:border-box;justify-content:center;color:#e8e8e8;background:rgba(232,232,232,0.1);border:1px solid rgba(232,232,232,0.35);padding:0.5vh 1vh';
+        var help = element('div', '', item.description);
+        help.style.cssText = 'font-size:1.5vh;opacity:0.75;padding:0.5vh 0';
+        var message = element('div', ''); message.setAttribute('role', 'status');
+        message.style.cssText = 'font-size:1.5vh;min-height:2vh';
+        controls.appendChild(input); controls.appendChild(apply); node.appendChild(controls);
+        node.appendChild(help); node.appendChild(message); parent.appendChild(node);
+        var row = { entry: entry, owner: owner, item: item, node: node, input: input, edit: null, composing: false };
+        function begin() { if (!row.edit) row.edit = { revision: row.item.revision }; }
+        function commit(event) {
+            consume(event);
+            if (!owns(entry) || pending(row) || row.composing) return;
+            begin(); row.render();
+            if (!textProblem(row) && input.value !== row.item.value) submit(row, input.value, row.edit.revision);
+        }
+        input.addEventListener('focus', function () { if (owns(entry)) begin(); });
+        input.addEventListener('input', function () { if (owns(entry)) { begin(); row.render(); } });
+        input.addEventListener('compositionstart', function () { begin(); row.composing = true; });
+        input.addEventListener('compositionend', function () { row.composing = false; row.render(); });
+        ['keydown', 'keypress', 'keyup'].forEach(function (name) {
+            input.addEventListener(name, function (event) {
+                if (!owns(entry)) return;
+                event.stopPropagation();
+                if (event.isComposing || row.composing || event.keyCode === 229) return;
+                if (event.key === 'Enter' || event.keyCode === 13) {
+                    consume(event); if (name === 'keydown') commit(event);
+                } else if (event.key === 'Escape' || event.keyCode === 27) {
+                    consume(event); if (name === 'keydown') resetText(row);
+                }
+            });
+        });
+        // Preserve the browser's focus/caret behavior while shielding stock
+        // delegated click handlers. Blur keeps the draft; Apply is explicit.
+        ['mousedown', 'click'].forEach(function (name) { input.addEventListener(name, function (event) { event.stopPropagation(); }); });
+        apply.addEventListener('click', commit);
+        row.render = function () {
+            var busy = pending(row);
+            if (!row.edit && input.value !== row.item.value) input.value = row.item.value;
+            if (input.readOnly !== busy) input.readOnly = busy;
+            var problem = textProblem(row), invalid = problem ? 'true' : 'false';
+            if (input.getAttribute('aria-invalid') !== invalid) input.setAttribute('aria-invalid', invalid);
+            var disabled = busy || row.composing || !!problem || input.value === row.item.value;
+            if (apply.disabled !== disabled) apply.disabled = disabled;
+            var notice = problem || (busy ? 'Saving...' : 'Enter or Apply to save. Escape to cancel.');
+            if (message.textContent !== notice) message.textContent = notice;
+        };
+        entry.rows.push(row);
+    }
+
+    function addSetting(entry, parent, owner, item) {
+        if (item.kind === 4) { addTextSetting(entry, parent, owner, item); return; }
+        var boolean = item.kind === 1;
+        var node = element('div', boolean ? 'options-checkbox' : 'options-slider');
+        node.setAttribute('data-crml-setting', item.key);
+        node.style.cssText = 'width:100%;box-sizing:border-box';
+        node.title = item.description;
+        node.appendChild(element('div', boolean ? 'options-checkbox__label' : 'options-slider__label', item.label));
+        var row = { entry: entry, owner: owner, item: item, node: node, draft: item.value };
+        var value = element('div', boolean ? '' : 'options-slider__value');
+        value.style.cssText = 'margin-left:auto;min-width:6vh;text-align:right';
+        if (boolean) {
+            node.appendChild(value); interactive(node); hover(node, 'options-checkbox--focused');
+            node.addEventListener('click', function (event) { consume(event); submit(row, row.item.value ? 0 : 1); });
+        } else {
+            var bar = element('div', 'options-slider__bar');
+            bar.style.cssText = 'width:23.15vh;min-width:23.15vh;flex:0 0 23.15vh';
+            var fill = element('div', 'options-slider__bar__fill'); fill.style.width = '100%';
+            bar.appendChild(fill); node.appendChild(bar); node.appendChild(value);
+            row.bar = bar; row.fill = fill; interactive(bar); hover(node, 'options-slider--focused');
+            bar.addEventListener('click', consume);
+            bar.addEventListener('mousedown', function (event) {
+                consume(event);
+                if (!owns(entry) || pending(row) || (typeof event.button === 'number' && event.button !== 0)) return;
+                endDrag(); var geometry = sliderGeometry(row); if (!geometry) return;
+                drag = { entry: entry, row: row, geometry: geometry, revision: row.item.revision };
+                fill.classList.add('options-slider__bar__fill--dragging');
+                updateSlider(row, event, geometry);
+                window.addEventListener('mousemove', moveDrag);
+                window.addEventListener('mouseup', releaseDrag);
+                window.addEventListener('blur', endDrag); window.addEventListener('resize', endDrag);
+            });
+        }
+        row.render = function (number) {
+            var busy = pending(row), opacity = busy ? '0.5' : '1', disabled = busy ? 'true' : 'false';
+            if (node.style.opacity !== opacity) node.style.opacity = opacity;
+            if (node.getAttribute('aria-disabled') !== disabled) node.setAttribute('aria-disabled', disabled);
+            var label = boolean ? (number ? 'ON' : 'OFF') : String(Number(number.toPrecision(15)));
+            if (value.textContent !== label) value.textContent = label;
+            if (!boolean) {
+                var fraction = Math.max(0.001, (number - row.item.minimum) / (row.item.maximum - row.item.minimum));
+                if (row.fraction !== fraction) { row.fill.style.transform = 'matrix(' + fraction + ',0,0,1,0,0)';row.fraction = fraction; }
+            }
+        };
+        parent.appendChild(node);
+        if (item.description) {
+            var help = element('div', '', item.description);
+            help.style.cssText = 'font-size:1.5vh;opacity:0.75;padding:0 1.85vh 1vh'; parent.appendChild(help);
+        }
+        entry.rows.push(row);
+    }
     function mount(container, tabbar, content) {
         var tab = element('div', 'menu-button tab-buttons-button tab-buttons__element');
         tab.setAttribute('data-crml-native-tab', '1');
@@ -206,103 +516,209 @@
         var root = element('div', 'crml-native-ui');
         root.setAttribute('data-crml-native-ui', '1');
         root.style.cssText = 'display:none;padding:1vh 0;width:70vh;max-width:100%;position:relative';
-        var heading = element('div', '', 'CRML controls');
+        var heading = element('div', '', 'Mod settings');
         heading.style.cssText = 'font-size:2.3vh;font-weight:700;padding:1vh 1.85vh';
+        var navigation = element('div', '');
+        navigation.setAttribute('data-crml-mod-navigation', '1');
+        navigation.setAttribute('aria-label', 'Browse installed mods');
+        navigation.style.cssText = 'display:block;padding:0.6vh 1.85vh;margin-bottom:1.5vh;border-top:1px solid rgba(255,255,255,0.25);border-bottom:1px solid rgba(255,255,255,0.25)';
+        var navigationRow = element('div', '');
+        navigationRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;width:100%';
+        navigation.appendChild(navigationRow);
+        root.appendChild(navigation);
         root.appendChild(heading);
-        var toggle = element('div', 'options-checkbox');
-        toggle.setAttribute('data-crml-native-toggle', '1');
-        toggle.appendChild(element('div', 'options-checkbox__label', 'Example toggle'));
-        var toggleValue = element('div', '', 'OFF');
-        toggleValue.style.cssText = 'margin-left:auto;font-size:2.2vh';
-        toggle.appendChild(toggleValue);
-        root.appendChild(toggle);
-        interactive(toggle);
-        hover(toggle, 'options-checkbox--focused');
-        var slider = element('div', 'options-slider');
-        slider.style.cssText = 'width:100%;box-sizing:border-box';
-        slider.appendChild(element('div', 'options-slider__label', 'Example amount'));
-        var bar = element('div', 'options-slider__bar');
-        bar.style.cssText = 'width:23.15vh;min-width:23.15vh;flex:0 0 23.15vh';
-        bar.setAttribute('data-crml-native-slider', '1');
-        var fill = element('div', 'options-slider__bar__fill');
-        fill.style.width = '100%';
-        bar.appendChild(fill);
-        slider.appendChild(bar);
-        var value = element('div', 'options-slider__value');
-        value.style.cssText = 'margin-left:1vh;width:4.5vh;min-width:4.5vh;flex:0 0 4.5vh;text-align:right';
-        slider.appendChild(value);
-        root.appendChild(slider);
-        interactive(bar);
-        hover(slider, 'options-slider--focused');
-        slider.addEventListener('mouseenter', function () {
-            bar.classList.add('options-slider__bar--focused');
-            fill.classList.add('options-slider__bar__fill--focused');
-            value.classList.add('options-slider__value--focused');
-        });
-        slider.addEventListener('mouseleave', function () {
-            bar.classList.remove('options-slider__bar--focused');
-            fill.classList.remove('options-slider__bar__fill--focused');
-            value.classList.remove('options-slider__value--focused');
-        });
-        function button(label, attribute) {
-            var node = element('div', 'options-button');
-            node.setAttribute(attribute, '1');
-            var text = element('div', 'options-button__label', label);
-            text.style.cssText = 'flex:0 0 auto;white-space:nowrap';
-            node.appendChild(text);
-            interactive(node);
-            hover(node, 'options-button--focused');
-            root.appendChild(node);
-            return node;
-        }
-        var reset = button('Restore example defaults', 'data-crml-native-reset');
-        var back = button('Back to game options', 'data-crml-native-back');
-        var note = element('div', '', 'Interface example. No gameplay changes. Use the mouse to adjust controls.');
-        note.style.cssText = 'font-size:1.5vh;opacity:0.7;padding:1vh 1.85vh';
-        root.appendChild(note);
+        // List focus/scrolling must never scroll Search or its Apply control out
+        // of view. Keep settings and dynamic results in independent viewports.
+        var rows = element('div', '');rows.setAttribute('data-crml-settings-scroll','1');root.appendChild(rows);
+        var lists = element('div', '');lists.setAttribute('data-crml-list-scroll','1');root.appendChild(lists);
         var entry = { container: container, tabbar: tabbar, content: content,
-            root: root, tab: tab, bar: bar, fill: fill, status: status, previousState: '', controls: null,
-            phase: 'idle', render: function () {
-                toggleValue.textContent = state.enabled ? 'ON' : 'OFF';
-                value.textContent = String(state.amount);
-                // Keep the native slider's nonzero minimum scale so its matrix
-                // remains invertible at zero without changing the readout.
-                fill.style.transform = 'matrix(' + Math.max(0.001, state.amount / 100) + ',0,0,1,0,0)';
+            root: root, tab: tab, status: status, previousState: '', controls: null,
+            phase: 'idle', owner: '', signature: '', rows: [], list: null,
+            selectorOpen: false, selectorEscapeFrame: null, selectorSignature: '', render: function () {
+                var group = selectGroup();
+                var signature = group ? group.owner + ':' + group.items.map(function (item) { return item.handle + ':' + item.key + ':' + item.kind; }).join(',') : '';
+                if (signature !== entry.signature) {
+                    endDrag();
+                    clearTextEdits(entry);
+                    while (rows.firstChild) rows.removeChild(rows.firstChild);
+                    entry.rows = []; entry.signature = signature; entry.owner = group ? group.owner : '';
+                    rows.scrollTop=0;lists.scrollTop=0;
+                    if (group) group.items.forEach(function (item) { addSetting(entry, rows, group.owner, item); });
+                }
+                var label = group ? (group.name || group.id) : 'No mods expose settings.';
+                if (heading.textContent !== label) heading.textContent = label;
+                var position = groups.length ? 'MOD ' + (groupIndex + 1) + ' OF ' + groups.length : 'MODS';
+                if (pageLabel.textContent !== position) pageLabel.textContent = position;
+                navigationState(previous, !groups.length || groupIndex <= 0);
+                navigationState(next, !groups.length || groupIndex >= groups.length - 1);
+                renderSelector();
+                var attribution = group ? [group.id, group.version || '', group.author || ''].filter(Boolean).join(' | ') : '';
+                if (heading.title !== attribution) heading.title = attribution;
+                if (group) entry.rows.forEach(function (row, index) {
+                    row.item = group.items[index];
+                    if (!drag || drag.row !== row) row.render(row.item.value);
+                });
+                var split = !!(group && group.list && group.items.length);
+                var rowStyle = 'max-height:'+(split?24:52)+'vh;overflow:auto';
+                var listStyle = 'max-height:'+(split?28:52)+'vh;overflow:auto';
+                if(rows.getAttribute('style')!==rowStyle) rows.setAttribute('style',rowStyle);
+                if(lists.getAttribute('style')!==listStyle) lists.setAttribute('style',listStyle);
+                renderList(entry,lists,group);
+                if (owns(entry)) error(entry, transportError || (Date.now()<listNoticeUntil?listNotice:''));
             } };
-        tab.addEventListener('click', function (event) { consume(event); enter(entry); });
-        toggle.addEventListener('click', function (event) {
-            consume(event);
-            if (!owns(entry)) return;
-            state.enabled = !state.enabled;
-            refresh();
+        function button(parent, label, callback) {
+            var node = element('div', 'options-button');
+            node.appendChild(element('div', 'options-button__label', label));
+            interactive(node); hover(node, 'options-button--focused');
+            node.addEventListener('click', function (event) { consume(event); if (owns(entry) && node.getAttribute('aria-disabled') !== 'true') callback(); });
+            parent.appendChild(node); return node;
+        }
+        function navigationState(node, disabled) {
+            var value = disabled ? 'true' : 'false';
+            if (node.getAttribute('aria-disabled') === value) return;
+            node.setAttribute('aria-disabled', value);
+            node.style.opacity = disabled ? '0.35' : '1';
+            node.style.cursor = disabled ? 'default' : 'pointer';
+        }
+        var previous = button(navigationRow, 'Previous mod', function () { endDrag(); groupIndex = Math.max(0, groupIndex - 1); refresh(); });
+        var pageLabel = element('div', '', 'MODS');
+        pageLabel.style.cssText = 'font-size:1.4vh;letter-spacing:0.12vh;opacity:0.7;padding:0 2vh;white-space:nowrap';
+        navigationRow.appendChild(pageLabel);
+        var next = button(navigationRow, 'Next mod', function () { endDrag(); groupIndex = Math.max(0, Math.min(groups.length - 1, groupIndex + 1)); refresh(); });
+        [previous, next].forEach(function (node) { node.style.cssText = 'font-size:1.7vh;width:auto;min-height:0;padding:1vh 0;flex:0 0 auto'; });
+        var selector = element('div', 'options-dropdown'); selector.setAttribute('data-crml-mod-selector', '1');
+        selector.style.cssText = 'display:block;width:36vh;max-width:100%;box-sizing:border-box;margin:0 auto;padding:0.2vh 0';
+        var trigger = element('button', 'options-dropdown__value options-dropdown__value--current'); trigger.type = 'button';
+        trigger.setAttribute('data-crml-mod-trigger', '1');
+        trigger.setAttribute('aria-haspopup', 'listbox'); trigger.setAttribute('aria-expanded', 'false');
+        trigger.style.cssText = textStyle(1.8) + 'display:flex;align-items:center;justify-content:space-between;pointer-events:auto;cursor:pointer;width:100%;height:3.8vh;box-sizing:border-box;text-align:left;color:#e8e8e8;background:transparent;border:0;border-bottom:1px solid rgba(232,232,232,0.45);padding:0.3vh 0.7vh';
+        var triggerName = element('span', '', 'Choose a mod');
+        triggerName.style.cssText = 'display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+        var chevron = element('span', 'crml-mod-chevron');
+        chevron.setAttribute('aria-hidden', 'true');
+        chevron.style.cssText = 'display:block;flex:0 0 0.7vh;width:0.7vh;height:0.7vh;margin:0 0.6vh 0.4vh 1vh;border-right:0.17vh solid currentColor;border-bottom:0.17vh solid currentColor;transform:rotate(45deg)';
+        trigger.appendChild(triggerName); trigger.appendChild(chevron);
+        var popup = element('div', 'options-dropdown__floating-list'); popup.setAttribute('data-crml-mod-popup', '1');
+        popup.style.cssText = 'display:none;position:relative;visibility:visible;opacity:1;pointer-events:auto;width:100%;box-sizing:border-box;padding-top:0.2vh;background:transparent';
+        var search = element('input', 'crml-mod-search'); search.type = 'text';
+        search.setAttribute('data-crml-mod-search', '1');
+        search.setAttribute('aria-label', 'Search mods by name or ID');
+        search.setAttribute('autocomplete', 'off'); search.setAttribute('spellcheck', 'false');
+        search.setAttribute('placeholder', 'Search mods');
+        search.style.cssText = textStyle(1.7) + 'display:block;pointer-events:auto;cursor:text;width:100%;height:3.8vh;box-sizing:border-box;color:#e8e8e8;background:transparent;border:0;border-bottom:1px solid rgba(232,232,232,0.45);padding:0.3vh 0.7vh;user-select:text';
+        var results = element('div', 'options-dropdown__list'); results.setAttribute('data-crml-mod-results', '1');
+        results.setAttribute('role', 'listbox'); results.setAttribute('aria-label', 'Matching mods');
+        results.style.cssText = 'display:block;position:relative;visibility:visible;opacity:1;pointer-events:auto;max-height:20vh;overflow:auto;width:100%;box-sizing:border-box;background:transparent';
+        popup.appendChild(search); popup.appendChild(results); selector.appendChild(trigger); selector.appendChild(popup);
+        navigation.appendChild(selector);
+        function shieldKeys(node, handler) {
+            ['keydown', 'keypress', 'keyup'].forEach(function (name) {
+                node.addEventListener(name, function (event) {
+                    if (!owns(entry)) return;
+                    event.stopPropagation();
+                    if (name === 'keydown') handler(event);
+                });
+            });
+            ['mousedown', 'click'].forEach(function (name) {
+                node.addEventListener(name, function (event) { event.stopPropagation(); });
+            });
+        }
+        entry.closeSelector = function (fromEscape, reset) {
+            if (reset) {
+                search.value = ''; entry.selectorSignature = '';
+                if (entry.selectorEscapeFrame !== null) {
+                    window.cancelAnimationFrame(entry.selectorEscapeFrame); entry.selectorEscapeFrame = null;
+                }
+            }
+            if (!entry.selectorOpen) return;
+            entry.selectorOpen = false;
+            selector.classList.remove('options-dropdown--open');
+            results.classList.remove('options-dropdown__list--open');
+            popup.style.display = 'none'; trigger.setAttribute('aria-expanded', 'false');
+            if (fromEscape && owns(entry)) {
+                trigger.focus();
+                if (entry.selectorEscapeFrame !== null) window.cancelAnimationFrame(entry.selectorEscapeFrame);
+                entry.selectorEscapeFrame = window.requestAnimationFrame(function () { entry.selectorEscapeFrame = null; });
+            } else if (popup.contains(document.activeElement)) document.activeElement.blur();
+        };
+        function choose(index) {
+            if (!owns(entry) || !entry.selectorOpen || index < 0 || index >= groups.length) return;
+            endDrag(); groupIndex = index; entry.closeSelector(false); refresh(); trigger.focus();
+        }
+        function renderSelector() {
+            var selected = selectGroup();
+            var label = selected ? (selected.name || selected.id) : 'No mods expose settings';
+            if (triggerName.textContent !== label) triggerName.textContent = label;
+            var description = selected ? 'Choose mod, current: ' + label + ' (' + selected.id + ')' : 'No mods expose settings';
+            if (trigger.getAttribute('aria-label') !== description) trigger.setAttribute('aria-label', description);
+            if (trigger.disabled !== !groups.length) trigger.disabled = !groups.length;
+            if (!entry.selectorOpen) return;
+            var query = search.value.toLowerCase().trim();
+            var signature = groups.map(function (group) { return [group.owner, group.name || '', group.id].join('\u0001'); }).join('\u0002') + '\u0003' + query + '\u0003' + groupIndex;
+            if (signature === entry.selectorSignature) return;
+            entry.selectorSignature = signature;
+            var focusedId = results.contains(document.activeElement) ? document.activeElement.getAttribute('data-crml-mod-option') : null;
+            var focusTarget = null;
+            while (results.firstChild) results.removeChild(results.firstChild);
+            var matched = 0;
+            groups.forEach(function (group, index) {
+                if ((group.name || '').toLowerCase().indexOf(query) < 0 && group.id.toLowerCase().indexOf(query) < 0) return;
+                ++matched;
+                var option = element('button', 'options-dropdown__value options-dropdown__value--in-list');
+                option.type = 'button'; option.setAttribute('data-crml-mod-option', group.id);
+                option.setAttribute('role', 'option'); option.setAttribute('aria-selected', index === groupIndex ? 'true' : 'false');
+                if (index === groupIndex) option.classList.add('options-dropdown__value--current-value');
+                option.style.cssText = textStyle(1.7) + 'display:block;position:relative;pointer-events:auto;cursor:pointer;width:100%;min-height:3.7vh;box-sizing:border-box;text-align:left;color:#e8e8e8;background:transparent;border:0;border-bottom:1px solid rgba(232,232,232,0.16);padding:0.4vh 0.7vh';
+                var optionName = element('span', '', group.name || group.id);
+                optionName.style.cssText = textStyle(1.7) + 'display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+                option.appendChild(optionName);
+                if (group.name && group.name !== group.id) {
+                    var optionId = element('span', '', group.id);
+                    optionId.style.cssText = textStyle(1.25) + 'display:block;opacity:0.65;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+                    option.appendChild(optionId);
+                }
+                option.addEventListener('click', function (event) { consume(event); choose(index); });
+                shieldKeys(option, function (event) {
+                    if (event.key === 'Escape' || event.keyCode === 27) { consume(event); entry.closeSelector(true); }
+                    else if (event.key === 'Enter' || event.key === ' ' || event.keyCode === 13 || event.keyCode === 32) { consume(event); choose(index); }
+                    else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                        consume(event);
+                        var other = event.key === 'ArrowDown' ? option.nextSibling : option.previousSibling;
+                        if (other && other.focus) other.focus(); else search.focus();
+                    }
+                });
+                results.appendChild(option);
+                if (group.id === focusedId) focusTarget = option;
+            });
+            if (!matched) {
+                var empty = element('div', '', 'No matching mods.');
+                empty.setAttribute('role', 'status');
+                empty.style.cssText = textStyle(1.7) + 'padding:0.8vh 1vh';
+                results.appendChild(empty);
+            }
+            if (focusTarget) focusTarget.focus();
+        }
+        trigger.addEventListener('click', function (event) {
+            consume(event); if (!owns(entry) || !groups.length) return;
+            if (entry.selectorOpen) entry.closeSelector(false);
+            else { entry.selectorOpen = true; selector.classList.add('options-dropdown--open'); results.classList.add('options-dropdown__list--open'); popup.style.display = 'block'; trigger.setAttribute('aria-expanded', 'true'); renderSelector(); search.focus(); }
         });
-        // Native sliders update on mousedown/move. Consuming the later click
-        // avoids recalculating once more after mouseup has ended the drag.
-        bar.addEventListener('click', consume);
-        bar.addEventListener('mousedown', function (event) {
-            consume(event);
-            if (!owns(entry) || (typeof event.button === 'number' && event.button !== 0)) return;
-            endDrag();
-            var geometry = sliderGeometry(entry);
-            if (!geometry) return;
-            // Capture the track once, like the game does, so readout/layout
-            // updates cannot move the coordinate origin under the pointer.
-            drag = { entry: entry, geometry: geometry };
-            fill.classList.add('options-slider__bar__fill--dragging');
-            updateSlider(entry, event, geometry);
-            window.addEventListener('mousemove', moveDrag);
-            window.addEventListener('mouseup', releaseDrag);
-            window.addEventListener('blur', endDrag);
-            window.addEventListener('resize', endDrag);
+        shieldKeys(trigger, function (event) {
+            if (event.key === 'Escape' || event.keyCode === 27) { if (entry.selectorOpen) { consume(event); entry.closeSelector(true); } }
+            else if (event.key === 'Enter' || event.key === ' ' || event.keyCode === 13 || event.keyCode === 32) { consume(event); trigger.click(); }
         });
-        reset.addEventListener('click', function (event) {
-            consume(event);
-            if (!owns(entry)) return;
-            state.enabled = false;
-            state.amount = 50;
-            refresh();
+        search.addEventListener('input', function () { if (owns(entry)) renderSelector(); });
+        shieldKeys(search, function (event) {
+            if (event.key === 'Escape' || event.keyCode === 27) { consume(event); entry.closeSelector(true); }
+            else if (event.key === 'ArrowDown' || event.keyCode === 40) {
+                consume(event); var first = results.querySelector('[data-crml-mod-option]'); if (first) first.focus();
+            } else if (event.key === 'Enter' || event.keyCode === 13) {
+                consume(event); var first = results.querySelector('[data-crml-mod-option]'); if (first) first.click();
+            }
         });
-        back.addEventListener('click', function (event) { consume(event); if (active === entry) leave(); });
+        var back = button(root, 'Back to game options', leave);
+        back.setAttribute('data-crml-native-back', '1');
+        tab.addEventListener('click', function (event) { consume(event); enter(entry); pollSettings(); });
         entry.baseTab = function (event) {
             if (active !== entry) return;
             var target = event.target;
@@ -373,13 +789,18 @@
     function scan() {
         if (stopped || scanning) return;
         scanning = true;
-        try { reconcile(); }
+        try { reconcile(); pollSettings(); }
         finally { scanning = false; }
     }
     var styles = element('style', '');
     styles.textContent = '[data-crml-mods-active] .options__content > .tabs__pages{display:none !important;pointer-events:none !important}' +
         '[data-crml-native-muted]{--foreground-color:#e8e8e8 !important;--background-color:transparent !important;--icon-color:#e8e8e8 !important;color:#e8e8e8 !important;background-color:transparent !important;pointer-events:auto !important}' +
         '[data-crml-native-ui] .options-slider__label{min-width:0}' +
+        '[data-crml-native-ui] .crml-text-input:focus{border-color:#e8e8e8 !important;background:rgba(13,13,13,0.9) !important}' +
+        '[data-crml-mod-trigger]:hover,[data-crml-mod-trigger]:focus{background:rgba(232,232,232,0.1) !important;border-bottom-color:#e8e8e8 !important}' +
+        '[data-crml-native-ui] .crml-mod-search:focus{background:rgba(232,232,232,0.06) !important;border-bottom-color:#e8e8e8 !important;outline:none}' +
+        '[data-crml-mod-option][aria-selected="true"]{background:rgba(232,232,232,0.1) !important}' +
+        '[data-crml-mod-option]:hover,[data-crml-mod-option]:focus{background:rgba(232,232,232,0.18) !important;outline:none}' +
         '[data-crml-native-ui] .options-slider__bar__fill--dragging{transition:none}';
     function start() {
         if (stopped || timer !== null) return;
@@ -391,11 +812,17 @@
     }
     function completeStop() {
         stopped = true;
+        if (request) {
+            var xhr = request; request = null;
+            xhr.onload = xhr.onerror = xhr.ontimeout = xhr.onabort = null;xhr.abort();
+        }
+        queued = [];
         if (timer !== null) window.clearInterval(timer);
         if (cancelFrame !== null) window.cancelAnimationFrame(cancelFrame);
         endDrag();
         document.removeEventListener('DOMContentLoaded', start);
         window.removeEventListener('unload', stop);
+        window.removeEventListener('pagehide', stop);
         mounted.forEach(dispose);
         mounted = [];
         remove(styles);
@@ -410,9 +837,10 @@
     }
     window.__crmlNativeUi = { stop: stop, status: function () {
         return { active: !!active && owns(active), pending: !!active && !owns(active),
-            phase: active ? active.phase : 'idle', enabled: state.enabled, amount: state.amount, error: lastError };
+            phase: active ? active.phase : 'idle', mods: groups.length, error: lastError };
     } };
     window.addEventListener('unload', stop);
+    window.addEventListener('pagehide', stop);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();
 }());

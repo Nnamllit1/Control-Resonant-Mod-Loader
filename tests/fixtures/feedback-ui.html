@@ -1,0 +1,108 @@
+<!doctype html><meta charset="utf-8"><title>CRML feedback fixture</title>
+<style>
+body{background:#30363d;color:white;font-family:monospace;font-weight:900;font-style:italic;letter-spacing:4px;text-shadow:2px 2px white;text-transform:uppercase}
+#underlay{position:absolute;right:4vw;top:8vh;width:32vw;height:20vh}#result{position:absolute;bottom:10px}
+/* Self-authored style contract, not extracted game CSS. Deliberately distinctive
+   typography proves that the payload uses the host stylesheet. */
+.tutorial-static__window{display:flex;background:rgba(23,23,23,.9);border:1px solid rgba(232,232,232,.2)}
+.tutorial-static__window__body__message{font-size:21px;line-height:27px;font-weight:400;font-style:normal;opacity:1;transition:opacity 300ms}
+</style>
+<div id="stock-notice" class="notification-toasts" data-bind-value="game-owned">Game notice</div>
+<button id="underlay">Native page control</button><input id="focus"><pre id="result">Running</pre>
+<script>
+var packet=[],acks=[],polls=0,fail=false,hanging=false,keys=0,clicks=0,responseStatus=200,requests=[];
+document.getElementById('underlay').onclick=function(){clicks++;};
+document.addEventListener('keydown',function(){keys++;});
+document.getElementById('focus').focus();
+function FakeXHR(){}
+FakeXHR.prototype.open=function(method,url){this.url=url;};FakeXHR.prototype.abort=function(){this.aborted=true;};
+FakeXHR.prototype.send=function(){var self=this;polls++;requests.push(self);
+var parts=self.url.split('/v1/')[1].split('/');if(parts[2])acks=acks.concat(parts[2].split(','));
+if(hanging)return;
+setTimeout(function(){if(self.aborted)return;if(fail){self.onerror();return;}
+self.status=responseStatus;self.responseText=JSON.stringify({messages:packet.map(function(item){return {ticket:item.ticket,id:item.id||'fixture-mod',name:'Fixture <mod>',
+text:item.text,severity:1,remaining_ms:item.remaining_ms||Math.max(1,Math.ceil(item.until-performance.now()))};})});self.onload();},10);};
+window.XMLHttpRequest=FakeXHR;
+</script>
+__CRML_FEEDBACK__
+<script>
+(async function(){
+function require(value,message){if(!value)throw Error(message);}
+function delay(ms){return new Promise(function(resolve){setTimeout(resolve,ms);});}
+async function until(fn,message){for(var i=0;i<50;i++){if(fn())return;await delay(40);}throw Error(message);}
+var terminal=Number(new URLSearchParams(location.search).get('terminal'));
+if(terminal){
+    responseStatus=terminal;await delay(100);var terminalPolls=polls;await delay(600);
+    require(polls===terminalPolls,'invalid page or disabled service kept polling');
+    require(requests.every(function(r){return !r.onload && !r.onerror && !r.onabort && !r.ontimeout;}),'terminal response retained callbacks');
+    document.getElementById('result').textContent='PASS: terminal '+terminal+' stops stale page';return;
+}
+var idleChanges=0,idleObserver=new MutationObserver(function(changes){changes.forEach(function(change){
+    Array.prototype.forEach.call(change.addedNodes,function(node){if(node.nodeType===1 && node.hasAttribute('data-crml-feedback'))idleChanges++;});
+});});idleObserver.observe(document.body,{childList:true});
+await delay(800);idleObserver.disconnect();require(idleChanges===0,'empty feedback polls keep creating UI containers: '+idleChanges);
+packet=[{ticket:'1',text:'Message <script>unsafe()<\/script>',until:performance.now()+3000}];
+await until(function(){return document.querySelector('[data-crml-feedback]');},'feedback did not render');
+var root=document.querySelector('[data-crml-feedback]'),node=root.firstElementChild;
+require(root.textContent.indexOf('Message <script>unsafe()<\/script>')>=0 && !root.querySelector('script'),'text must not become markup');
+var messageNode=node.querySelector('.tutorial-static__window__body__message'),typography=getComputedStyle(messageNode);
+require(node.classList.contains('tutorial-static__window'),'feedback must use stock tutorial panel class');
+require(typography.fontSize==='21px' && typography.lineHeight==='27px','feedback bypassed host panel typography');
+require(typography.animationName==='none' && typography.opacity==='1','feedback keeps a delayed or retained animation');
+require(getComputedStyle(node).position==='relative' && node.style.height==='auto','fixed loot slot geometry used for arbitrary text');
+require(getComputedStyle(node).backgroundColor==='rgba(23, 23, 23, 0.72)' && !node.style.borderLeft,'native panel background or border changed');
+require(getComputedStyle(node).backdropFilter==='none','stacked cards introduced backdrop blur');
+require(!root.querySelector('[data-bind-value],[data-bind-html],[data-bind-click],img'),'mod feedback acquired game bindings or assets');
+require(document.getElementById('stock-notice').textContent==='Game notice','game notification was overwritten');
+require(typography.fontFamily.indexOf('AlteredGrotesk')>=0,'feedback must select the registered game UI font explicitly');
+require(typography.fontWeight==='400' && typography.fontStyle==='normal','feedback inherited synthetic heavy/italic text');
+require(typography.textShadow==='none' && typography.textTransform==='none','feedback inherited page text effects');
+require(typography.letterSpacing==='normal' || parseFloat(typography.letterSpacing)===0,'feedback inherited page letter spacing');
+require(node.getAttribute('data-crml-mod')==='fixture-mod','host-owned identity retained');
+require(node.firstElementChild.firstElementChild.textContent==='Fixture <mod> [fixture-mod] / Success','host-owned display name, package attribution and severity preserved');
+require(document.activeElement.id==='focus','notification stole focus');
+var box=root.getBoundingClientRect();require(document.elementFromPoint(box.left+10,box.top+10).id==='underlay','notification intercepted pointer hit testing');
+document.getElementById('focus').dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,key:'w'}));
+require(keys===1,'game keyboard event lost');
+await until(function(){return acks.indexOf('1')>=0;},'presentation not acknowledged');
+require(document.querySelector('[data-crml-feedback]').firstElementChild===node,'unchanged feedback recreated DOM');
+await delay(600);require(getComputedStyle(messageNode).opacity==='1','stock entry did not finish');
+var mutations=0,observer=new MutationObserver(function(changes){changes.forEach(function(change){
+    Array.prototype.forEach.call(change.removedNodes,function(removed){if(removed===node)mutations++;});
+});});observer.observe(root,{childList:true});
+packet.push({ticket:'5',id:'another-mod',text:'Second owner',until:performance.now()+3000});
+await until(function(){return root.children.length===2;},'second owner missing');
+require(root.firstElementChild===node && getComputedStyle(messageNode).opacity==='1','another owner restarted surviving toast');
+packet.pop();await until(function(){return root.children.length===1;},'second owner was not removed');
+require(root.firstElementChild===node && mutations===0,'surviving toast was detached or replaced');observer.disconnect();
+packet=[];await until(function(){return !document.querySelector('[data-crml-feedback]');},'owner removal left text visible');
+// A receipt painted shortly before local expiry still needs to be sent.
+packet=[{ticket:'2',text:'Short remaining lifetime',remaining_ms:100,until:performance.now()+400}];
+await until(function(){return document.querySelector('[data-crml-feedback]');},'late message missing');
+var late=getComputedStyle(document.querySelector('[data-crml-feedback] .tutorial-static__window__body__message'));
+require(late.animationName==='none' && late.opacity==='1','late message expired behind the native animation delay');
+packet=[];
+await until(function(){return acks.indexOf('2')>=0;},'local expiry discarded presentation acknowledgement');
+packet=[{ticket:'3',text:'Connection failure',until:performance.now()+3000}];
+await until(function(){return document.querySelector('[data-crml-feedback]');},'failure fixture missing');
+fail=true;await until(function(){return !document.querySelector('[data-crml-feedback]');},'failed transport left stale UI');
+fail=false;
+for(var batch=0;batch<6;batch++){
+    packet=[0,1,2,3].map(function(i){return {ticket:String(10+batch*4+i),id:'mod-'+i,text:'Stacked message '+i+' '+Array(220).join('x'),until:performance.now()+5000};});
+    await until(function(){var r=document.querySelector('[data-crml-feedback]');return r && r.children.length===4;},'stack did not render');
+    require(document.querySelectorAll('[data-crml-feedback]').length===1,'feedback roots accumulated');
+    require(document.getAnimations().length===0,'stack retains animation/compositing work');
+    packet=[];await until(function(){return !document.querySelector('[data-crml-feedback]');},'stack survived clear');
+}
+idleChanges=0;idleObserver.observe(document.body,{childList:true});await delay(600);idleObserver.disconnect();
+require(idleChanges===0,'cleared stacks continue dirtying the page');
+require(requests.slice(0,-1).every(function(r){return !r.onload && !r.onerror && !r.onabort && !r.ontimeout;}),'completed requests retain callbacks');
+fail=false;packet=[{ticket:'4',text:'Expiry without response',until:performance.now()+700}];
+await until(function(){return document.querySelector('[data-crml-feedback]');},'expiry fixture missing');
+hanging=true;await until(function(){return !document.querySelector('[data-crml-feedback]');},'message did not expire while request hung');
+window.dispatchEvent(new Event('pagehide'));window.__crmlFeedback.stop();var stoppedAt=polls;await delay(300);require(polls===stoppedAt,'polling survived page unload');
+require(requests.every(function(r){return !r.onload && !r.onerror && !r.onabort && !r.ontimeout;}),'unload retained requests');
+require(document.activeElement.id==='focus','cleanup changed focus');
+document.getElementById('result').textContent='PASS: passive input, safe text, delivery, late acknowledgement, stable DOM, expiry, transport failure and cleanup';
+})().catch(function(error){document.getElementById('result').textContent='FAIL: '+error.message;});
+</script>

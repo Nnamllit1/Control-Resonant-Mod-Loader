@@ -9,7 +9,7 @@ This guide is for contributors changing the native loader or runtime. To play wi
 
 ## Requirements
 
-Use Windows x64, Python 3.10 or newer, Visual Studio 2022/2026 with the **Desktop development with C++** workload, and CMake 3.24 or newer. The Visual Studio CMake component is supported.
+Use Windows x64, Python 3.11 or newer, Visual Studio 2022/2026 with the **Desktop development with C++** workload, and CMake 3.24 or newer. The Visual Studio CMake component is supported.
 
 From a source checkout, build and run the standalone example:
 
@@ -18,7 +18,7 @@ From a source checkout, build and run the standalone example:
 .\dist\crml\crml_host.exe .\dist\crml\mods 2
 ```
 
-The build downloads the pinned Wasmtime C API dependency and checks its SHA-256. Output goes to `dist/`. The hello mod prints a greeting followed by `Active: 1; failures: 0`. This exercises the sandbox without starting the game.
+The build downloads pinned Wasmtime and guest C compiler dependencies and checks their SHA-256 hashes. The compiler download is approximately 543 MB and is cached locally. Maintained C examples compile and run through the standalone host in the test suite. Output goes to `dist/`. The hello mod prints a greeting followed by `Active: 1; failures: 0`. This exercises the sandbox without starting the game.
 
 The default build supplies the runtime and hello mod. Use the documented options for the [Wasm movement example](movement.md), [physics example](physics-trial.md#wasm-damping-example) or [engine diagnostics](engine-validation.md). Development output can contain diagnostic markers; use the installer to select a mode rather than copying the entire `dist` tree into the game.
 
@@ -68,4 +68,23 @@ Removal checks the receipt and owned-file hashes first. Modified files cause ref
 
 ## Package a release
 
-Follow [Building releases](releases.md) for tested ZIPs and the publishing workflow. For website changes, see [Maintaining the website](documentation.md).
+The **Runtime and SDK** workflow runs on pull requests and pushes to `main`.
+It uses the same local release checks below: native and Wasm tests, authored UI
+browser tests, archive integrity checks, and the author workflow against an
+extracted SDK ZIP. It does not publish a release or launch the game. Keep
+`VERSION` and its matching `release/v<version>.md` notes together when changing
+the development version.
+
+Follow [Building releases](releases.md) for tested ZIPs and the publishing workflow.
+Releases also require the authored UI browser checks, which are separate from
+the native CTest suite:
+
+```powershell
+python -m pip install -r requirements-tests.txt
+python tests/test_native_ui_page.py
+python tests/test_ui_bootstrap.py
+```
+
+An installed Edge or Chromium browser is required; both scripts accept
+`--browser <path>`. These local fixture tests do not establish compatibility with
+the game's embedded renderer. For website changes, see [Maintaining the website](documentation.md).

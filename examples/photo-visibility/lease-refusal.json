@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "initial": {
+    "player": {
+      "generation": 1
+    }
+  },
+  "frames": [
+    {},
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ],
+        "returns": {
+          "visibility_set": -2
+        }
+      }
+    },
+    {
+      "state": {
+        "returns": {
+          "visibility_set": null
+        }
+      }
+    },
+    {},
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {
+      "state": {
+        "keys": []
+      }
+    }
+  ],
+  "expect": [
+    {
+      "op": "visibility_set",
+      "frame": 2,
+      "result": -2,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 6,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 7,
+      "result": 0,
+      "args": [
+        0
+      ]
+    }
+  ]
+}

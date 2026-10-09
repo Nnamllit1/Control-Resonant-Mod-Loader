@@ -125,10 +125,16 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
     if not notes.is_file():
         raise ValueError('Add release notes for this version before packaging')
     fingerprints = profile_fingerprints(json.loads((root / 'compatibility.json').read_text()))
+    if (root / 'VERSION').read_text(encoding='utf-8').strip() != version[1:]:
+        raise ValueError('Release version differs from VERSION')
+    version_marker = ('CRML_VERSION=' + version[1:] + '\0').encode('ascii')
     # Match the compiled compatibility guard to the metadata shipped beside it.
     binary = (dist / 'crml/crml_runtime.dll').read_bytes()
     if any(value.encode('ascii') not in binary for value in fingerprints):
         raise ValueError('Runtime fingerprint differs from compatibility.json')
+    for name in ('crml_runtime.dll', 'crml_host.exe'):
+        if version_marker not in (dist / 'crml' / name).read_bytes():
+            raise ValueError(f'{name} version differs from VERSION; rebuild before packaging')
     runtime = {
         'xinput1_4.dll': dist / 'xinput1_4.dll',
         'crml/crml_runtime.dll': dist / 'crml/crml_runtime.dll',
@@ -145,6 +151,26 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
         if not bootstrap.is_file():
             raise ValueError('UI-enabled runtime requires ui-bootstrap.html; rebuild before packaging')
         runtime['crml/ui-bootstrap.html']=bootstrap
+    if features.get('settings_ui') is True:
+        panel=dist / 'crml/native-ui-panel.html'
+        if not panel.is_file():
+            raise ValueError('Settings-enabled runtime requires native-ui-panel.html; rebuild before packaging')
+        runtime['crml/native-ui-panel.html']=panel
+    if features.get('feedback_ui') is True:
+        feedback=dist / 'crml/native-ui-feedback.html'
+        if not feedback.is_file():
+            raise ValueError('Feedback-enabled runtime requires native-ui-feedback.html; rebuild before packaging')
+        runtime['crml/native-ui-feedback.html']=feedback
+    if features.get('tutorial_ui') is True:
+        tutorials=dist / 'crml/native-ui-tutorials.html'
+        if not tutorials.is_file():
+            raise ValueError('Tutorial-enabled runtime requires native-ui-tutorials.html; rebuild before packaging')
+        runtime['crml/native-ui-tutorials.html']=tutorials
+    if features.get('drawing_ui') is True:
+        drawing=dist / 'crml/native-ui-drawing.html'
+        if not drawing.is_file():
+            raise ValueError('Drawing-enabled runtime requires native-ui-drawing.html; rebuild before packaging')
+        runtime['crml/native-ui-drawing.html']=drawing
     noclip = {
         'crml/movement-wasm.enabled': b'',
         'crml/mods/movement/mod.ini': dist / 'examples/movement/mod.ini',
@@ -158,11 +184,29 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
         'tools/wasmtime.dll': dist / 'crml/wasmtime.dll',
         'licenses/wasmtime.txt': dist / 'licenses/wasmtime/LICENSE',
         'THIRD_PARTY.md': root / 'THIRD_PARTY.md',
-        'README-SDK.txt': b'CRML SDK\n\nHeaders are in sdk/include. Example .wat files are the build inputs; .c files\nare readable alternatives. Compile with tools/crml_wat.exe input.wat output.wasm.\nRun standalone mods with tools/crml_host.exe <mods-directory> [ticks]. Gameplay APIs\nrequire the in-game runtime and native service support; the standalone host cannot\ncontrol the game. Do not copy this SDK archive into the game directory.\n\nMod development and API: https://crml.nnamllit.de/developing/\n',
+        'README-SDK.txt': root / 'release/README-sdk.txt',
+        'VERSION': root / 'VERSION',
+        'tools/mod.py': root / 'tools/mod.py',
+        'sdk/scenarios/movement-recovery.json': root / 'sdk/scenarios/movement-recovery.json',
+        'sdk/scenarios/composed-author-services.json': root / 'sdk/scenarios/composed-author-services.json',
     }
     for path in (root / 'sdk').rglob('*.h'):
         sdk[path.relative_to(root).as_posix()] = path
-    for name in ('compile_lua.py', 'binlua.py', 'binlua_source.py', 'engine_research.py'):
+    for name in ('main.c', 'mod.ini', 'README.md'):
+        path = root / 'sdk/templates/basic' / name
+        sdk[path.relative_to(root).as_posix()] = path
+    # Keep reference links and research diagrams usable offline, matching this
+    # exact source version rather than whatever the website publishes later.
+    references = (root / 'sdk/reference-files.txt').read_text(encoding='utf-8').splitlines()
+    if not references or len(references) != len(set(references)):
+        raise ValueError('SDK reference inventory must be nonempty and unique')
+    for name in references:
+        if (not name.startswith('docs/') or '\\' in name or ':' in name or
+                '..' in Path(name).parts or not (root/name).resolve().is_relative_to((root/'docs').resolve())):
+            raise ValueError('Invalid SDK reference inventory path')
+        sdk[name] = root / name
+    for name in ('compile_lua.py', 'binlua.py', 'binlua_source.py', 'engine_research.py',
+                 'verify_engine_map.py', 'verify_dialogue_observation.py', 'analyze_capability_capture.py'):
         sdk['tools/' + name] = root / 'tools' / name
     sdk['README-LUA.txt'] = (
         b'Offline Luau tools\n\nRequires Python 3.10+ and a trusted local Luau 0.650 compiler.\n'
@@ -173,11 +217,13 @@ def package(dist, output, version, root=ROOT, include_noclip=False):
         b'not the Wasm sandbox. The compiler and extracted game scripts are not bundled.\n\n'
         b'https://crml.nnamllit.de/engine-lua/\n'
     )
-    for example in ('hello', 'movement', 'visibility', 'physics-damping', 'input-actions', 'state-watch', 'startup-skip'):
+    for example in ('hello', 'movement', 'visibility', 'physics-damping', 'input-actions', 'state-watch', 'startup-skip', 'settings',
+                    'photo-visibility', 'startup-preferences', 'tutorials', 'route-sketch', 'list-browser', 'area-actions'):
         for path in (root / 'examples' / example).iterdir():
-            if path.suffix in ('.c', '.wat', '.ini', '.md'):
+            if path.suffix in ('.c', '.h', '.wat', '.ini', '.md', '.json'):
                 sdk[path.relative_to(root).as_posix()] = path
-    metadata = (json.dumps({'version': version, 'game_sha256': fingerprints[0], 'game_sha256s': fingerprints, 'lua_probe': False}, indent=2) + '\n').encode()
+    metadata = (json.dumps({'version': version, 'game_sha256': fingerprints[0],
+                           'game_sha256s': fingerprints, 'lua_probe': False}, indent=2) + '\n').encode()
     runtime['crml/release.json'] = metadata
     noclip['crml/mods/movement/release.json'] = metadata
     sdk['release.json'] = metadata

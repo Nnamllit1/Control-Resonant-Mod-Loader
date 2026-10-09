@@ -1,5 +1,7 @@
 param([ValidateSet('Debug','Release')][string]$Configuration = 'Release', [switch]$Test, [int]$Jobs = 1, [Alias('ExperimentalGameplay')][switch]$MovementProbe, [switch]$EngineObserver, [switch]$LuaProbe, [switch]$LuaSource)
 $ErrorActionPreference = 'Stop'
+& python "$PSScriptRoot/tools/mod.py" toolchain
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
 if ($EngineObserver -or $LuaProbe -or $LuaSource) { $MovementProbe = $true }
 $dependencyArgs = @()
 if ($MovementProbe) { $dependencyArgs += '--movement-probe' }
@@ -28,20 +30,20 @@ if ($Test) {
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 New-Item -ItemType Directory -Force "$PSScriptRoot\dist\crml\mods\hello" | Out-Null
 Copy-Item -LiteralPath "$PSScriptRoot\examples\hello\mod.ini" -Destination "$PSScriptRoot\dist\crml\mods\hello\mod.ini"
-& "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\hello\hello.wat" "$PSScriptRoot\dist\crml\mods\hello\hello.wasm"
+& python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/hello" --output "$PSScriptRoot/dist/crml/mods/hello"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
 Write-Host "Build ready in $PSScriptRoot\dist"
-@{ experimental_gameplay = [bool]$MovementProbe; engine_observer = [bool]$MovementProbe; physics_trial = [bool]$MovementProbe; physics_wasm = [bool]$MovementProbe; movement_wasm = [bool]$MovementProbe; ui_bridge = [bool]$MovementProbe; lua_probe = [bool]$LuaProbe; lua_source = [bool]$LuaSource } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
+@{ experimental_gameplay = [bool]$MovementProbe; engine_observer = [bool]$MovementProbe; physics_trial = [bool]$MovementProbe; physics_wasm = [bool]$MovementProbe; movement_wasm = [bool]$MovementProbe; ui_bridge = [bool]$MovementProbe; settings_ui = [bool]$MovementProbe; feedback_ui = [bool]$MovementProbe; tutorial_ui = [bool]$MovementProbe; drawing_ui = [bool]$MovementProbe; lua_probe = [bool]$LuaProbe; lua_source = [bool]$LuaSource } | ConvertTo-Json | Set-Content -LiteralPath "$PSScriptRoot\dist\crml\build-features.json" -Encoding UTF8
 if ($MovementProbe) {
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\physics-trial.enabled", '')
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\physics-wasm.enabled", '')
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\movement-wasm.enabled", '')
-    & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\movement\movement.wat" "$PSScriptRoot\dist\examples\movement\movement.wasm"
+    & python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/movement" --output "$PSScriptRoot/dist/examples/movement"
     if ($LASTEXITCODE) { exit $LASTEXITCODE }
-    & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\physics-damping\physics-damping.wat" "$PSScriptRoot\dist\examples\physics-damping\physics-damping.wasm"
+    & python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/physics-damping" --output "$PSScriptRoot/dist/examples/physics-damping"
     if ($LASTEXITCODE) { exit $LASTEXITCODE }
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\engine-observer.enabled", '')
-    & "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\visibility\visibility.wat" "$PSScriptRoot\dist\examples\visibility\visibility.wasm"
+    & python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/visibility" --output "$PSScriptRoot/dist/examples/visibility"
     if ($LASTEXITCODE) { exit $LASTEXITCODE }
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\examples\visibility\visibility.enabled", '')
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\entity-inspector.enabled", '')
@@ -50,9 +52,15 @@ if ($MovementProbe) {
     [System.IO.File]::WriteAllText("$PSScriptRoot\dist\examples\noclip\noclip.enabled", '')
 }
 if ($LuaSource) { [System.IO.File]::WriteAllText("$PSScriptRoot\dist\crml\engine-lua.enabled", '') }
-& "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\input-actions\input-actions.wat" "$PSScriptRoot\dist\examples\input-actions\input-actions.wasm"
+& python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/input-actions" --output "$PSScriptRoot/dist/examples/input-actions"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
-& "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\state-watch\state-watch.wat" "$PSScriptRoot\dist\examples\state-watch\state-watch.wasm"
+& python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/state-watch" --output "$PSScriptRoot/dist/examples/state-watch"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
-& "$PSScriptRoot\dist\crml\crml_wat.exe" "$PSScriptRoot\examples\startup-skip\startup-skip.wat" "$PSScriptRoot\dist\examples\startup-skip\startup-skip.wasm"
+& python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/startup-skip" --output "$PSScriptRoot/dist/examples/startup-skip"
 if ($LASTEXITCODE) { exit $LASTEXITCODE }
+& python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/settings" --output "$PSScriptRoot/dist/examples/settings"
+if ($LASTEXITCODE) { exit $LASTEXITCODE }
+foreach ($example in @('photo-visibility', 'startup-preferences', 'tutorials', 'route-sketch', 'list-browser')) {
+    & python "$PSScriptRoot/tools/mod.py" build "$PSScriptRoot/examples/$example" --output "$PSScriptRoot/dist/examples/$example"
+    if ($LASTEXITCODE) { exit $LASTEXITCODE }
+}

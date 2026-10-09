@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "capabilities": [
+    "ui.read",
+    "ui.activate"
+  ],
+  "initial": {
+    "ui": {
+      "screen": 1,
+      "actions": 1
+    }
+  },
+  "frames": [
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui": {
+          "screen": 1,
+          "actions": 0
+        }
+      }
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui": {
+          "screen": 1,
+          "actions": 1
+        }
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui_new_page": true
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui": {
+          "screen": 0,
+          "actions": 0
+        },
+        "ui_new_page": true
+      }
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui": {
+          "screen": 1,
+          "actions": 1
+        }
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui": {
+          "screen": 2,
+          "actions": 1
+        }
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "ui": {
+          "screen": 1,
+          "actions": 1
+        }
+      }
+    },
+    {
+      "dt_ms": 250
+    },
+    {
+      "dt_ms": 250
+    }
+  ],
+  "expect": [
+    {
+      "op": "ui_action_submit",
+      "result": 1
+    },
+    {
+      "op": "ui_action_submit",
+      "result": 2
+    }
+  ]
+}

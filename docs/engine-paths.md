@@ -149,11 +149,11 @@ Model setup resolves the middleware view, initializes its binding manager, and p
 
 ### Development page extension
 
-`runtime/diagnostics/native_ui_panel.html` is a self-authored development extension for the engine-owned options menu. It defines a **Mods** tab with example toggle, amount and reset controls using the game's existing classes and Cohtml renderer. Its controls do not grant engine mutation or establish arbitrary page creation. This development extension is not a public Wasm UI API.
+`runtime/diagnostics/native_ui_panel.html` extends the engine-owned options menu with a **Mods** tab using the game's classes and Cohtml renderer. Development builds populate it from the bounded [typed settings API](mod-settings.md). Guests provide definitions and read values; they do not submit HTML, JavaScript or native pointers. This does not establish arbitrary page creation or engine mutation.
 
-Build with `build.bat -MovementProbe -Test`. With the game closed, install the resulting runtime, copy `dist/examples/native-ui/native-ui-panel.html` into the installed `crml/` directory, and create an empty `crml/native-ui.enabled` file. The regular player package does not enable this extension. Disable other UI-replacement mods for an isolated check; they can rewrite the same document or replace its resource handler.
+Build with `build.bat -MovementProbe -Test`. The runtime package includes the panel and prepares it when a mod declares `settings`; no diagnostic marker is required. The `examples/settings` package demonstrates Boolean, integer and numeric preferences. Other UI-replacement mods may rewrite the same document or replace its resource handler; coexistence is not guaranteed.
 
-Open **Options → Mods** with the mouse. Click the toggle, click or drag the amount bar, and use reset to restore **OFF / 50**. Values belong to the loaded page and have no gameplay effect or disk persistence. Controller navigation for the new rows is not implemented. Close and reopen Options, then reload a save and revisit the menu: the tab should remain usable without duplicate rows, and ordinary game options should continue working.
+Open **Options → Mods** with the mouse. Controls are grouped by mod ID. Values belong to the loaded guest instance and survive page replacement; guests choose whether to persist them through the separate storage capability. The example does not change gameplay. Controller navigation for mod rows remains unsupported. The generalized page is experimental; automated browser checks do not establish live renderer behavior.
 
 The tab keeps the existing native Options state and its input context. While its controls are visible, it temporarily detaches the six stock Options control callbacks by their exact function identities and installs its own cancel handler. Unrelated event listeners remain registered. Missing callback exports leave the original options visible. The stock tabs keep their binding-owned classes, with their selection styling suppressed until Mods closes.
 
@@ -163,11 +163,356 @@ The [UI stack queue map](research/ui-stack-queue-map.json) traces native `stack.
 
 The game's visibility binding can cache a page through `cloneNode(true)`. This preserves markup and marker attributes but drops JavaScript event listeners. Mounting therefore checks node identity and replaces stale cloned controls instead of treating a marker as proof that handlers are attached.
 
-The interceptor requires the exact reviewed executable, middleware and original HTML fingerprints. A mismatch passes the original document through. Captures are limited to four pending responses, eight MiB per document and 32 KiB of extension markup. It forwards unrelated routes and unsupported response modes. `crml/native-ui.jsonl` records bounded counters for observed requests, transformed documents, source mismatches, completion and outstanding responses; it records no document contents or URLs. A transformed response proves that bytes were delivered, not that widgets were rendered. Actual display and navigation require an in-game check.
+The interceptor requires the exact reviewed executable, middleware and original HTML fingerprints. A mismatch passes the original document through. Captures are limited to four pending responses and eight MiB per document. Each extension file is limited to 64 KiB, with 128 KiB of combined extension markup. It forwards unrelated routes and unsupported response modes. `crml/native-ui.jsonl` records bounded counters for observed requests, transformed documents, source mismatches, completion and outstanding responses; it records no document contents or URLs. A transformed response proves that bytes were delivered, not that widgets were rendered. Actual display and navigation require an in-game check.
 
 To disable the extension, close the game and remove `crml/native-ui.enabled`. The next launch uses the original page. Stopping native interception during a session does not remove an already loaded document; its controls remain owned by that page until cleanup or replacement. Deferred response ownership is retained, but concurrent method calls on the same response are not an established contract.
 
 A general bridge still needs bounded mod-owned descriptions, owner-scoped event delivery, verified readiness and execution phases, and cleanup across navigation, page replacement and reload. Native callback pointers, shared engine model containers and unrestricted JavaScript must not cross the Wasm boundary. The Cohtml and V8 dependencies describe the UI middleware; they do not identify the gameplay scripting VM.
+
+### Native input contexts
+
+The [input context map](research/input-context-map.json) records the October executable's controls flags, derived context predicates and UI navigation checks. The [0.564.478.0 adapter map](research/input-context-hotfix-map.json) records the reviewed input and menu observer relocations for the later hotfix. Each fingerprint is separate from the older UI stack map; addresses must not be mixed between builds.
+
+`nl_player_controls_enabled` tests two raw control-enable bits. The engine separately derives a context word and attaches predicates to action views. Both digital and analog action readers check these predicates, backend availability and generation. The raw Lua query can return true while the derived context word is zero, so it cannot by itself authorize mod input suppression.
+
+The traced input-environment population copies the third controls view into the player environment, cloning its predicate while retaining a borrowed reference to the controls object. A disconnected controls object selects an empty fallback instead of its embedded view. This establishes one producer-to-consumer path; it does not establish every environment's refresh frequency or prove that all input consumers share the same view.
+
+Native UI navigation also requires a matching applied stack state and an active stack. Absence of navigation polling does not establish gameplay ownership: transient guards, mouse interaction and text entry can follow other paths. The map records static behavior; exclusive gameplay ownership and a complete mapping of context bits remain unestablished. The SDK's foreground-focus flag continues to describe window focus only.
+
+The named `menuModeSystem` provides a separate positive menu-transition path. It matches navigation contexts against applied, active UI stacks and compares the result with raw controls bit 5. A mismatch queues an enter or leave request; the controls configuration is applied elsewhere. Request production alone is therefore not a completed input-mode change. The `ui::PageContent` listener also has a Cohtml `OnTextInputTypeChanged` slot, but its imported default handler does not establish a stored capture flag, notification lifetime or active-page ownership.
+
+#### Optional input observation
+
+Development builds with `CRML_MOVEMENT_PROBE` include two independent read-only observers enabled by an empty `crml/input-context.enabled` file beside the installed runtime. Restart the game after adding or removing this file. Each observer requires the reviewed October update or **0.564.478.0** hotfix executable and its matching hook entry; original and unknown executable profiles are refused. The hotfix moves the controls update, static object and predicate table while retaining their reviewed fields. The menu helper and its caller remain at the same addresses.
+
+The observer copies flags, connection state, predicate identity checks, backend generation, source availability and the update thread ID after the native context update returns. It follows the native reader's short-circuit order: a disconnected or stale view does not justify following its predicate and source pointers. Pending updates invalidate the previous sample; copied observations expire after 100 ms. An engine update that unwinds leaves observation unavailable for the rest of the process.
+
+The second observer copies the menu helper's two output bytes after normal return to its reviewed caller: whether an active context matched and the raw `+0x5c` byte from the last matching context. It checks that the caller initially zeroed both outputs and retains no engine pointers. Pending, overlapping or unwound calls are unknown; copied observations expire after 100 ms. The second byte has no established menu-subtype meaning. A negative scan does not establish exclusive gameplay input ownership.
+
+The session log records at most 64 semantic changes **per observer**, sampled no more often than every 250 ms. Status and observed fields trigger records; callback-thread migration alone does not spend this budget. Thread ID is included when a record is emitted. `source_checked=0` means source availability was not evaluated, not that the engine lacks a source. `status=unavailable` can also mean there is no fresh completed update. The separate controls and menu records are not a coherent engine-frame snapshot or a complete transition history. No input is suppressed, no controls data is written, and no guest permission is granted by these observations. Menu, text-entry, loading and reload behavior still require gameplay evidence.
+
+## Tutorials
+
+The [tutorial map](research/tutorial-map.json) separates two native presentation
+paths. Dynamic tutorials provide HUD hints with localized text, optional images,
+timer progress and a dismiss-input callout. Static tutorials use the
+`game/static_tutorial` UI state, center or side layouts, native input handling
+and UI events. Their sync system also receives fullscreen-blur state.
+
+The recovered `show_tutorial`, `set_tutorial_active` and `complete_tutorial`
+bindings operate on entity tutorial data. `show_tutorial` validates a string
+identifier against an existing table before queuing a request; an unknown
+identifier produces a script error. It does not accept arbitrary heading/body
+text or register a custom tutorial.
+
+The pre-save initializer converts asset tutorial records into an owned hash
+table in `TutorialData`. Runtime entries contain page vectors and auxiliary
+vectors; page construction, move insertion and whole-table destruction are
+mapped. Insertion can rebuild the table or relocate slots within its existing
+allocation, so lookup pointers are not stable handles. Duplicate detection
+compares a 32-bit key, which also means a mod
+namespace alone cannot guarantee collision-free registration.
+
+Both presentation paths resolve message text from the same page data. The
+resolver selects a matching conditional message or the page's default text
+and returns a borrowed view. This establishes the shared data path, but not a
+guest interface for localized text or remappable control prompts. Whole-table
+destruction is not suitable for removing one mod's tutorials.
+
+The request lifecycle distinguishes activation, deactivation, dismissal,
+completion and display. Deactivation removes active-list membership but does
+not clear every queued or selected reference. Completion changes native
+progression state and expects the tutorial record to remain present; deleting
+that record while completion is pending reaches an assertion path. Neither
+operation is a general unload function.
+
+Static panels can read either the primary tutorial table or a separate table
+in the same component. The primary path queues completion after the final
+page; the secondary page-end branch does not. This distinction may support
+separate mod presentation, but custom registration and isolation are not yet
+established. Closing a panel navigates the shared UI stack, so an adapter must
+account for intervening menus and observe the resulting transition before
+reporting that input has been restored.
+
+Secondary records own a page vector and move it into the table on successful
+insertion; duplicate keys leave ownership with the caller. Their slot pointers
+can change during either table growth or in-place compaction. Destroying a
+page vector alone does not remove its hash-table entry or any UI references.
+
+Initializer registration refers to `Variable update before fixed` and
+`Fixed Update`, with writable access to `TutorialData`. These are scheduling
+metadata, not proof that a mod can mutate the component from a native UI
+callback or worker thread. Actual ordering and component lifetime remain
+requirements for an adapter.
+
+The initializer also has an archetype-job caller at `0x2044cc0`, which
+constructs the same two-component query and calls the worker from `0x2044d60`.
+Live observation found hint synchronization, panel synchronization and panel
+events executing on multiple worker threads. A cached thread ID therefore
+cannot serve as an ownership check. An initializer invocation reached the
+worker through a different caller than the original dispatcher; that capture
+did not record its return address, so it cannot identify the alternate job as
+the caller. The observer now records module-relative caller addresses while
+continuing to reject unreviewed callers before reading their arguments.
+
+The experimental [Wasm tutorial API](mod-tutorials.md) uses separate mod-owned
+page data passed to the native renderers. It does not insert records into campaign
+tables. Native payload construction, scoped open/close operations and retirement
+guards have automated coverage; gameplay presentation, input restoration and
+world transitions still require qualification. Reusing tutorial CSS classes for
+passive feedback is a separate path and does not provide these lifecycle behaviors.
+
+### Record removal
+
+The traced tutorial cleanup functions destroy whole tables, component arrays or
+temporary setup data. None provides a verified per-key removal operation.
+Erasing a record also requires maintaining the table's empty and deleted slot
+markers, mirrored control bytes, size and insertion capacity; freeing its page
+vector alone leaves that bookkeeping inconsistent.
+
+A removal routine for a different native table supplies a metadata comparison.
+It chooses between an empty marker and a tombstone based on neighboring groups,
+preserving lookup paths for surviving entries. Tutorial tables use matching
+control conventions, including special mirror positions in small tables and an
+alignment-padding write in larger tables. The map records these details for
+adapter development. The other table's routine accepts a different key type and
+is not a callable tutorial-removal API. This structural evidence does not resolve
+payload ownership, outstanding references or a safe mutation phase.
+
+### Text storage and retirement
+
+Both presentation paths submit the selected page message through `0x1e54fa0`
+to the model string writer at `0x1b279b0`. Values shorter than 16 bytes are
+copied into inline model storage. Longer values use an engine string pool at
+`0x1b2a420`: an existing content-hash entry supplies an index, while new or reused
+slots receive a string assignment. The resulting model value does not retain
+the original page-string pointer.
+
+The native `garbageCollectFactDictionary` worker at `0x1b28d60` marks pooled
+strings referenced by dictionary entries, enabled Lua fact listeners and Lua
+fact events. It clears unreferenced strings, removes their hash entries and
+makes their indices reusable. Clearing a string retains its allocated storage;
+this is not proof that memory usage drops immediately or remains bounded under
+repeated messages. Live collection timing and synchronization with tutorial
+producers remain unestablished.
+
+The pool belongs to the shared `FactDictionary`, not to a particular tutorial
+or mod. Its reset and destructor paths destroy all pooled strings. An adapter
+must let native collection manage reuse after model and event references retire;
+it must not reset the dictionary or clear pooled strings on mod unload. Pool
+indices can be recycled and must not become persistent guest handles.
+
+The stock templates display localized heading text and render message
+translations through `data-bind-html`. The `LocString` wrapper forwards the
+identifier, not a supplied `translation` value. The shared native getter first
+looks up known localization keys; a valid UTF8 missing key takes a cached echo
+fallback. This is not an exact-literal interface: key collisions and localization
+debug modes can change the displayed text, and the body binding does not escape
+guest markup.
+
+The missing-key cache is separate from the `FactDictionary` string pool. Each
+distinct key adds a 456-byte node, with possible additional string allocations.
+Localization resource replacement and manager destruction clear it; no periodic
+or practical size eviction is established. Queue and rate limits alone therefore
+do not bound retained text. An adapter needs finite distinct-text admission and
+an explicit localization and escaping contract, without clearing shared state.
+
+The HUD tutorial's dismiss callout uses the native `CLOSE_TUTORIAL` action for
+its label, icon and hold indicator. The stock controls schema connects this
+action to `AUDIO_LOG_PLAY`. Its input worker at `0x1fe8e60` checks the displayed
+tutorial, its dismiss mode and the native input predicate, then appends request
+kind 3: completion. It does not perform owner-scoped cancellation. Static panels
+instead display `MENU_SELECT` and `MENU_HORIZONTAL`; mouse continuation sends
+`static_tutorial_continue`. These stock navigation controls do not establish an
+arbitrary guest action-to-glyph interface.
+
+Removing a tutorial record is not a cancellation operation. Static panel
+synchronization returns without closing when an unchanged page loses its
+record; the changed-page branch instead calls the shared stack-close helper.
+Even with a valid record, an out-of-range page can update page metadata while
+leaving the previous heading and message intact. Page bounds must remain valid
+until the presentation has retired.
+The active hint refresh can also return after a failed lookup without clearing
+its published state. A fading hint still reads its record. Timer expiry changes
+its state to hidden before a later update clears or replaces its displayed ID;
+the input worker can still submit completion for that ID in between. Neither
+deselection nor hidden state alone acknowledges that these references are gone.
+An adapter must stop new requests, retire the owned
+presentation and its references, and only then remove its data through a
+verified per-entry erase operation. Whole-table cleanup cannot provide this
+contract, and model-owned strings must not be freed as mod-owned page storage.
+
+The internal request adapter can withdraw an owned identifier from `Requests`,
+`PendingCompletion` and `SelectionQueue` within a matching request-dispatch
+scope. It preserves other entries and their order, leaves allocations intact,
+and reports remaining active/selected references. Native completion admission
+also deduplicates pending identifiers through its append helper. Neither
+mechanism establishes that an identifier's presentation or callbacks have
+retired. The withdrawal routine has native-layout test coverage; registration
+ownership and a live retirement path are not connected, and no guest tutorial
+API is exposed.
+
+Queue preparation rejects inaccessible, overlapping or oversized buffers before
+writing. An unexpected fault during in-place compaction is a partial failure;
+the caller must retain the payload and reconcile or recover, rather than retry
+blindly. This operation does not change game completion or dismissal history.
+
+For static panels, the native visibility predicate also accepts an ancestor
+screen underneath another menu. Closing such a panel through the native stack
+helper can pop intervening screens. An owned close must match the tutorial ID
+and mode, preserve the native context-active check, and require the first
+matching screen to be the current applied entry above index zero. These checks
+belong at the UI execution boundary. The event processor receives mutable
+`TutorialState` and `UIStateStacks` environment references; they are not covered
+by the request worker's ECS component access. Environment writes are registered
+separately: readers and writers of the same environment enter the scheduler's
+conflict graph without the entity-query filters. Mutable environments also force
+whole-system execution instead of archetype subdivision. A synchronous operation
+inside the event processor can use its declared environment access until that
+callback returns. This does not establish a particular thread or permit writes
+to `TutorialData`, which the event processor reads only.
+
+The native context-active predicate at `0x17d8680` accepts a nonzero explicit
+activity byte at context `+0xb8`; with that byte clear it follows relationships
+between contexts. Preserve the full predicate instead of inferring activity
+from one flag or screen name. A close operation still requires later
+confirmation that visibility and input ownership have been released.
+
+The internal panel adapter implements these close guards for the reviewed
+executable. It also checks the current world, full entity handle, event caller,
+and three declared environment arguments. Any pending native presentation event
+defers the close. Canonical stack and state names come from the same native
+string objects used by the close helper; visibility alone is never sufficient.
+A successful call returns `await_sync`, and a fault during the call returns
+`partial`. Neither result permits payload destruction. The registration owner
+must retain its record until presentation and input retirement are established.
+These guards have automated native-layout coverage; custom registration and
+the live retirement sequence remain incomplete.
+
+### Read-only observation
+
+The request dispatchers supply a world view, a 16-bit system or archetype ID,
+and a system descriptor. The inner request worker receives seven component
+arrays, a chunk and a row. Its full entity handle is stored in the chunk header.
+The runtime checks the handle generation, current location, chunk and row count,
+then resolves all seven component hashes back to the supplied arrays. World
+context is borrowed only within the current thread's dispatcher call; nested
+calls cannot inherit an invalid outer context. Cleanup covers both C++ and
+Windows structured exceptions without swallowing engine exceptions.
+
+Panel-event observation uses a separate whole-system dispatcher scope. It
+resolves the two entity component arrays and checks that the worker received
+the current `TutorialState`, `UIStateStacks` and `AudioEventRequests` objects.
+Schema 6 includes the resulting salted world/entity tokens for panel events
+as well as requests. The observer does not invoke the close adapter or modify
+tutorial data.
+
+The scheduler converts declared component conflicts into directed dependencies
+within each graph, ordered by the supplied system sequence. Callback return
+precedes release of successor dependencies. Required/excluded component filters
+and alternative groups can suppress conflicts, and graph batches have separate
+boundaries. This establishes an ordering mechanism for declared components,
+not exclusive access to the entire engine. In particular, the request worker's
+component access does not authorize changes to the shared UI stack or
+localization cache. See the map's `request_writer_boundary.scheduler_contract`
+for the traced graph construction and execution paths.
+
+An experimental build can observe five tutorial phases by placing an empty
+`tutorial-observer.enabled` file beside `crml_runtime.dll` before launch. The
+observer accepts only the executable fingerprint recorded in the tutorial map
+and checks the entry bytes and calling instructions before installing hooks.
+It forwards the original calls without submitting tutorial requests or changing
+their data. Remove the marker and restart to disable observation.
+
+The session log records initialization, hint synchronization, panel
+synchronization and panel events as phases 0–3. Schema 3 adds request processing
+as phase 4, at the native worker whose access descriptor includes writable
+tutorial data and request queues. Both reviewed dispatch paths supply the same
+data base and row fields. Schema 5 also hooks the two outer request dispatchers
+to check the current world and entity before recording request identity.
+Observing this worker does not establish permission to mutate its data.
+Capture lasts up to ten minutes,
+with at most 1,024 sampled spans per phase and a fixed 256-record buffer.
+Records include thread IDs, performance-counter timestamps and salted storage
+tokens; counters report overlap observations, query rejections and dropped
+samples. Sampling is shared by all callers and rows within each phase. A busy
+row can consume the budget; at the maximum rate it is exhausted before the
+ten-minute capture ends. Schema 4 reports budget usage and exhaustion explicitly.
+Schema 5 adds `identity`, `world` and `entity` fields. Identity status 1 means
+the scoped component checks succeeded; 0 means no identity was available, and
+2–7 describe rejected scope, query, entity, components, changed data or memory.
+World and entity values are salted tokens rather than published addresses.
+
+Capture is one-shot per process. It also stops when the existing runtime worker
+exits; it does not keep that worker alive. Closing admission prevents new
+observation spans, while already-admitted spans remain pending through event
+publication. A closing report with `final=0` is partial; `final=1` follows drainage
+of admitted spans. Worker shutdown may leave only a partial report. Neither
+status establishes that uninstrumented engine readers have finished. Live totals
+remain observational snapshots. Storage tokens describe component locations;
+entity tokens include the current handle generation and world address. Neither
+token establishes a persistent save identity or a world lifetime. Memory reuse
+and unobserved changes can invalidate lifetime inference. Overlap
+observations cover these instrumented calls, including observer overhead;
+their absence does not establish exclusive access or permission to mutate data.
+
+To collect a trace, load a save, open and close an ordinary menu, then return to
+the main menu. Existing tutorials should behave normally; the observer creates
+no new prompts. Preserve the session log before another launch. This trace can
+check whether the mapped boundaries execute, but it does not establish custom
+registration, dismissal ownership or reload cleanup.
+
+## HUD notifications
+
+The [notification map](research/notification-map.json) distinguishes the game's
+predefined HUD messages from its stock loot toasts. It applies to executable
+version 0.564.478.0; the recorded references do not authorize native calls.
+
+The script binding `hud_notification` accepts a predefined string enum. Its
+callback resolves the required ECS environment and appends a 12-byte record,
+unless a record of that type already exists. Unknown enum values are errors.
+It forwards neither arbitrary message text nor a mod identity or duration, and
+returns no Lua receipt. This binding therefore cannot directly implement the
+text and ownership contract of [mod feedback](mod-feedback.md).
+
+The stock toast component has eight game-owned slots. It consumes translated
+message/item fields, icon data, category, positioning and enter/leave state.
+Notification HUD visibility, queue emptiness and the hide-loot-notifications
+setting gate the container. The message field uses an HTML binding: a bridge
+accepting plain mod text must preserve its text-only contract when using it.
+
+The separate native notification queue accepts 184-byte tagged requests. Its
+producer destructively moves payload ownership, including native strings and
+vectors. The loot synchronizer selects active request kind 5 and payload variant
+0, a vector of 208-byte item records. It writes each item's message and label
+into the corresponding slot's string facts. The single-string variant 7 is a
+different payload and is not consumed by this synchronizer.
+
+The UI localization wrapper passes `locID` to its native binding; it does not
+pass a caller-supplied `translation` field. The stock toast displays the bound
+model's translation. Its native getter looks up the identifier in localization
+tables. When a valid UTF8 identifier is absent, the reviewed fallback converts
+it to UTF16, caches that value, and returns it as UTF8. This provides a candidate
+for literal messages, but matching existing keys and localization debug modes
+can change the result. The rich HTML sink still requires plain-text escaping.
+
+Each distinct missing key allocates a cache node of 456 bytes, plus any
+out-of-line string storage. Resource replacement and manager destruction clear
+the cache; the reviewed lookup and insertion paths have no practical eviction
+limit. A mod adapter must therefore bound distinct text in addition to active
+messages and publication rate. Message expiry does not reclaim cached keys,
+and clearing the shared cache is not a mod-owned cleanup operation.
+
+The queue applies shared category and per-kind limits. Its atomic ticket
+counter advances before payload initialization;
+this alone does not establish safe enqueue from an arbitrary worker thread.
+
+Assigning the toast models would overwrite shared presentation state. Reusing
+the native queue requires bounded text admission and a localization policy,
+establishing payload construction and the normal producer phase, and preserving
+mod attribution, cleanup and delivery receipts alongside game messages.
+The current feedback implementation instead owns its message queue and renders
+a separate CRML component inside the game's existing Cohtml document.
 
 ## Audio controls
 
@@ -246,6 +591,49 @@ The simpler setter at `0x1ba7ea0` updates the selector, its mirror and position 
 
 A camera lease must account for world and entity generations, engine update order, native free-camera input, competing camera switches and component removal. Releasing a lease should return to the still-valid gameplay camera without restoring an old player pose over its current state. A transition that invalidates the owned camera must cancel pending writes. Live switching, conflict handling and restoration remain outside the current camera API's guarantees.
 
+## Map and sonar presentation
+
+The HUD navigation display and full map have separate native producers. On the
+reviewed October hotfix, `heron::ui_sonar` updates HUD orientation, points of
+interest and presentation facts. `heron::ui_map`, `heron::ui_map_detail` and
+`heron::ui_map_menu` update map position, player markers, map data and menu state.
+Their named registrations are recorded in the
+[map presentation reference map](research/map-presentation-map.json).
+
+The native UI document binds the sonar's rotation and individual point transforms
+separately. The full map binds scale, translation, background bounds, a marker
+collection and the player camera transform. Its pan/zoom transform operates on
+map coordinates; it does not establish a world-to-map conversion. District, floor,
+gravity orientation, clipping and context lifetime must also be accounted for.
+
+The player-marker chain now identifies the district projector, its rotation and
+translation helper, and the subsequent map-rectangle placement. The projector
+halves world Y before rotation, applies district offset and scale, normalizes
+against transformed bounds, and flips the vertical coordinate. Native markers
+clamp the result at the map edge; a route needs segment clipping to avoid drawing
+spurious lines along that edge. The internal copied calculation rejects
+degenerate bounds rather than presenting a collapsed axis as a usable map.
+
+Sonar uses a separate camera/movement-plane projection and a piecewise distance
+scale with runtime near/far thresholds. It also filters marker eligibility by
+district and sonar state. Neither a fixed X/Z projection nor the full-map
+district transform reproduces this path.
+
+With capability observation enabled, the bounded `map_projection` stream
+compares the internal district calculation with ordinary native marker output.
+`compared` distinguishes an actual comparison from an unavailable result;
+`matched` reports agreement only for that sample. Reports contain no district
+pointers or world positions. This observation does not establish map-layer
+ownership, floor selection or a persistent coordinate identity.
+
+Schematic drawing keeps normalized viewport coordinates. The separate
+`map_read`/`map_publish` interface in development runtime 0.1.0-alpha.4.4.dev.2
+accepts bounded world-space segments and labels for the native full map. Its
+copied district calculation matched 336 native samples. Native rectangle
+placement and layer lifecycle still need gameplay qualification; sonar remains
+unsupported. See [drawing](mod-drawing.md) for ownership, freshness and results.
+Named engine addresses are research references, not callable guest interfaces.
+
 ## AI and navigation
 
 The registered Bonsai behavior-tree update specialized for `heron::GameBehaviorTreeContext` dispatches through `0x2522b00` to `0x2521230`. That implementation collects work into a temporary buffer, uses task helpers `0x3271560` and `0x3271140`, submits through `0x3271690`, and calls additional completion/lifetime helpers before releasing its temporary storage. The reviewed path contains a parallel-for source anchor and an update-behavior-tree work label.
@@ -257,6 +645,62 @@ This supports parallel work in that update path; it does not establish that the 
 `coregame::savegames::processWriteRequests` dispatches through `0x18c3770` to `0x18c0f90`. The latter traverses records at stride `0x5d8`, branches on request state, builds save-chunk storage and invokes serialization-related helpers. `processLoadRequests`, container updates, typed header caching, and gameplay save bindings are separately registered.
 
 This is a concrete request-processing entry, not a recovered save-file schema or proof of atomic/durable disk writes. Save cancellation, completion callbacks, version migration, checksums, and reconstruction of live entity/resource state remain unresolved.
+
+The saved player transform includes a separate `transformLevelBundleId`. On the
+reviewed October hotfix, restore consumer `0x227b550` requires a nonzero saved ID,
+a present current bundle ID, equality between them, and an open context gate
+before calling the transform writers. This establishes a native compatibility
+check for that restore path. It does not establish a unique coordinate frame or
+campaign identity. The optional diagnostic capture reports the copied entry
+conditions separately from native return; it does not claim that a transform was
+applied.
+
+The serialized `containerId` and `prefix` strings belong to save selection. The
+reviewed header-cache selection path can replace the current values, and is used
+by save-menu and New Game Plus requests. The save-request builder also constructs
+container names using `slot-{}` and the active slot byte; separate branches choose
+save-kind prefixes. A slot-derived name cannot distinguish a new playthrough that
+reuses that slot. Neither the selected strings nor a playthrough counter is
+currently established as an immutable campaign key. See the
+[navigation and save-context map](research/navigation-context-map.json) for the
+reviewed layouts, encoded references and remaining semantic limits.
+
+The `persi-global` save chunk serializes `playthroughNum` as a 16-bit value at
+offset `0x1ec`. Its capture helper reads the New Game Plus environment counter;
+an optional request flag increments the saved value, saturating at `0xffff`.
+The apply path restores that value to the environment when the chunk is present.
+This is separate from the header's `newGamePlusPlaythrough` and
+`isInitialNewGameSave` metadata. A restored progression counter does not identify
+a unique campaign, and these static paths do not establish rollback or new-game
+lifecycle guarantees.
+
+The current-profile chunk path serializes typed data into named byte buffers,
+transfers buffer ownership to a save request, and moves that request into an
+asynchronous queue. The returned request ticket is not a write-completion
+acknowledgement. The `persi-global` reader looks up a name, parses its bytes into
+a fixed typed object, consumes the matched entry, and transfers that object's
+ownership to the apply caller. A missing name returns no object; malformed data
+is not established to have the same outcome.
+
+These paths are potential save-extension points, not a supported custom-chunk
+interface. Unknown-chunk retention across subsequent saves, backend replacement
+rules, and recovery after a mod is removed remain unresolved. See
+`save_chunk_lifecycle` in the navigation map for the current-profile call chain
+and ownership boundaries.
+
+For the inspected Steam backend, ordinary chunk writes become operations on
+individual names. The final handler forwards the name, byte count and buffer to
+the storage interface. A separate operation removes a named entry. No sweep of
+unmentioned names was found in the traced ordinary-write handler, but this does
+not establish retention across higher-level container replacement, new-game
+flows or cloud recovery. Other distribution backends require separate review.
+
+The removal queue uses a different request kind from ordinary writes. Its
+continuation lists names and selects those beginning with the request prefix,
+using ASCII case-insensitive comparison, before submitting removal operations.
+An empty prefix matches every listed name. The enqueue producer and its
+new-game or slot-cleanup triggers are not established; the existence of this
+path alone does not imply that it runs on every save.
 
 ## Reproduce the reference checks
 

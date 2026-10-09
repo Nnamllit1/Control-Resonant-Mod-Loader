@@ -1,0 +1,2 @@
+# Browser protocol client for the authored native UI regression suites.
+websockets==16.0

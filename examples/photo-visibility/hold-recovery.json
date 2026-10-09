@@ -1,0 +1,247 @@
+{
+  "schema": 1,
+  "initial": {
+    "player": {
+      "generation": 1
+    },
+    "keys": [
+      "F8"
+    ]
+  },
+  "frames": [
+    {},
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {
+      "state": {
+        "input_fresh": false
+      }
+    },
+    {
+      "state": {
+        "input_fresh": true
+      }
+    },
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {
+      "state": {
+        "player": {
+          "generation": 2
+        }
+      }
+    },
+    {},
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {
+      "state": {
+        "player": {
+          "generation": 2,
+          "age_ms": 501
+        }
+      }
+    },
+    {
+      "state": {
+        "player": {
+          "generation": 2
+        }
+      }
+    },
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {
+      "state": {
+        "focused": false
+      }
+    },
+    {
+      "state": {
+        "focused": true
+      }
+    },
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {
+      "state": {
+        "input_emergency": true
+      }
+    },
+    {
+      "state": {
+        "input_emergency": false
+      }
+    },
+    {
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {
+      "state": {
+        "keys": []
+      }
+    }
+  ],
+  "expect": [
+    {
+      "op": "visibility_set",
+      "frame": 3,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 4,
+      "result": 0,
+      "args": [
+        0
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 7,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 8,
+      "result": 0,
+      "args": [
+        0
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 11,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 12,
+      "result": 0,
+      "args": [
+        0
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 15,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 16,
+      "result": 0,
+      "args": [
+        0
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 19,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_cancel",
+      "frame": 20,
+      "result": 0
+    },
+    {
+      "op": "visibility_set",
+      "frame": 20,
+      "result": 0,
+      "args": [
+        0
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 23,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 24,
+      "result": 0,
+      "args": [
+        0
+      ]
+    }
+  ]
+}

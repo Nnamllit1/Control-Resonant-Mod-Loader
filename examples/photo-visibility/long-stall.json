@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "initial": {
+    "player": {
+      "generation": 1
+    }
+  },
+  "frames": [
+    {
+      "dt_ms": 60000
+    },
+    {
+      "dt_ms": 60000,
+      "state": {
+        "keys": [
+          "F8"
+        ],
+        "returns": {
+          "visibility_set": -2
+        }
+      }
+    },
+    {
+      "dt_ms": 60000,
+      "state": {
+        "keys": [],
+        "returns": {
+          "visibility_set": null
+        },
+        "settings": [
+          {
+            "mod": "photo-visibility",
+            "key": "mode",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "keys": []
+      }
+    },
+    {
+      "dt_ms": 250,
+      "state": {
+        "keys": [
+          "F8"
+        ]
+      }
+    }
+  ],
+  "expect": [
+    {
+      "op": "visibility_set",
+      "frame": 2,
+      "result": -2,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 4,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 5,
+      "result": 1,
+      "args": [
+        1
+      ]
+    },
+    {
+      "op": "visibility_set",
+      "frame": 6,
+      "result": 0,
+      "args": [
+        0
+      ]
+    }
+  ]
+}
